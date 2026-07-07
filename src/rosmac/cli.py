@@ -130,6 +130,12 @@ def up() -> None:
     else:
         console.print("✓ VM 브리지 active (systemd)")
 
+    if not bridge.is_running() and vm_bridge == "active":
+        # 맥 브리지가 죽어 있었다면(정상 down 포함) VM 브리지의 이전 세션 라우트가
+        # 남아 있을 수 있음 (KI-17: SIGKILL 잔재 → 토픽 2배 수신). 재시작으로 초기화.
+        lima.shell(cfg.vm.name, "sudo systemctl restart zenoh-bridge", timeout=30)
+        console.print("✓ VM 브리지 세션 초기화 (KI-17 예방)")
+
     if bridge.start(cfg):
         console.print("✓ 맥 브리지 기동")
     else:
