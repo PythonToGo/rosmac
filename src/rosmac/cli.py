@@ -293,6 +293,74 @@ def shell(
 
 
 @app.command()
+def sim(
+    name: str = typer.Argument(..., help="프리셋 이름, 또는 stop|status|list"),
+    attach: bool = typer.Option(False, "--attach", help="tmux 세션에 붙어 로그 관찰"),
+    no_viz: bool = typer.Option(False, "--no-viz", help="READY 후 Foxglove를 열지 않음"),
+) -> None:
+    """VM에서 시뮬 프리셋 기동 (tmux) → health 폴링 → READY 시 Foxglove 오픈."""
+    import os
+
+    from rosmac import doctor as doctor_mod
+    from rosmac import sim as sim_mod
+
+    cfg = load()
+
+    if name == "list":
+        table = Table(title="rosmac sim 프리셋")
+        table.add_column("이름")
+        table.add_column("설명")
+        for n, desc in sorted(sim_mod.list_presets().items()):
+            table.add_row(n, desc)
+        console.print(table)
+        return
+    if name == "stop":
+        console.print("✓ sim 세션 종료" if sim_mod.stop(cfg) else "- 실행 중인 sim 세션 없음")
+        return
+    if name == "status":
+        console.print(sim_mod.status(cfg))
+        return
+    if attach:
+        os.execvp("limactl", ["limactl", "shell", cfg.vm.name, "--",
+                              "tmux", "attach", "-t", sim_mod.SESSION])
+
+    try:
+        preset = sim_mod.load_preset(name)
+    except KeyError as e:
+        console.print(f"[red]{e.args[0]}[/]")
+        raise typer.Exit(1) from None
+
+    # 사전 점검 (C2 VM, C5 포트, C6 맥 브리지, C7 VM 브리지 — C8은 느려서 제외)
+    pre = [c for c in doctor_mod.CHECKS
+           if c.name.split()[0] in ("C2", "C5", "C6", "C7")]
+    failed = [r for r in (c.run(cfg) for c in pre) if r.status == "FAIL"]
+    if failed:
+        for r in failed:
+            console.print(f"[red]{r.name}: {r.detail}[/] → {r.remedy}")
+        raise typer.Exit(1)
+
+    installed = sim_mod.ensure_apt(cfg, preset.vm_apt, progress=lambda m: console.print(f"  {m}"))
+    if installed:
+        console.print(f"✓ VM 패키지 설치: {', '.join(installed)}")
+    try:
+        sim_mod.start(cfg, preset)
+    except RuntimeError as e:
+        console.print(f"[yellow]{e}[/]")
+        raise typer.Exit(1) from None
+    console.print(f"✓ tmux 세션 '{sim_mod.SESSION}' 기동 — 로그: rosmac sim --attach")
+    with console.status("[cyan]health topics 대기 중…[/]"):
+        try:
+            sim_mod.wait_healthy(cfg, preset, progress=lambda m: console.print(f"  {m}"))
+        except RuntimeError as e:
+            console.print(f"[red]{e}[/]")
+            sim_mod.stop(cfg)
+            raise typer.Exit(1) from None
+    console.print("[green bold]READY[/]")
+    if not no_viz:
+        _start_viz(cfg)
+
+
+@app.command()
 def status() -> None:
     """VM/브리지/포트/conda env 상태 테이블."""
     cfg = load()
