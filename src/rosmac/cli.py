@@ -142,12 +142,31 @@ def _start_viz(cfg: Config) -> None:
 
 
 @app.command()
-def viz() -> None:
+def viz(
+    layout: str | None = typer.Option(None, "--layout", help="프리셋 레이아웃 이름 (panda|diffbot)"),
+) -> None:
     """Foxglove 시각화 연결 (VM foxglove_bridge 기동 + 앱 오픈)."""
     cfg = load()
     if lima.state(cfg.vm.name) is not lima.VmState.RUNNING:
         console.print("[red]VM이 실행 중이 아닙니다 — 먼저 `rosmac up`[/]")
         raise typer.Exit(1)
+    if layout:
+        # 실측(P2.5): Foxglove 딥링크는 로컬 레이아웃 파일 지정을 지원하지 않음 —
+        # 파일을 ~/.rosmac/layouts/에 놓고 Import 안내로 대체 (phase2 2.5 결정)
+        from importlib import resources
+        from pathlib import Path
+
+        src = resources.files("rosmac") / "assets" / "layouts" / f"{layout}.json"
+        if not src.is_file():
+            console.print(f"[red]레이아웃 '{layout}' 없음 (panda|diffbot)[/]")
+            raise typer.Exit(1)
+        dest = Path.home() / ".rosmac" / "layouts" / f"{layout}.json"
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_text(src.read_text())
+        console.print(
+            f"레이아웃 준비됨: {dest}\n"
+            "Foxglove에서 [bold]Layout 메뉴 → Import from file…[/] 로 불러오세요 (최초 1회)"
+        )
     _start_viz(cfg)
 
 

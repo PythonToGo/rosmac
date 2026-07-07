@@ -1,0 +1,42 @@
+{
+  "configById": {
+    "3D!panda": {
+      "cameraState": {
+        "distance": 3.5,
+        "phi": 60,
+        "thetaOffset": 45,
+        "targetOffset": [0, 0, 0.4]
+      },
+      "followTf": "world",
+      "scene": {},
+      "transforms": {},
+      "topics": {
+        "/monitored_planning_scene": { "visible": true }
+      },
+      "layers": {
+        "grid": { "layerId": "foxglove.Grid", "visible": true }
+      }
+    },
+    "RawMessages!joints": {
+      "topicPath": "/joint_states"
+    },
+    "RosOut!log": {
+      "searchTerms": [],
+      "minLogLevel": 2
+    }
+  },
+  "globalVariables": {},
+  "userNodes": {},
+  "playbackConfig": { "speed": 1 },
+  "layout": {
+    "direction": "row",
+    "first": "3D!panda",
+    "second": {
+      "direction": "column",
+      "first": "RawMessages!joints",
+      "second": "RosOut!log",
+      "splitPercentage": 55
+    },
+    "splitPercentage": 65
+  }
+}
