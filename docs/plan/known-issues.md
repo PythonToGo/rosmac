@@ -113,6 +113,32 @@
 - **해결**: 동시 실행이 필요하면 `micromamba run` 대신 셸 훅 활성화 사용:
   `eval "$(micromamba shell hook -s zsh)" && micromamba activate ros_env` 후 일반 실행
 
+## KI-16. fastrtps에서 브리지 경유 서비스 호출 무응답 (payload size 에러)
+- **증상**: 맥→VM `ros2 service call`이 영원히 대기. VM 서버 stderr에
+  `[RTPS_READER_HISTORY Error] Change payload size of '36' bytes is larger than
+  the history payload size of '23' bytes and cannot be resized` (2026-07-07 실측)
+- **원인**: Fast DDS(기본 RMW)의 리더 히스토리 프리얼록 버퍼가 zenoh 브리지가
+  보낸 서비스 요청 페이로드보다 작아 수신 거부. 토픽은 되고 서비스만 죽는 지문
+- **해결**: 양측 전부 `RMW_IMPLEMENTATION=rmw_cyclonedds_cpp`로 통일 (폴백 사다리 1단계).
+  cyclonedds 전환 후 서비스/액션/파라미터 전부 정상. Phase 1 기본값으로 채택 권고
+  (VM: `apt install ros-humble-rmw-cyclonedds-cpp`, 맥: 같은 이름 conda 패키지 `_18` 존재)
+
+## KI-17. 브리지 비정상 종료 잔재로 토픽 2배 수신 (KI-5 변형)
+- **증상**: `ros2 topic hz`가 정확히 2배(2.002Hz), echo에 같은 메시지 2회 —
+  브리지 프로세스는 양쪽 1개씩뿐인데도 발생 (2026-07-07 실측)
+- **원인**: 맥 브리지를 SIGKILL 등으로 죽였다 재기동하면, VM 브리지에 이전 세션의
+  라우트가 남아 신규 세션과 이중 라우팅됨 (VM 브리지 로그에 "New ROS 2 bridge
+  detected" 누적 3회 확인)
+- **해결**: 양쪽 브리지를 모두 재기동해 세션 상태 초기화. Phase 1 `rosmac up/down`은
+  브리지를 반드시 짝으로 관리하고 SIGTERM으로 정상 종료시킬 것 (R6 강화 근거)
+
+## KI-18. 셸 래퍼에서 pkill -f 자기 매칭
+- **증상**: `limactl shell vm -- bash -c 'pkill -f zenoh-bridge; ...'`가 exit 255,
+  후속 명령 미실행 (2026-07-07 실측, 3회 재현)
+- **원인**: `bash -c`의 커맨드라인 자체에 패턴 문자열이 포함돼 pkill이 자기 셸을 죽임
+- **해결**: 패턴에 문자 클래스 사용(`pkill -f "bigpub[.]py"`), comm 매칭(`pkill zenoh`),
+  또는 kill 명령을 별도 셸 호출로 분리
+
 ## KI-12. Foxglove가 URDF 메시 파일을 못 찾음 [계획시점]
 - **증상**: 3D 패널에 로봇이 흰 박스/빈 상태로 표시, 콘솔에 `package://` URL 해석 실패
 - **원인**: URDF의 `package://` 메시 경로를 Foxglove(맥)가 로컬에서 해석 못 함

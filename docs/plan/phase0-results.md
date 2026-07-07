@@ -68,13 +68,54 @@
   1차 VM은 수동으로 저장소 추가 후 설치해 검증했고, 최종 판정은 수정 YAML로
   delete→재생성한 2차 VM에서 수행
 
-### P0.3 zenoh-bridge-ros2dds 왕복 검증 — 착수 전
-- 바이너리 확보 완료 (양측 동일 버전 **1.9.0**, standalone):
+### P0.3 zenoh-bridge-ros2dds 왕복 검증 — PASS (T1~T9 전항목 + transient_local)
+- 바이너리 (양측 동일 버전 **1.9.0**, standalone, `-l`/`-e` 플래그 유효 확인):
   - mac(aarch64-apple-darwin): sha256 `997415721cfbb74b209b9968e7a7e4f6bed94e6afa4559ddb02ee1b2edccc899`
   - linux(aarch64-unknown-linux-gnu): sha256 `e3eb1fd4459e4b877653419b1c25eaf92418d70fe53ee767eca005f1a19443dc`
+- **RMW 조합: 양측 `rmw_cyclonedds_cpp` 1.3.4로 통일** (기본 fastrtps는 서비스에서
+  KI-16 발생 → 폴백 사다리 1단계 적용, 문서에 예고된 경로). 브리지 기동 env:
+  `ROS_LOCALHOST_ONLY=1 ROS_DOMAIN_ID=0 RMW_IMPLEMENTATION=rmw_cyclonedds_cpp`
+  + 맥 쪽은 `ROS_DISTRO=humble` 명시 필요 (없으면 브리지가 'iron' 가정 경고)
 
-## 게이트 결정
-- (0.1~0.3 완료 후 기입)
+| 테스트 | 결과 | 수치/비고 |
+|---|---|---|
+| T1 토픽 VM→맥 | **PASS** | echo exit 0 + 페이로드, hz 0.999 (≈1Hz) |
+| T2 토픽 맥→VM | **PASS** | echo exit 0, hz 0.997. 디스커버리 전파 ~10s 지연 관찰 |
+| T3 토픽 목록 가시성 | **PASS** | 양방향 모두 상대 토픽 표시 |
+| T4 서비스 | **PASS** | sum=42 정상 반환 (fastrtps에서는 KI-16으로 실패 → cyclonedds로 해결) |
+| T5 **액션** | **PASS** | goal accepted + **feedback 3회 스트림** + result + SUCCEEDED (A5 3요소 전부) |
+| T6 파라미터 | **PASS** | `param list`/`get /talker use_sim_time` → False |
+| T7 대역폭 | **PASS** | 3회 측정: 10.33 / 10.21 / 11.13 MB/s → **중앙값 10.33 MB/s** (기준 5MB/s), 1MB@10Hz 드랍 없음 |
+| T8 안정성 10분 | **PASS** | 동일 PID 15분+ 생존, RSS 맥 15.4→13.5MB / VM 18.9→19.4MB (폭주 없음), hz 1.000 유지 |
+| T9 재연결 | **PASS** | 맥 브리지 SIGTERM→재기동 후 수동 개입 없이 재개 (hz 1.001, 중복 없음). ⚠️ SIGKILL 시에는 KI-17 (2배 수신) — 정상 종료 필수 |
+| transient_local | **PASS** | latched `/desc`를 발행 후 **진짜 늦은 구독** 2회 모두 수신 (구독측 QoS 명시 필요 — KI-7 ③) |
+
+- 발견한 함정: KI-16 (fastrtps 서비스 무응답), KI-17 (브리지 비정상 종료 잔재 → 토픽 2배),
+  KI-18 (pkill 자기 매칭)
+- 관찰 사항 (Phase 1 설계 입력):
+  - 맥 브리지는 Router 모드로 [::]:7447도 listen — lima 포워드(127.0.0.1:7447, IPv4)와
+    충돌은 없지만, Phase 1에서는 명시 설정으로 listen을 끄거나 포트를 분리 권고
+  - `limactl start`는 provision 실패해도 exit 0 → 후검증 필수 (P0.2 기록 참조)
+  - ros2 데몬이 가끔 죽은 상태로 남음 → `ros2 daemon stop` 후 재시도로 해결
+
+## 게이트 결정 (판정안 — 사용자 승인 대기)
+- 판정: **GO** (아키텍처 수정 없음, 전술적 확정 사항 3건 포함)
+- 판정 근거:
+  - 3대 가정 전부 실측 통과: RoboStack 맥 네이티브(P0.1 PASS), Lima VM 무인 프로비저닝
+    (P0.2 PASS, 재현성 포함), zenoh 브리지 T1~T9 + transient_local (P0.3 PASS)
+  - 최대 리스크였던 T5 액션은 feedback 스트림 포함 완전 통과 → R1 해소
+  - 폴백 사다리는 1단계(RMW cyclonedds 통일)까지만 사용 — 문서에 예고된 경로
+- PLAN.md 반영 제안 (승인 필요):
+  1. **신규 결정 D9**: 양측 RMW 기본값 = `rmw_cyclonedds_cpp` (근거: KI-16 —
+     fastrtps는 브리지 경유 서비스가 구조적으로 깨짐. 재검토 조건: fastrtps 버그 수정 확인 시)
+  2. R1 상태 갱신: "해소 (Phase 0 실측)" — 완화책을 "cyclonedds 통일 유지"로 교체
+  3. R6 근거 보강: KI-17 (브리지 비정상 종료 시 라우트 잔재 → 2배 수신) —
+     `rosmac up/down`의 pidfile + SIGTERM 정상 종료가 필수임이 실측으로 확인됨
 
 ## 다음 페이즈 인계 메모
-- (게이트 통과 후 기입)
+- 스파이크 VM(`rosmac-spike`)은 정지 상태로 보존 (`limactl start rosmac-spike`로 재개).
+  Phase 1 자산의 원형은 `~/rosmac_spike/lima-rosmac.yaml` (OSRF 저장소 포함 버전)
+- 맥 브리지 기동 시 env 4개 필수: `ROS_LOCALHOST_ONLY=1 ROS_DOMAIN_ID=0
+  RMW_IMPLEMENTATION=rmw_cyclonedds_cpp ROS_DISTRO=humble` (마지막 것 빠지면 iron 가정)
+- `limactl start`는 provision 실패해도 exit 0 → `rosmac init`은 `/opt/ros/humble/setup.bash`
+  존재를 후검증할 것. 브리지 종료는 반드시 SIGTERM (KI-17)
