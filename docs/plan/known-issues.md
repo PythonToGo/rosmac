@@ -212,6 +212,18 @@
   ③ VM 내 수동 유닛 수정은 임시조치일 뿐임을 기억
 - **지문**: "재부팅 후에만 뭔가 되돌아간다" → 무조건 이것
 
+## KI-25. 구식 `cmake_minimum_required(VERSION 3.5)` 패키지가 맥 RoboStack에서 FindPython 실패
+- **증상**: 메시지 패키지(rosidl) colcon 빌드가
+  `Could NOT find Python (missing: Python_EXECUTABLE ... NumPy ...)` 로 실패.
+  python/numpy/헤더는 env에 전부 있는데도 (2026-07-07 실측, franka_msgs·franka_ros2 v2.2.0)
+- **원인**: 해당 패키지의 `cmake_minimum_required(VERSION 3.5)`가 CMake 정책을
+  구버전 세트로 고정 → CMP0094(OLD)의 VERSION 우선 탐색이 conda(macOS) python을
+  못 찾음. cmake 4.x에선 다른 에러(FindPythonInterp 제거)로 먼저 죽음 — cmake<4 핀 필요
+- **해결**: ① env에 `cmake<4` 유지 (Phase 0 env 생성 목록에 반영: `'cmake<4'`)
+  ② 소스 수정 없는 우회: `colcon build --cmake-args -DCMAKE_POLICY_DEFAULT_CMP0094=NEW`
+  (또는 `-DPython_EXECUTABLE=$CONDA_PREFIX/bin/python3.12`)
+- **지문**: 순수 rclcpp 패키지는 빌드되는데 .msg/.srv/.action 있는 패키지만 죽으면 이것
+
 ## KI-12. Foxglove가 URDF 메시 파일을 못 찾음 [계획시점]
 - **증상**: 3D 패널에 로봇이 흰 박스/빈 상태로 표시, 콘솔에 `package://` URL 해석 실패
 - **원인**: URDF의 `package://` 메시 경로를 Foxglove(맥)가 로컬에서 해석 못 함
