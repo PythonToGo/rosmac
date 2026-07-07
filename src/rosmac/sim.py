@@ -165,10 +165,19 @@ def wait_healthy(cfg: Config, preset: Preset, progress=None) -> None:
 
 
 def stop(cfg: Config) -> bool:
-    if not session_alive(cfg):
-        return False
-    lima.shell(cfg.vm.name, f"tmux kill-session -t {SESSION}", timeout=30)
-    return True
+    alive = session_alive(cfg)
+    if alive:
+        lima.shell(cfg.vm.name, f"tmux kill-session -t {SESSION}", timeout=30)
+    # tmux kill 시점에 launch가 시그널 핸들러 등록 전이면 gz/bridge가 고아로 남을 수
+    # 있음 (P2.4 실측: gz 2개 → 토픽 2배·기아). 프리셋 관련 잔여 프로세스 청소.
+    lima.shell(
+        cfg.vm.name,
+        'pkill -f "[r]osmac-presets" 2>/dev/null; '
+        'pkill -f "[i]gn gazebo" 2>/dev/null; '
+        'pkill -f "[p]arameter_bridge" 2>/dev/null; true',
+        timeout=30,
+    )
+    return alive
 
 
 def status(cfg: Config) -> str:
