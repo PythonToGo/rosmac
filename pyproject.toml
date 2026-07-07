@@ -1,0 +1,37 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "rosmac"
+version = "0.1.0"
+description = "One-command ROS2 Humble dev environment for Apple Silicon Macs"
+requires-python = ">=3.11"
+dependencies = [
+    "typer>=0.12",
+    "rich>=13",
+    "pyyaml>=6",
+    "pydantic>=2",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.4", "mypy>=1.10", "types-PyYAML"]
+
+[project.scripts]
+rosmac = "rosmac.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/rosmac"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests/unit"]   # e2e는 명시 실행: pytest tests/e2e -m e2e
+markers = ["e2e: requires real VM"]
+
+[tool.mypy]
+python_version = "3.11"
+packages = ["rosmac"]
+mypy_path = "src"
