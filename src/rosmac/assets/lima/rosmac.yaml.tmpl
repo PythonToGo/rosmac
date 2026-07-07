@@ -1,0 +1,22 @@
+# rosmac Lima VM — ARM64 Ubuntu 22.04 (Jammy), ROS2 Humble Tier 1
+# 이 파일은 템플릿이다. rosmac이 앳(delimiter) 플레이스홀더를 config로 치환해
+# ~/.rosmac/lima/rosmac.yaml 로 쓴다.
+# 원형: Phase 0.2에서 무인 재현 검증된 ~/rosmac_spike/lima-rosmac.yaml (phase0-results.md)
+images:
+  - location: "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-arm64.img"
+    arch: "aarch64"
+cpus: @cpus
+memory: "@memory"
+disk: "@disk"
+portForwards:
+  - guestPort: @bridge_port   # zenoh
+    hostPort: @bridge_port
+  - guestPort: @foxglove_port   # foxglove_bridge (Phase 2)
+    hostPort: @foxglove_port
+provision:
+  - mode: system
+    script: |
+@provision_ros
+  - mode: system
+    script: |
+@provision_bridge
