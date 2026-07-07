@@ -1,7 +1,7 @@
 # rosmac — macOS(Apple Silicon) ROS2 개발 환경 마스터 플랜
 
 > 최종 수정: 2026-07-07
-> 상태: **Phase 1 완료 (E2E 327s ALL PASS, 2026-07-07) — Phase 2 착수 가능**
+> 상태: **Phase 2 완료 (E2E ALL PASS, 2026-07-07) — v0.1 릴리스 가능, Phase 3(실험)은 선택**
 > 실측 기록: [`docs/plan/phase0-results.md`](docs/plan/phase0-results.md)
 >
 > **⚠️ 실행 에이전트(모델 무관)는 작업 시작 전에 반드시 [`AGENTS.md`](AGENTS.md)를
@@ -75,8 +75,8 @@ Phase 0에서 아키텍처 가정이 깨지면 이 문서의 2절부터 수정�
 |---|---|---|---|---|---|
 | R1 | ~~zenoh 브리지가 MoveIt **액션** QoS를 제대로 매핑 못 함~~ **해소** (Phase 0.3 실측: T5 accepted+feedback 스트림+SUCCEEDED, transient_local 포함) | — | — | D9(cyclonedds 통일) 유지가 전제 — fastrtps로 되돌리면 재발 (KI-16) | 해소됨 2026-07-07 |
 | R2 | RoboStack 패키징 버그 (예: dylib 링크 깨짐 — ros-noetic#459에서 libprotobuf 사례 확인됨) | 중 (개발 루프 저하) | 중 | `rosmac doctor`에 지문 감지 내장, 버전 핀 목록 유지 | Phase 0.1, 상시 |
-| R3 | Lima VM에서 Gazebo 물리 성능 부족 (소프트웨어 렌더링 센서) | 중 (카메라/LiDAR 시뮬 제한) | 중 | 헤드리스+저해상도 센서로 시작, Phase 3 GPU 백엔드로 근본 해결 | Phase 2.4 |
-| R4 | 대용량 토픽(카메라 이미지)이 브리지에서 병목 | 중 | 중 | zenoh 압축 옵션, `ros_gz_bridge`에서 다운샘플, Foxglove는 VM측 bridge(8765 직결)로 우회 가능 | Phase 0.3 대역폭 측정 |
+| R3 | ~~Lima VM Gazebo 물리 성능 부족~~ **해소** (P2.4 실측: 소프트웨어 EGL로 RTF 0.99, 카메라 15Hz 만속) | — | — | 고해상도/복수 센서는 Phase 3에서 재평가 | 해소됨 2026-07-07 |
+| R4 | ~~대용량 토픽 브리지 병목~~ **해소** (P0.3: 10.3MB/s, P2.4: 카메라 zenoh 경유 무손실 14.4fps) | — | — | 더 큰 이미지가 필요하면 Foxglove 8765 직결 경로 사용 (이미 기본) | 해소됨 2026-07-07 |
 | R5 | macOS 업데이트로 Lima/가상화 프레임워크 동작 변경 | 저 | 저 | CI 없음(개인 도구) → doctor가 버전 매트릭스 경고 | 상시 |
 | R6 | 브리지 이중 실행/좀비 프로세스로 토픽 루프·중복 | 중 | **고 (실측 확인)** | pidfile + `rosmac up` 멱등성 설계 (Phase 1.5). Phase 0 실측: SIGKILL 후 재기동 시 상대 브리지의 라우트 잔재로 정확히 2배 수신 (KI-17) → **SIGTERM 정상 종료 필수** | Phase 1 |
 
