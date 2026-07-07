@@ -1,7 +1,7 @@
 # rosmac — macOS(Apple Silicon) ROS2 개발 환경 마스터 플랜
 
 > 최종 수정: 2026-07-07
-> 상태: **Phase 0 완료 — 게이트 GO (사용자 승인 2026-07-07), Phase 1 착수 가능**
+> 상태: **Phase 1 완료 (E2E 327s ALL PASS, 2026-07-07) — Phase 2 착수 가능**
 > 실측 기록: [`docs/plan/phase0-results.md`](docs/plan/phase0-results.md)
 >
 > **⚠️ 실행 에이전트(모델 무관)는 작업 시작 전에 반드시 [`AGENTS.md`](AGENTS.md)를
