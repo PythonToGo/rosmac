@@ -1,7 +1,7 @@
 # rosmac — macOS(Apple Silicon) ROS2 개발 환경 마스터 플랜
 
 > 최종 수정: 2026-07-07
-> 상태: **Phase 2 완료 (E2E ALL PASS, 2026-07-07) — v0.1 릴리스 가능, Phase 3(실험)은 선택**
+> 상태: **Phase 2 완료 (E2E ALL PASS) — 제품화 트랙(Phase 4~6) 계획 수립, Phase 3(실험)은 선택**
 > 실측 기록: [`docs/plan/phase0-results.md`](docs/plan/phase0-results.md)
 >
 > **⚠️ 실행 에이전트(모델 무관)는 작업 시작 전에 반드시 [`AGENTS.md`](AGENTS.md)를
@@ -13,6 +13,13 @@
 
 Apple Silicon Mac에서 ROS2 Humble + MoveIt + RViz(대체: Foxglove) + Gazebo 기반
 개발이 **명령어 몇 개로** 가능하게 만드는 CLI 도구 `rosmac`을 개발한다.
+
+**최종 목표 (2026-07-07 확장)**: 개인 도구에 그치지 않고 **공개 가능한 제품**으로 —
+(a) 오픈소스 릴리스 (PyPI + GitHub public, v0.1.0),
+(b) 출판 (JOSS 소프트웨어 페이퍼 + ROSCon 발표 제안),
+(c) 포트폴리오 피쳐. Phase 4~6이 이 트랙이다. 공개의 전제는
+"모르는 사람의 맥에서 문서만으로 재현"(Phase 4.6 게이트)이며, 이 기준을
+통과하지 못한 상태로 공개하지 않는다.
 
 핵심 전략 — **레이어 분리 하이브리드**:
 
@@ -51,9 +58,14 @@ Apple Silicon Mac에서 ROS2 Humble + MoveIt + RViz(대체: Foxglove) + Gazebo �
 | 1 | rosmac CLI 코어 | `rosmac init/up/down/status/shell/doctor` 동작 | 맥 셸에서 `ros2 topic echo`로 VM talker 수신 (E2E) | [phase1](docs/plan/phase1-cli-core.md) |
 | 2 | 시뮬레이션·시각화 통합 | `rosmac sim <preset>` + Foxglove 자동 연결 | 맥 rclpy 노드 → VM MoveIt 플래닝 → Foxglove 시각화 E2E | [phase2](docs/plan/phase2-sim-viz.md) |
 | 3 | (실험) GPU 가속 VM 백엔드 | krunkit/Venus 벤치마크 리포트 | 소프트웨어 렌더링 대비 판정 기준 충족 시 백엔드 채택 | [phase3](docs/plan/phase3-gpu.md) |
+| 4 | 제품화 (릴리스 엔지니어링) | 배포 파이프라인, doctor --fix, uninstall, CI | **프레시 macOS 계정**에서 pipx 설치 → 문서만으로 Phase 2 E2E 통과 | [phase4](docs/plan/phase4-productionize.md) |
+| 5 | 오픈소스 런칭 | 영어 문서, 데모 자산, 커뮤니티 인프라, v0.1.0 공개 | 제3자가 README만으로 도구의 필요성 이해 + 설치 성공. 공개 행위는 사용자 실행 | [phase5](docs/plan/phase5-launch.md) |
+| 6 | 출판 | 벤치마크 스위트, JOSS paper.md, Zenodo DOI | 1차 venue 제출 완료 + 리뷰 대응 체계 | [phase6](docs/plan/phase6-publication.md) |
 
 **순서 규칙**: Phase 0의 게이트를 통과하기 전에는 Phase 1 코드를 쓰지 않는다.
 Phase 0에서 아키텍처 가정이 깨지면 이 문서의 2절부터 수정한다.
+제품화 트랙은 4 → 5 → 6 순서 강제 (4.6 재현성 게이트 없이 공개 금지,
+공개 repo 없이 JOSS 제출 불가). Phase 3(GPU)은 독립 실험 트랙 — 언제든 병행/생략 가능.
 
 ## 4. 결정 로그 (Decision Log)
 
@@ -68,6 +80,10 @@ Phase 0에서 아키텍처 가정이 깨지면 이 문서의 2절부터 수정�
 | D7 | 맥 네이티브 쪽 ROS2 = RoboStack `robostack-humble` 채널 | osx-arm64 프리빌트 바이너리 제공하는 유일한 채널 | 채널 폐기 시 → 소스빌드 아닌 "맥 네이티브 레이어 포기, VM 단독 모드" |
 | D8 | Gazebo 버전 = **Fortress (Ignition)** | Humble의 공식 페어링(`ros-humble-ros-gz`) | Harmonic 조합은 Phase 2에서 별도 검증 항목 |
 | D9 | RMW = **rmw_cyclonedds_cpp 양측 통일** (Phase 0 실측, 사용자 승인 2026-07-07) | 기본 fastrtps는 브리지 경유 서비스 요청을 리더 히스토리 프리얼록 버그로 거부 (KI-16). cyclonedds 전환 후 서비스/액션/파라미터 전부 정상 | fastrtps 해당 버그 수정 확인 시 |
+| D10 *(제안 — 승인 대기)* | 배포 채널 = **PyPI + pipx** 1급, Homebrew tap은 후순위 평가만 | 파이썬 CLI의 표준 경로, 자동화 비용 최소 (Trusted Publishing). brew formula는 유지비 대비 이득 불확실 | pipx 설치 마찰이 실측으로 확인될 때 |
+| D11 *(제안 — 승인 대기)* | 공개 문서 언어 = **영어 1급**, 한국어 병행(README.ko.md). 내부 계획 문서(docs/plan/)는 한국어 유지 | 도달 범위. 내부 문서 번역은 비용 대비 무가치 | — |
+| D12 *(제안 — 승인 대기)* | 버저닝 = **SemVer**, 공개 시작 v0.1.0, CHANGELOG 유지 (Keep a Changelog) | 0.y 동안 breaking 자유도 확보하면서 사용자 기대 관리 | 1.0 판단 시점에 재검토 |
+| D13 *(제안 — 승인 대기)* | 출판 1차 venue = **JOSS**, ROSCon 발표 병행 제안. 학회 full paper는 후순위 | 기여의 본질이 엔지니어링 통합+실측 함정 DB — JOSS의 존재 이유와 일치, 리뷰가 품질 검증을 겸함 | JOSS 리젝 또는 신규 연구 기여가 생길 때 |
 
 ## 5. 리스크 레지스터
 
@@ -79,6 +95,10 @@ Phase 0에서 아키텍처 가정이 깨지면 이 문서의 2절부터 수정�
 | R4 | ~~대용량 토픽 브리지 병목~~ **해소** (P0.3: 10.3MB/s, P2.4: 카메라 zenoh 경유 무손실 14.4fps) | — | — | 더 큰 이미지가 필요하면 Foxglove 8765 직결 경로 사용 (이미 기본) | 해소됨 2026-07-07 |
 | R5 | macOS 업데이트로 Lima/가상화 프레임워크 동작 변경 | 저 | 저 | CI 없음(개인 도구) → doctor가 버전 매트릭스 경고 | 상시 |
 | R6 | 브리지 이중 실행/좀비 프로세스로 토픽 루프·중복 | 중 | **고 (실측 확인)** | pidfile + `rosmac up` 멱등성 설계 (Phase 1.5). Phase 0 실측: SIGKILL 후 재기동 시 상대 브리지의 라우트 잔재로 정확히 2배 수신 (KI-17) → **SIGTERM 정상 종료 필수** | Phase 1 |
+| R7 | 업스트림 드리프트 — RoboStack 채널/zenoh 릴리스/lima 변경으로 **신규 설치**가 깨짐 (기존 사용자는 핀으로 보호되나 신규 유입이 죽음) | 고 (공개 후 신뢰 직결) | 중 | weekly CI가 실제 env 생성·URL 검증 (P4.4), 실패 시 자동 이슈. 버전 핀 + doctor 매트릭스 | Phase 4부터 상시 |
+| R8 | 단일 메인테이너 부하 — 공개 후 이슈/PR 대응이 지속 불가능해짐 | 중 | 중 | 지원 범위 명문화(비목표 절), `rosmac report`로 이슈 품질 강제, 함정 DB 기여 구조로 커뮤니티 분담 | Phase 5 런칭 후 |
+| R9 | 이름·상표 — PyPI `rosmac` 선점, "ROS" 상표 정책(Open Robotics) 저촉 | 저 | 저 | P4.5에서 이름 확보 선행, P5.5에서 상표 정책 확인·기록. 비상업·비접두(ros-*) 이름이라 위험 낮음 | Phase 4.5 |
+| R10 | 공개 이력 리스크 — git 이력의 민감정보(경로, 이메일, 내부 메모) | 중 | 저 | P5.5 점검 체크리스트에 이력 전수 스캔 포함. 발견 시 공개 전 처리 (필요시 squash 재구성 — 사용자 결정) | Phase 5.5 |
 
 ## 6. 리포지토리 구조 (Phase 1에서 생성)
 
