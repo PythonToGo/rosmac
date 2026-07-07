@@ -1,0 +1,111 @@
+# rosmac — macOS(Apple Silicon) ROS2 개발 환경 마스터 플랜
+
+> 최종 수정: 2026-07-07
+> 상태: 계획 수립 완료, Phase 0 착수 전
+>
+> **⚠️ 실행 에이전트(모델 무관)는 작업 시작 전에 반드시 [`AGENTS.md`](AGENTS.md)를
+> 먼저 읽을 것** — 배경지식, 절대 규칙, 태스크 수행 프로토콜, 에스컬레이션 기준, 용어집.
+> 막히면 [`docs/plan/known-issues.md`](docs/plan/known-issues.md)부터 검색.
+> 결과 기록 양식: [`docs/plan/templates/phase-results-template.md`](docs/plan/templates/phase-results-template.md)
+
+## 1. 프로젝트 목표
+
+Apple Silicon Mac에서 ROS2 Humble + MoveIt + RViz(대체: Foxglove) + Gazebo 기반
+개발이 **명령어 몇 개로** 가능하게 만드는 CLI 도구 `rosmac`을 개발한다.
+
+핵심 전략 — **레이어 분리 하이브리드**:
+
+| 레이어 | 실행 위치 | 이유 |
+|---|---|---|
+| L1 코드 개발/빌드/노드 실행 (rclpy/rclcpp, colcon) | 맥 네이티브 (RoboStack conda) | 빠른 개발 루프, IDE 통합 |
+| L2 시각화 | 맥 네이티브 Foxglove (RViz2는 보조) | macOS에서 원래 잘 되는 유일한 시각화 스택 |
+| L3 시뮬레이션 + 무거운 스택 (Gazebo, move_group) | Lima VM 내 ARM64 Ubuntu 22.04 | ROS2 Tier 1 플랫폼 = 문서 그대로 100% 동작 |
+| L4 경계 연결 (토픽/서비스/액션 투명 전달) | zenoh-bridge-ros2dds (양측) | DDS 멀티캐스트가 VM NAT를 못 넘는 문제의 해법 |
+
+## 2. 아키텍처
+
+```
+┌─ macOS (Apple Silicon) ─────────────────────────────────┐
+│  개발자 코드 (rclpy/rclcpp 노드)     Foxglove App        │
+│  RoboStack conda env (네이티브)      (네이티브 시각화)     │
+│         │                              │ ws:8765        │
+│  [zenoh-bridge-ros2dds]        [foxglove_bridge]        │
+│         │ tcp:7447 (lima port-forward) │                │
+│  ┌─ Lima VM: Ubuntu 22.04 arm64 (Tier 1) ────────────┐  │
+│  │  [zenoh-bridge-ros2dds]                           │  │
+│  │  Gazebo (headless) ──── move_group (MoveIt)       │  │
+│  │  ros-humble-desktop-full (apt 표준 설치)            │  │
+│  └───────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────┘
+```
+
+양측 모두 `ROS_LOCALHOST_ONLY=1`로 DDS를 자기 호스트 안에 가두고,
+경계 통과는 오직 zenoh 브리지(TCP 단일 포트)로만 한다.
+
+## 3. 페이즈 개요
+
+| Phase | 이름 | 산출물 | 성공 기준 (Definition of Done) | 상세 문서 |
+|---|---|---|---|---|
+| 0 | 기술 스파이크 (리스크 킬러) | 검증 리포트 `docs/plan/phase0-results.md` | 3대 가정(RoboStack/VM/브리지) 전부 실측 통과 + go/no-go 결정 기록 | [phase0](docs/plan/phase0-spike.md) |
+| 1 | rosmac CLI 코어 | `rosmac init/up/down/status/shell/doctor` 동작 | 맥 셸에서 `ros2 topic echo`로 VM talker 수신 (E2E) | [phase1](docs/plan/phase1-cli-core.md) |
+| 2 | 시뮬레이션·시각화 통합 | `rosmac sim <preset>` + Foxglove 자동 연결 | 맥 rclpy 노드 → VM MoveIt 플래닝 → Foxglove 시각화 E2E | [phase2](docs/plan/phase2-sim-viz.md) |
+| 3 | (실험) GPU 가속 VM 백엔드 | krunkit/Venus 벤치마크 리포트 | 소프트웨어 렌더링 대비 판정 기준 충족 시 백엔드 채택 | [phase3](docs/plan/phase3-gpu.md) |
+
+**순서 규칙**: Phase 0의 게이트를 통과하기 전에는 Phase 1 코드를 쓰지 않는다.
+Phase 0에서 아키텍처 가정이 깨지면 이 문서의 2절부터 수정한다.
+
+## 4. 결정 로그 (Decision Log)
+
+| # | 결정 | 근거 | 재검토 조건 |
+|---|---|---|---|
+| D1 | ROS2 배포판 = **Humble** | 요구사항 명시. Ubuntu 22.04 arm64 Tier 1 | 사용자가 Jazzy 요구 시 |
+| D2 | VM = **Lima** (UTM 아님) | CLI 자동화(YAML 템플릿, provision 스크립트, 포트포워딩, mount)가 압도적으로 쉬움. GUI 불필요(헤드리스 전략) | Phase 3에서 krunkit 채택 시 백엔드 추상화 |
+| D3 | 브리지 = **zenoh-bridge-ros2dds** | DDS wire를 zenoh로 변환, TCP 단일 포트, 토픽/서비스/액션 지원 | Phase 0.3 실패 시 → Fast DDS Discovery Server 폴백 |
+| D4 | 시각화 1급 = **Foxglove**, RViz2는 보조 | RViz2/OGRE는 macOS에서 구조적으로 불안정(리서치 확인). Foxglove는 macOS 네이티브 앱 | Foxglove 라이선스 정책 변경 시 → Lichtblick(오픈소스 포크) 검토 |
+| D5 | CLI 언어 = **Python 3.11+ (typer + rich)** | RoboStack env와 생태계 일치, 배포 pipx/brew 용이, subprocess 오케스트레이션에 충분 | 성능 문제 없음 — 재검토 불필요 |
+| D6 | 계획/코드 저장 위치 = `~/workspace/rosmac` | `~/workspace/macros`는 이 프로젝트와 무관한 별도 리포 (다른 remote) — 오염 방지 | — |
+| D7 | 맥 네이티브 쪽 ROS2 = RoboStack `robostack-humble` 채널 | osx-arm64 프리빌트 바이너리 제공하는 유일한 채널 | 채널 폐기 시 → 소스빌드 아닌 "맥 네이티브 레이어 포기, VM 단독 모드" |
+| D8 | Gazebo 버전 = **Fortress (Ignition)** | Humble의 공식 페어링(`ros-humble-ros-gz`) | Harmonic 조합은 Phase 2에서 별도 검증 항목 |
+
+## 5. 리스크 레지스터
+
+| # | 리스크 | 영향 | 확률 | 완화책 | 감지 시점 |
+|---|---|---|---|---|---|
+| R1 | zenoh 브리지가 MoveIt **액션**(goal/feedback/result) QoS를 제대로 매핑 못 함 | 치명적 (아키텍처 핵심) | 중 | Phase 0.3에서 액션 왕복을 최우선 검증. 폴백: Fast DDS Discovery Server | Phase 0.3 |
+| R2 | RoboStack 패키징 버그 (예: dylib 링크 깨짐 — ros-noetic#459에서 libprotobuf 사례 확인됨) | 중 (개발 루프 저하) | 중 | `rosmac doctor`에 지문 감지 내장, 버전 핀 목록 유지 | Phase 0.1, 상시 |
+| R3 | Lima VM에서 Gazebo 물리 성능 부족 (소프트웨어 렌더링 센서) | 중 (카메라/LiDAR 시뮬 제한) | 중 | 헤드리스+저해상도 센서로 시작, Phase 3 GPU 백엔드로 근본 해결 | Phase 2.4 |
+| R4 | 대용량 토픽(카메라 이미지)이 브리지에서 병목 | 중 | 중 | zenoh 압축 옵션, `ros_gz_bridge`에서 다운샘플, Foxglove는 VM측 bridge(8765 직결)로 우회 가능 | Phase 0.3 대역폭 측정 |
+| R5 | macOS 업데이트로 Lima/가상화 프레임워크 동작 변경 | 저 | 저 | CI 없음(개인 도구) → doctor가 버전 매트릭스 경고 | 상시 |
+| R6 | 브리지 이중 실행/좀비 프로세스로 토픽 루프·중복 | 중 | 중 | pidfile + `rosmac up` 멱등성 설계 (Phase 1.5) | Phase 1 |
+
+## 6. 리포지토리 구조 (Phase 1에서 생성)
+
+```
+rosmac/
+├── PLAN.md                     # 이 문서
+├── docs/plan/                  # 페이즈별 상세 계획 + 결과 리포트
+├── pyproject.toml
+├── src/rosmac/
+│   ├── cli.py                  # typer 엔트리포인트
+│   ├── config.py               # ~/.rosmac/config.yaml 로드/검증
+│   ├── lima.py                 # limactl 래퍼
+│   ├── conda.py                # micromamba 래퍼
+│   ├── bridge.py               # zenoh 브리지 프로세스 관리
+│   ├── doctor.py               # 진단
+│   ├── sim.py                  # (Phase 2) 프리셋 실행
+│   └── assets/
+│       ├── lima/rosmac.yaml    # Lima VM 템플릿
+│       ├── provision/          # VM 프로비저닝 셸 스크립트
+│       ├── presets/            # (Phase 2) 시뮬 프리셋 YAML
+│       └── layouts/            # (Phase 2) Foxglove 레이아웃 JSON
+└── tests/
+    ├── unit/
+    └── e2e/                    # 실제 VM 필요, 수동/태그 실행
+```
+
+## 7. 작업 규약
+
+- 커밋 단위: 계획서의 태스크 번호(예: `[P1.4] rosmac init: RoboStack env 생성`).
+- 각 태스크는 상세 문서의 **완료 기준(AC)** 을 전부 만족해야 완료로 표기.
+- 검증 명령의 실제 출력은 `docs/plan/phaseN-results.md`에 붙여넣어 기록 (버전 번호 포함 — 재현성).
+- 상세 문서의 명령어는 "계획 시점 최선"이며, 실행 중 달라지면 문서를 고치고 결과 리포트에 사유를 남긴다.
