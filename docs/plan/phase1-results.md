@@ -59,9 +59,23 @@
   rmw_cyclonedds_cpp) [x] `--vm` 동일 (KI-19 대응: -c 모드는 source+env 명시 래핑)
 - 인터랙티브 경로는 ZDOTDIR 임시 zshrc로 검증 (ros2가 ros_env 경로로 해석됨)
 
-### P1.8 E2E 수용 테스트 — 진행 중
+### P1.8 E2E 수용 테스트 — PASS
+- AC: [x] 초기화(VM+env 삭제)→init→up→talker→echo→doctor→down 무인 통과
+  [x] 총 소요 **327초** (README "설치 소요" 근거: 패키지 캐시 있는 상태.
+  내역: conda env 124s + VM 프로비저닝 170s + 나머지)
+  [x] 이 리포트 기록 완료 — Phase 2 착수 게이트
 - 스크립트: `tests/e2e/test_smoke.sh` (문서 스니펫 대비 수정: GNU timeout 부재 →
   perl alarm; KI-17 회귀 검사로 hz 0.8~1.2 판정 추가; VM 명령은 rosmac shell --vm -c 경유)
+- 판정 상세: E2E-5 "Hello World" 수신 / E2E-5b hz **1.001** (중복 없음) /
+  doctor C1~C11 전부 PASS / down 후 잔여 프로세스 0
+- 1차 실행 실패 → **KI-20 발견**: 초기화가 pidfile만 지워 고아 브리지가 남았고,
+  새 브리지가 [::]:7447 충돌로 즉사 (doctor C6이 정확히 잡음). 제품 수정 2건:
+  bridge.start() 즉사 감지(로그 tail 포함 에러), bridge.stop() 고아 정리. 수정 후 재실행 전체 통과
 
-## 다음 페이즈 인계 메모
-- (E2E 완료 후 기입)
+## 다음 페이즈 인계 메모 (Phase 2 실행자에게)
+- `rosmac init && rosmac up`만으로 E2E 성립. 진단은 `rosmac doctor` (C8이 최종 왕복 판정)
+- VM 쪽 ROS 명령은 반드시 `rosmac shell --vm -c` 경유 (KI-19: bash -lc는 ROS 소싱 안 됨)
+- 맥 브리지는 router 모드라 [::]:7447도 listen — Phase 2에서 foxglove/추가 포트 설계 시
+  포트 충돌 주의. client 모드 전환은 검토 옵션 (검증 필요)
+- 스파이크 VM(rosmac-spike)은 이제 불필요 — 디스크 회수하려면 `limactl delete -f rosmac-spike`
+  (사용자 확인 후). 제품 VM은 'rosmac' (Stopped 상태로 보존됨)
