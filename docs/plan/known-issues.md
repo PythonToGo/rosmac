@@ -148,6 +148,17 @@
 - **해결**: 프로그램적 VM 명령은 항상 `source /opt/ros/humble/setup.bash`를 명시.
   Phase 0 스파이크가 우연히 전부 명시했어서 그때는 안 드러났음
 
+## KI-20. 고아 맥 브리지 → 새 브리지가 포트 충돌로 즉사 (KI-5/R6 변형)
+- **증상**: `rosmac up`은 성공처럼 보이는데 doctor C6 FAIL(실행 중 아님) + C8은 PASS.
+  브리지 로그 끝에 `Unable to open listener tcp/[::]:7447 ... Address already in use
+  ... Exiting` (2026-07-07 실측, Phase 1 E2E)
+- **원인**: pidfile 없이 도는 고아 브리지(수동 기동/판일 삭제)가 router 모드의
+  listen 포트 [::]:7447을 점유 → 새 브리지가 기동 직후 종료. 트래픽은 고아가
+  처리하므로 통신은 되는 척 함 — 관리 불능 상태
+- **해결**: ① bridge.start()가 스폰 1.5s 후 생존 확인, 즉사 시 로그 tail과 함께 에러
+  ② bridge.stop()이 pidfile 밖 고아(pgrep -f 경로)도 SIGTERM 정리
+  ③ 진단은 doctor C6(pidfile) + 로그의 "Address already in use" 지문
+
 ## KI-12. Foxglove가 URDF 메시 파일을 못 찾음 [계획시점]
 - **증상**: 3D 패널에 로봇이 흰 박스/빈 상태로 표시, 콘솔에 `package://` URL 해석 실패
 - **원인**: URDF의 `package://` 메시 경로를 Foxglove(맥)가 로컬에서 해석 못 함

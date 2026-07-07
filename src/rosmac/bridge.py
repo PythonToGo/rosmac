@@ -96,22 +96,42 @@ def start(cfg: Config) -> bool:
             env=env,
             start_new_session=True,  # rosmac 종료와 무관하게 생존
         )
+    # 스폰 직후 사망 감지 (KI-20: 고아 브리지가 [::]:{port}를 점유하면 즉사)
+    time.sleep(1.5)
+    if proc.poll() is not None:
+        tail = LOG_PATH.read_text()[-500:] if LOG_PATH.exists() else ""
+        raise RuntimeError(
+            f"맥 브리지가 기동 직후 종료됨 (exit {proc.returncode}). "
+            f"고아 브리지 확인: pgrep -f zenoh-bridge-ros2dds\n로그 끝부분:\n{tail}"
+        )
     PID_PATH.write_text(str(proc.pid))
     return True
 
 
-def stop(grace_seconds: float = 3.0) -> bool:
-    """SIGTERM → 대기 → SIGKILL. 브리지가 없었으면 False."""
-    if not is_running():
-        return False
-    pid = int(PID_PATH.read_text().strip())
+def _terminate(pid: int, grace_seconds: float) -> None:
     os.kill(pid, signal.SIGTERM)
     deadline = time.monotonic() + grace_seconds
     while time.monotonic() < deadline:
         if not _pid_alive(pid):
-            break
+            return
         time.sleep(0.1)
-    else:
-        os.kill(pid, signal.SIGKILL)
+    os.kill(pid, signal.SIGKILL)
+
+
+def _orphan_pids() -> list[int]:
+    """pidfile 밖에서 돌고 있는 rosmac 브리지 프로세스 (R6: 좀비 정리 대상)."""
+    p = subprocess.run(["pgrep", "-f", str(BIN_PATH)], capture_output=True, text=True)
+    return [int(line) for line in p.stdout.split() if line.strip()]
+
+
+def stop(grace_seconds: float = 3.0) -> bool:
+    """SIGTERM → 대기 → SIGKILL. pidfile 밖 고아 브리지도 함께 정리 (KI-20)."""
+    stopped = False
+    if is_running():
+        _terminate(int(PID_PATH.read_text().strip()), grace_seconds)
+        stopped = True
     PID_PATH.unlink(missing_ok=True)
-    return True
+    for pid in _orphan_pids():
+        _terminate(pid, grace_seconds)
+        stopped = True
+    return stopped

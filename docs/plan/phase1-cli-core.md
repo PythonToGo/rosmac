@@ -392,11 +392,13 @@ def stop() -> None: ...              # SIGTERM → 3초 대기 → SIGKILL, pidf
 
 ## 부록 D — E2E 판정 스니펫 (1.8)
 
-`tests/e2e/test_smoke.sh`의 핵심 판정부 (그대로 사용 가능):
+`tests/e2e/test_smoke.sh`의 핵심 판정부:
+> 실행 시 수정 (Phase 1 실측): macOS/ros_env에 GNU `timeout`이 없어 `perl -e "alarm N; exec @ARGV"`로
+> 대체함. VM 쪽 명령은 `.bashrc` 소싱에 의존하지 말고 `rosmac shell --vm -c`를 쓸 것 (KI-19).
 ```bash
 set -euo pipefail
 # 5단계: 메시지 수신 판정
-OUT=$(rosmac shell -c 'timeout 10 ros2 topic echo /chatter --once' || true)
+OUT=$(rosmac shell -c 'perl -e "alarm 30; exec @ARGV" ros2 topic echo /chatter --once' || true)
 echo "$OUT" | grep -q "Hello World" \
   && echo "E2E-5 PASS" || { echo "E2E-5 FAIL: $OUT"; exit 1; }
 # 7단계: 잔여 프로세스 판정
