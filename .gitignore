@@ -7,3 +7,6 @@ __pycache__/
 .ruff_cache/
 dist/
 .DS_Store
+examples/build/
+examples/install/
+examples/log/

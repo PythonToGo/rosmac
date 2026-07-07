@@ -69,6 +69,8 @@ def create_env(cfg: Config, timeout: int = 3600) -> None:
 
 def run_in_env(cfg: Config, cmd: str, timeout: int = 60) -> str:
     """env 안에서 명령 실행 (ROS 환경변수 주입 포함), stdout 반환."""
+    from rosmac.assets import ensure_mac_cyclonedds
+
     p = _check(
         [
             "micromamba",
@@ -80,6 +82,7 @@ def run_in_env(cfg: Config, cmd: str, timeout: int = 60) -> str:
             f"ROS_DOMAIN_ID={cfg.ros.domain_id}",
             f"RMW_IMPLEMENTATION={cfg.ros.rmw}",
             f"ROS_DISTRO={cfg.ros.distro}",
+            f"CYCLONEDDS_URI={ensure_mac_cyclonedds()}",
             "bash",
             "-c",
             cmd,

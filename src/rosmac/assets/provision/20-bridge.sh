@@ -19,6 +19,7 @@ After=network-online.target
 
 [Service]
 Environment=ROS_LOCALHOST_ONLY=1 ROS_DOMAIN_ID=@domain_id ROS_DISTRO=@distro
+Environment=CYCLONEDDS_URI=file:///etc/cyclonedds.xml
 ExecStart=/usr/local/bin/zenoh-bridge-ros2dds -l tcp/0.0.0.0:@bridge_port
 Restart=on-failure
 KillSignal=SIGTERM

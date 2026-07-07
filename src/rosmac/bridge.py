@@ -82,11 +82,14 @@ def start(cfg: Config) -> bool:
     LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
     if LOG_PATH.exists():  # 로그 rotate
         LOG_PATH.replace(LOG_PATH.with_suffix(".log.1"))
+    from rosmac.assets import ensure_mac_cyclonedds
+
     env = dict(os.environ)
     env.update(
         ROS_LOCALHOST_ONLY="1",
         ROS_DOMAIN_ID=str(cfg.ros.domain_id),
         ROS_DISTRO=cfg.ros.distro,  # 없으면 브리지가 'iron' 가정 (Phase 0 실측)
+        CYCLONEDDS_URI=ensure_mac_cyclonedds(),  # KI-23
     )
     with LOG_PATH.open("w") as log:
         proc = subprocess.Popen(

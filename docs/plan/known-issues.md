@@ -171,6 +171,27 @@
 - **여담**: foxglove-bridge systemd 유닛에 `HOME` env 필수 — 없으면 rcl_logging이
   "Failed to get logging directory"로 즉사 (30-foxglove.sh에 반영됨)
 
+## KI-22. ament_python 실행 파일이 bin/에 설치돼 `ros2 run`이 못 찾음
+- **증상**: colcon build 성공 후 `ros2 run <pkg> <exe>` → `No executable found`.
+  실행 파일이 `install/<pkg>/bin/`에 있음 (`lib/<pkg>/`가 아니라) (2026-07-07 실측, py312 env)
+- **원인**: 최신 setuptools가 스크립트를 bin/에 설치. ros2 run은 lib/<pkg>/만 봄 (상류 이슈)
+- **해결**: 패키지에 setup.cfg 추가:
+  `[develop] script_dir=$base/lib/<pkg>` + `[install] install_scripts=$base/lib/<pkg>`
+  (examples/pick_demo/setup.cfg 참조)
+
+## KI-23. CycloneDDS 참가자 10개 제한 → spawner 등 노드가 조용히 죽음
+- **증상**: 노드 로그에 `Failed to find a free participant index for domain 0` +
+  `rmw_create_node: failed to create domain` — MoveIt 스택에서 panda_arm_controller
+  spawner만 실패해 goal이 error_code=-4(CONTROL_FAILED)로 즉시 반환 (2026-07-07 실측)
+- **원인**: ROS_LOCALHOST_ONLY=1 → lo는 멀티캐스트 불가 → CycloneDDS가 유니캐스트
+  디스커버리로 폴백 → 참가자 인덱스 필요 → 기본 MaxAutoParticipantIndex=9라
+  **호스트당 DDS 참가자 10개 제한**. 브리지 2개+MoveIt 노드 7개+CLI로 초과
+- **해결**: CycloneDDS 설정으로 상한 확장 (assets/cyclonedds.xml, MaxAutoParticipantIndex=120).
+  VM은 /etc/cyclonedds.xml + systemd 유닛/프로파일에 CYCLONEDDS_URI, 맥은
+  ~/.rosmac/cyclonedds.xml — rosmac이 모든 실행 경로(run_in_env/bridge/shell/sim)에 주입
+- **지문**: 액션 goal이 "Solution found but controller failed during execution"과 함께
+  수십 ms 만에 실패하면 이것부터 의심
+
 ## KI-12. Foxglove가 URDF 메시 파일을 못 찾음 [계획시점]
 - **증상**: 3D 패널에 로봇이 흰 박스/빈 상태로 표시, 콘솔에 `package://` URL 해석 실패
 - **원인**: URDF의 `package://` 메시 경로를 Foxglove(맥)가 로컬에서 해석 못 함

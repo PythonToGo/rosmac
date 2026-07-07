@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>pick_demo</name>
+  <version>0.1.0</version>
+  <description>rosmac 예제: 맥 네이티브 rclpy 노드가 VM의 MoveIt을 액션으로 구동</description>
+  <maintainer email="pythontogoplease@gmail.com">taeyoungkim</maintainer>
+  <license>MIT</license>
+  <depend>rclpy</depend>
+  <depend>moveit_msgs</depend>
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>
