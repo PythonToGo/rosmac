@@ -139,6 +139,15 @@
 - **해결**: 패턴에 문자 클래스 사용(`pkill -f "bigpub[.]py"`), comm 매칭(`pkill zenoh`),
   또는 kill 명령을 별도 셸 호출로 분리
 
+## KI-19. VM에서 `bash -lc`가 ROS env를 못 받음 (.bashrc early-return)
+- **증상**: `limactl shell ... bash -lc 'ros2 ...'`가 `ros2: No such file or directory`
+  — 프로비저닝이 .bashrc에 source 라인을 넣었는데도 (2026-07-07 실측, Phase 1)
+- **원인**: Ubuntu 기본 `.bashrc` 상단의 비인터랙티브 early-return(`case $- in *i*)`)
+  때문에 끝에 추가된 `source /opt/ros/humble/setup.bash`에 도달하지 못함.
+  인터랙티브 셸(`rosmac shell --vm`)은 정상
+- **해결**: 프로그램적 VM 명령은 항상 `source /opt/ros/humble/setup.bash`를 명시.
+  Phase 0 스파이크가 우연히 전부 명시했어서 그때는 안 드러났음
+
 ## KI-12. Foxglove가 URDF 메시 파일을 못 찾음 [계획시점]
 - **증상**: 3D 패널에 로봇이 흰 박스/빈 상태로 표시, 콘솔에 `package://` URL 해석 실패
 - **원인**: URDF의 `package://` 메시 경로를 Foxglove(맥)가 로컬에서 해석 못 함
