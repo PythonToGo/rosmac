@@ -1,7 +1,7 @@
-# Phase 4 — 제품화 (릴리스 엔지니어링·견고성)
+# Phase 5 — 제품화 (릴리스 엔지니어링·견고성)
 
 > 목표: "내 맥에서 돌아가는 도구"를 **모르는 사람이 자기 맥에 설치해서 성공하는 제품**으로.
-> 착수 조건: Phase 2 완료 (충족됨). Phase 3(GPU)과 독립 — 병행 가능.
+> 착수 조건: **Phase 4 완료** (기능 보강 게이트 — 실사용 갭 A1~A4 해소 없이 제품화 금지). Phase 3(GPU)·Phase 4.5(완성도)와는 독립 — 병행 가능.
 > E2E 성공 기준: **rosmac을 한 번도 설치한 적 없는 macOS 계정**에서
 > `pipx install rosmac`(또는 TestPyPI) → README Quickstart만 보고 →
 > Phase 2 E2E(sim panda-moveit + 맥 제어 노드) 통과.
@@ -10,17 +10,17 @@
 ## 태스크 의존 그래프
 
 ```
-4.1 지원 매트릭스·버전 정책 ─→ 4.5 패키징·배포 ─→ 4.6 프레시 머신 검증 (게이트)
-4.2 CLI 견고성 ──────────────┤
-4.3 doctor 강화 + report ────┤
-4.4 CI 파이프라인 ───────────┘
+5.1 지원 매트릭스·버전 정책 ─→ 5.5 패키징·배포 ─→ 5.6 프레시 머신 검증 (게이트)
+5.2 CLI 견고성 ──────────────┤
+5.3 doctor 강화 + report ────┤
+5.4 CI 파이프라인 ───────────┘
 ```
 
-4.1~4.4는 상호 독립(순서 자유), 4.5가 이들을 묶고, 4.6이 최종 게이트다.
+5.1~5.4는 상호 독립(순서 자유), 5.5가 이들을 묶고, 5.6이 최종 게이트다.
 
 ---
 
-## 4.1 지원 매트릭스·버전 정책
+## 5.1 지원 매트릭스·버전 정책
 
 ### 절차
 1. 공식 지원 선언을 문서화 (README + doctor C1 경고 기준):
@@ -34,11 +34,11 @@
 ### 완료 기준 (AC)
 - [ ] `rosmac --version` 이 pyproject 버전과 일치 (단일 소스 확인 테스트 포함)
 - [ ] README에 지원 매트릭스 표 존재
-- [ ] CHANGELOG.md 존재 + 규약이 CONTRIBUTING(Phase 5)에서 참조 가능한 형태
+- [ ] CHANGELOG.md 존재 + 규약이 CONTRIBUTING(Phase 6)에서 참조 가능한 형태
 
 ---
 
-## 4.2 CLI 견고성 (production hardening)
+## 5.2 CLI 견고성 (production hardening)
 
 ### 배경
 현재 CLI는 정상 경로는 튼튼하지만(E2E 검증), 비정상 경로의 UX가 제품 수준이 아니다:
@@ -62,7 +62,7 @@
 
 ---
 
-## 4.3 doctor 강화 + `rosmac report`
+## 5.3 doctor 강화 + `rosmac report`
 
 ### 배경
 RCM 지원 세션(2026-07-07)에서 실사용자가 겪은 3대 장애 — ros2 데몬 hang,
@@ -88,7 +88,7 @@ VM sim 잔존 토픽 오염, zenoh 브리지 낡은 라우트 — 는 전부 **d
 
 ---
 
-## 4.4 CI 파이프라인
+## 5.4 CI 파이프라인
 
 ### 배경/제약
 GitHub Actions macOS 러너(macos-14/15, arm64)는 **nested virtualization이 제한적**이라
@@ -101,7 +101,7 @@ E2E는 로컬 수동 실행으로 남기되 실행 절차를 CI 문서에 명시
 2. `weekly.yml` (cron, R7 완화): macOS 러너에서 `micromamba create` 실제 실행으로
    RoboStack 채널 드리프트 감지 + zenoh-bridge 릴리스 URL/sha 유효성 확인.
    실패 시 GitHub Issue 자동 생성.
-3. E2E 러너 실측: macOS 러너에서 `limactl start` 시도 → 결과를 phase4-results.md에 기록,
+3. E2E 러너 실측: macOS 러너에서 `limactl start` 시도 → 결과를 phase5-results.md에 기록,
    불가 판정이면 `tests/e2e/README`에 "로컬 전용" 명시.
 
 ### 완료 기준 (AC)
@@ -111,7 +111,7 @@ E2E는 로컬 수동 실행으로 남기되 실행 절차를 CI 문서에 명시
 
 ---
 
-## 4.5 패키징·배포
+## 5.5 패키징·배포
 
 ### 절차
 1. **이름 확보**: PyPI `rosmac` 가용성 확인. 선점돼 있으면 대안(`rosmac-cli` 등)을
@@ -132,7 +132,7 @@ E2E는 로컬 수동 실행으로 남기되 실행 절차를 CI 문서에 명시
 
 ---
 
-## 4.6 프레시 머신 재현성 검증 (Phase 4 게이트)
+## 5.6 프레시 머신 재현성 검증 (Phase 5 게이트)
 
 ### 절차
 1. 이 맥에 **새 macOS 사용자 계정** 생성 (완전 초기 상태 — brew 없음이 이상적이나
@@ -144,7 +144,7 @@ E2E는 로컬 수동 실행으로 남기되 실행 절차를 CI 문서에 명시
 ### 완료 기준 (AC)
 - [ ] 새 계정에서 Quickstart → Phase 2 E2E까지 **문서 외 지식 0으로** 통과
 - [ ] 발견된 걸림돌 전부 반영 후 재실행 1회 클린 통과
-- [ ] phase4-results.md에 타임라인·버전 기록
+- [ ] phase5-results.md에 타임라인·버전 기록
 
 ## 명시적 비목표
 - Linux/Windows 지원, Intel Mac 지원
