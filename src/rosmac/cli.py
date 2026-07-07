@@ -109,8 +109,50 @@ def init(
     console.print(table)
 
 
+def _start_viz(cfg: Config) -> None:
+    """VM foxglove-bridge 기동 + 맥 Foxglove 앱 딥링크 오픈 (2.1)."""
+    import glob
+    import socket
+    import subprocess
+
+    lima.shell(cfg.vm.name, "sudo systemctl start foxglove-bridge", timeout=30)
+    deadline = time.monotonic() + 15
+    while time.monotonic() < deadline:
+        try:
+            with socket.create_connection(("127.0.0.1", cfg.foxglove_port), timeout=2):
+                break
+        except OSError:
+            time.sleep(1)
+    else:
+        console.print(f"[yellow]⚠ 포트 {cfg.foxglove_port} 미개방 — "
+                      f"limactl shell {cfg.vm.name} -- journalctl -u foxglove-bridge[/]")
+        return
+    console.print(f"✓ foxglove_bridge active (ws://localhost:{cfg.foxglove_port})")
+    if glob.glob("/Applications/Foxglove*.app"):
+        subprocess.run(
+            ["open", f"foxglove://open?ds=foxglove-websocket&ds.url=ws://localhost:{cfg.foxglove_port}"],
+            check=False,
+        )
+        console.print("✓ Foxglove 앱 오픈 (딥링크)")
+    else:
+        console.print(
+            "[yellow]Foxglove 앱이 없습니다 — https://foxglove.dev/download 에서 설치 후\n"
+            f"  Open connection → ws://localhost:{cfg.foxglove_port} 로 접속하세요[/]"
+        )
+
+
 @app.command()
-def up() -> None:
+def viz() -> None:
+    """Foxglove 시각화 연결 (VM foxglove_bridge 기동 + 앱 오픈)."""
+    cfg = load()
+    if lima.state(cfg.vm.name) is not lima.VmState.RUNNING:
+        console.print("[red]VM이 실행 중이 아닙니다 — 먼저 `rosmac up`[/]")
+        raise typer.Exit(1)
+    _start_viz(cfg)
+
+
+@app.command()
+def up(viz: bool = typer.Option(False, "--viz", help="Foxglove 시각화도 함께 연결")) -> None:
     """VM 기동(정지 시) + 맥 브리지 기동 + 연결 스모크."""
     cfg = load()
     vm_state = lima.state(cfg.vm.name)
@@ -148,6 +190,9 @@ def up() -> None:
         console.print("✓ 브리지 상호 감지 확인")
     else:
         console.print("[yellow]⚠ 브리지 상호 감지 로그 미확인 — rosmac doctor 권장[/]")
+
+    if viz:
+        _start_viz(cfg)
 
 
 @app.command()

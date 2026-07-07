@@ -38,11 +38,14 @@ def render_lima_yaml(cfg: Config) -> str:
         "bridge_sha256_linux": cfg.bridge.sha256_linux,
         "domain_id": str(cfg.ros.domain_id),
         "distro": cfg.ros.distro,
+        "rmw": cfg.ros.rmw,
     }
     provision_ros = _AtTemplate(_read_asset("provision/10-ros2-humble.sh")).substitute(subs)
     provision_bridge = _AtTemplate(_read_asset("provision/20-bridge.sh")).substitute(subs)
+    provision_foxglove = _AtTemplate(_read_asset("provision/30-foxglove.sh")).substitute(subs)
     subs["provision_ros"] = _indent(provision_ros, 6)
     subs["provision_bridge"] = _indent(provision_bridge, 6)
+    subs["provision_foxglove"] = _indent(provision_foxglove, 6)
     return _AtTemplate(_read_asset("lima/rosmac.yaml.tmpl")).substitute(subs)
 
 
