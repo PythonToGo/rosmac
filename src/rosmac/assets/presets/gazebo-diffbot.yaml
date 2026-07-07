@@ -1,0 +1,11 @@
+name: gazebo-diffbot
+description: "Gazebo Fortress headless diff drive (맥에서 /cmd_vel 제어, Foxglove로 /odom)"
+vm_apt:
+  - ros-humble-ros-gz
+  - ros-humble-ros-gz-sim-demos
+vm_env: {}
+launch:
+  cmd: "ros2 launch ~/rosmac-presets/gazebo-diffbot/diffbot.launch.py"
+foxglove_layout: diffbot.json
+health_topics:
+  - { name: /odom, timeout: 45 }

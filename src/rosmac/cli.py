@@ -354,7 +354,10 @@ def sim(
         try:
             sim_mod.wait_healthy(cfg, preset, progress=lambda m: console.print(f"  {m}"))
         except RuntimeError as e:
-            console.print(f"[red]{e}[/]")
+            from rich.markup import escape
+
+            # 로그 tail에 [ ... ] 가 흔해 rich 마크업으로 오파싱됨 — escape 필수
+            console.print(f"[red]{escape(str(e))}[/]")
             sim_mod.stop(cfg)
             raise typer.Exit(1) from None
     console.print("[green bold]READY[/]")
