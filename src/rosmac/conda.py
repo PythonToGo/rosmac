@@ -15,6 +15,7 @@ from rosmac.config import Config
 ENV_PACKAGES = [
     "ros-humble-desktop",
     "ros-humble-rmw-cyclonedds-cpp",
+    "ros-humble-xacro",  # desktop 메타패키지에 없음 — launch의 FindExecutable('xacro') 실패 (KI-26)
     "compilers",
     "cmake<4",  # cmake 4는 rosidl의 FindPythonInterp 제거로 메시지 패키지 빌드 불가 (KI-25)
     "pkg-config",

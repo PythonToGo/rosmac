@@ -10,3 +10,7 @@ dist/
 examples/build/
 examples/install/
 examples/log/
+# 리포 루트에서 실수로 colcon build 실행 시 생기는 잔재
+/build/
+/install/
+/log/
