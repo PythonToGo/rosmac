@@ -16,7 +16,7 @@ ENV_PACKAGES = [
     "ros-humble-desktop",
     "ros-humble-rmw-cyclonedds-cpp",
     "compilers",
-    "cmake",
+    "cmake<4",  # cmake 4는 rosidl의 FindPythonInterp 제거로 메시지 패키지 빌드 불가 (KI-25)
     "pkg-config",
     "make",
     "ninja",
