@@ -11,6 +11,7 @@ launch:
   # rviz/db만 제거한 동봉 headless launch 사용 (부록 C 패턴, 구성은 상류와 동일)
   cmd: "ros2 launch ~/rosmac-presets/panda-moveit/demo_headless.launch.py"
 foxglove_layout: panda.json
+# 타임아웃은 VM 콜드 부팅 직후 기준 (P2.7 실측: 웜 상태 ~15s, 콜드 ~40s+디스커버리)
 health_topics:
-  - { name: /joint_states, timeout: 30 }
-  - { name: /monitored_planning_scene, timeout: 45 }
+  - { name: /joint_states, timeout: 90 }
+  - { name: /monitored_planning_scene, timeout: 60 }

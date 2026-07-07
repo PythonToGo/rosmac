@@ -191,6 +191,13 @@
   ~/.rosmac/cyclonedds.xml — rosmac이 모든 실행 경로(run_in_env/bridge/shell/sim)에 주입
 - **지문**: 액션 goal이 "Solution found but controller failed during execution"과 함께
   수십 ms 만에 실패하면 이것부터 의심
+- **⚠️ 변형 (P2.7 실측, 진단에 2시간 소요)**: 설정이 **일부 프로세스에만** 적용되면
+  더 악랄한 부분 가시성이 생긴다 — Max=9인 프로세스는 인덱스 10+ 참가자를
+  **영원히 발견 못 함** (SPDP 유니캐스트를 자기 상한까지만 쏨). 증상: 토픽 일부는
+  되는데 서비스/액션만 무응답, 참가자 수·기동 순서에 따라 성공/실패가 오락가락.
+  VM 재부팅 후 zenoh-bridge 유닛에 CYCLONEDDS_URI가 빠져 있던 것이 원인이었음.
+  **점검법**: `cat /proc/$(pgrep -x zenoh-bridge-ro)/environ | tr '\0' '\n' | grep CYCLONE`
+  — 모든 ROS/DDS 프로세스(systemd 유닛 포함)가 동일 설정을 가져야 한다
 
 ## KI-12. Foxglove가 URDF 메시 파일을 못 찾음 [계획시점]
 - **증상**: 3D 패널에 로봇이 흰 박스/빈 상태로 표시, 콘솔에 `package://` URL 해석 실패

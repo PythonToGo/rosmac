@@ -76,7 +76,8 @@ class MoveClient(Node):
 def main() -> None:
     rclpy.init()
     node = MoveClient()
-    if not node.client.wait_for_server(timeout_sec=20):
+    # 브리지 첫 접속 직후엔 액션(서비스 5종) 라우트 전파에 수십 초 걸릴 수 있음 (P2.7 실측)
+    if not node.client.wait_for_server(timeout_sec=60):
         print("move_action 서버 없음 — rosmac sim panda-moveit 실행 여부 확인", file=sys.stderr)
         raise SystemExit(2)
     results = [node.move_to(name) for name in SEQUENCE]
