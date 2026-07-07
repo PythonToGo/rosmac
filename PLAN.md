@@ -1,7 +1,8 @@
 # rosmac — macOS(Apple Silicon) ROS2 개발 환경 마스터 플랜
 
 > 최종 수정: 2026-07-07
-> 상태: 계획 수립 완료, Phase 0 착수 전
+> 상태: **Phase 0 완료 — 게이트 GO (사용자 승인 2026-07-07), Phase 1 착수 가능**
+> 실측 기록: [`docs/plan/phase0-results.md`](docs/plan/phase0-results.md)
 >
 > **⚠️ 실행 에이전트(모델 무관)는 작업 시작 전에 반드시 [`AGENTS.md`](AGENTS.md)를
 > 먼저 읽을 것** — 배경지식, 절대 규칙, 태스크 수행 프로토콜, 에스컬레이션 기준, 용어집.
@@ -66,17 +67,18 @@ Phase 0에서 아키텍처 가정이 깨지면 이 문서의 2절부터 수정�
 | D6 | 계획/코드 저장 위치 = `~/workspace/rosmac` | `~/workspace/macros`는 TUM 과제 리포 remote가 붙어 있어 오염 방지 | — |
 | D7 | 맥 네이티브 쪽 ROS2 = RoboStack `robostack-humble` 채널 | osx-arm64 프리빌트 바이너리 제공하는 유일한 채널 | 채널 폐기 시 → 소스빌드 아닌 "맥 네이티브 레이어 포기, VM 단독 모드" |
 | D8 | Gazebo 버전 = **Fortress (Ignition)** | Humble의 공식 페어링(`ros-humble-ros-gz`) | Harmonic 조합은 Phase 2에서 별도 검증 항목 |
+| D9 | RMW = **rmw_cyclonedds_cpp 양측 통일** (Phase 0 실측, 사용자 승인 2026-07-07) | 기본 fastrtps는 브리지 경유 서비스 요청을 리더 히스토리 프리얼록 버그로 거부 (KI-16). cyclonedds 전환 후 서비스/액션/파라미터 전부 정상 | fastrtps 해당 버그 수정 확인 시 |
 
 ## 5. 리스크 레지스터
 
 | # | 리스크 | 영향 | 확률 | 완화책 | 감지 시점 |
 |---|---|---|---|---|---|
-| R1 | zenoh 브리지가 MoveIt **액션**(goal/feedback/result) QoS를 제대로 매핑 못 함 | 치명적 (아키텍처 핵심) | 중 | Phase 0.3에서 액션 왕복을 최우선 검증. 폴백: Fast DDS Discovery Server | Phase 0.3 |
+| R1 | ~~zenoh 브리지가 MoveIt **액션** QoS를 제대로 매핑 못 함~~ **해소** (Phase 0.3 실측: T5 accepted+feedback 스트림+SUCCEEDED, transient_local 포함) | — | — | D9(cyclonedds 통일) 유지가 전제 — fastrtps로 되돌리면 재발 (KI-16) | 해소됨 2026-07-07 |
 | R2 | RoboStack 패키징 버그 (예: dylib 링크 깨짐 — ros-noetic#459에서 libprotobuf 사례 확인됨) | 중 (개발 루프 저하) | 중 | `rosmac doctor`에 지문 감지 내장, 버전 핀 목록 유지 | Phase 0.1, 상시 |
 | R3 | Lima VM에서 Gazebo 물리 성능 부족 (소프트웨어 렌더링 센서) | 중 (카메라/LiDAR 시뮬 제한) | 중 | 헤드리스+저해상도 센서로 시작, Phase 3 GPU 백엔드로 근본 해결 | Phase 2.4 |
 | R4 | 대용량 토픽(카메라 이미지)이 브리지에서 병목 | 중 | 중 | zenoh 압축 옵션, `ros_gz_bridge`에서 다운샘플, Foxglove는 VM측 bridge(8765 직결)로 우회 가능 | Phase 0.3 대역폭 측정 |
 | R5 | macOS 업데이트로 Lima/가상화 프레임워크 동작 변경 | 저 | 저 | CI 없음(개인 도구) → doctor가 버전 매트릭스 경고 | 상시 |
-| R6 | 브리지 이중 실행/좀비 프로세스로 토픽 루프·중복 | 중 | 중 | pidfile + `rosmac up` 멱등성 설계 (Phase 1.5) | Phase 1 |
+| R6 | 브리지 이중 실행/좀비 프로세스로 토픽 루프·중복 | 중 | **고 (실측 확인)** | pidfile + `rosmac up` 멱등성 설계 (Phase 1.5). Phase 0 실측: SIGKILL 후 재기동 시 상대 브리지의 라우트 잔재로 정확히 2배 수신 (KI-17) → **SIGTERM 정상 종료 필수** | Phase 1 |
 
 ## 6. 리포지토리 구조 (Phase 1에서 생성)
 

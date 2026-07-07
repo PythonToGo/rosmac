@@ -98,8 +98,9 @@
   - `limactl start`는 provision 실패해도 exit 0 → 후검증 필수 (P0.2 기록 참조)
   - ros2 데몬이 가끔 죽은 상태로 남음 → `ros2 daemon stop` 후 재시도로 해결
 
-## 게이트 결정 (판정안 — 사용자 승인 대기)
+## 게이트 결정 — **GO 확정 (사용자 승인 2026-07-07, D9 포함)**
 - 판정: **GO** (아키텍처 수정 없음, 전술적 확정 사항 3건 포함)
+- PLAN.md 반영 완료: D9 추가, R1 해소 표기, R6 확률 상향+근거 보강, 상태줄 갱신
 - 판정 근거:
   - 3대 가정 전부 실측 통과: RoboStack 맥 네이티브(P0.1 PASS), Lima VM 무인 프로비저닝
     (P0.2 PASS, 재현성 포함), zenoh 브리지 T1~T9 + transient_local (P0.3 PASS)
