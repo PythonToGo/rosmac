@@ -224,6 +224,16 @@
   (또는 `-DPython_EXECUTABLE=$CONDA_PREFIX/bin/python3.12`)
 - **지문**: 순수 rclcpp 패키지는 빌드되는데 .msg/.srv/.action 있는 패키지만 죽으면 이것
 
+## KI-26. RoboStack `ros-humble-desktop`에 xacro 미포함 → launch가 알 수 없는 에러로 죽음
+- **증상**: `ros2 launch ...` 가
+  `executable '[<launch.substitutions.text_substitution.TextSubstitution object at 0x...>]' not found on the PATH`
+  로 즉사. 에러 문구에 실행 파일 이름 대신 substitution 객체 repr이 찍혀 원인 특정이 어려움 (2026-07-07 실측)
+- **원인**: launch 파일의 `Command([FindExecutable(name='xacro'), ...])` 패턴(URDF 생성 관례)에서
+  xacro 부재. apt의 desktop과 달리 RoboStack `ros-humble-desktop` 메타패키지에는 xacro가 없음
+- **해결**: env 생성 목록에 `ros-humble-xacro` 포함 (conda.py ENV_PACKAGES 반영).
+  기존 env는 `micromamba install -n ros_env -c conda-forge -c robostack-humble ros-humble-xacro`
+- **지문**: launch 에러에 `TextSubstitution object ... not found on the PATH` → FindExecutable 대상이 env에 없는 것
+
 ## KI-12. Foxglove가 URDF 메시 파일을 못 찾음 [계획시점]
 - **증상**: 3D 패널에 로봇이 흰 박스/빈 상태로 표시, 콘솔에 `package://` URL 해석 실패
 - **원인**: URDF의 `package://` 메시 경로를 Foxglove(맥)가 로컬에서 해석 못 함
