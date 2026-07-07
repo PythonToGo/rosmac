@@ -80,10 +80,10 @@ Phase 0에서 아키텍처 가정이 깨지면 이 문서의 2절부터 수정�
 | D7 | 맥 네이티브 쪽 ROS2 = RoboStack `robostack-humble` 채널 | osx-arm64 프리빌트 바이너리 제공하는 유일한 채널 | 채널 폐기 시 → 소스빌드 아닌 "맥 네이티브 레이어 포기, VM 단독 모드" |
 | D8 | Gazebo 버전 = **Fortress (Ignition)** | Humble의 공식 페어링(`ros-humble-ros-gz`) | Harmonic 조합은 Phase 2에서 별도 검증 항목 |
 | D9 | RMW = **rmw_cyclonedds_cpp 양측 통일** (Phase 0 실측, 사용자 승인 2026-07-07) | 기본 fastrtps는 브리지 경유 서비스 요청을 리더 히스토리 프리얼록 버그로 거부 (KI-16). cyclonedds 전환 후 서비스/액션/파라미터 전부 정상 | fastrtps 해당 버그 수정 확인 시 |
-| D10 *(제안 — 승인 대기)* | 배포 채널 = **PyPI + pipx** 1급, Homebrew tap은 후순위 평가만 | 파이썬 CLI의 표준 경로, 자동화 비용 최소 (Trusted Publishing). brew formula는 유지비 대비 이득 불확실 | pipx 설치 마찰이 실측으로 확인될 때 |
-| D11 *(제안 — 승인 대기)* | 공개 문서 언어 = **영어 1급**, 한국어 병행(README.ko.md). 내부 계획 문서(docs/plan/)는 한국어 유지 | 도달 범위. 내부 문서 번역은 비용 대비 무가치 | — |
-| D12 *(제안 — 승인 대기)* | 버저닝 = **SemVer**, 공개 시작 v0.1.0, CHANGELOG 유지 (Keep a Changelog) | 0.y 동안 breaking 자유도 확보하면서 사용자 기대 관리 | 1.0 판단 시점에 재검토 |
-| D13 *(제안 — 승인 대기)* | 출판 1차 venue = **JOSS**, ROSCon 발표 병행 제안. 학회 full paper는 후순위 | 기여의 본질이 엔지니어링 통합+실측 함정 DB — JOSS의 존재 이유와 일치, 리뷰가 품질 검증을 겸함 | JOSS 리젝 또는 신규 연구 기여가 생길 때 |
+| D10 | 배포 채널 = **PyPI + pipx** 1급, Homebrew tap은 후순위 평가만 (사용자 승인 2026-07-07) | 파이썬 CLI의 표준 경로, 자동화 비용 최소 (Trusted Publishing). brew formula는 유지비 대비 이득 불확실 | pipx 설치 마찰이 실측으로 확인될 때 |
+| D11 | 공개 문서 = **전부 영어** (한국어 병행판 없음). 내부 계획 문서(docs/plan/)만 한국어 유지 (사용자 승인 2026-07-07) | 도달 범위. 내부 문서 번역은 비용 대비 무가치 | — |
+| D12 | 버저닝 = **SemVer**, 공개 시작 v0.1.0, CHANGELOG 유지 (Keep a Changelog) (사용자 승인 2026-07-07) | 0.y 동안 breaking 자유도 확보하면서 사용자 기대 관리 | 1.0 판단 시점에 재검토 |
+| D13 | 출판 1차 venue = **JOSS** + ROSCon 병행 — 단 **준비까지만, 제출·발표 신청 등 실행은 보류** (사용자 결정 2026-07-07) | 기여의 본질이 엔지니어링 통합+실측 함정 DB — JOSS와 일치. 실행 시점은 사용자가 별도 지시 | 사용자가 제출 지시할 때 실행 단계 활성화 |
 
 ## 5. 리스크 레지스터
 
