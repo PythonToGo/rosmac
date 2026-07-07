@@ -20,3 +20,8 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y \
   ros-humble-desktop-full ros-dev-tools ros-humble-rmw-cyclonedds-cpp
 echo "source /opt/ros/humble/setup.bash" >> /etc/skel/.bashrc
 for f in /home/*/.bashrc; do echo "source /opt/ros/humble/setup.bash" >> "$f"; done
+# CycloneDDS 참가자 인덱스 상한 (KI-23 — lo 유니캐스트 디스커버리는 기본 10개 제한)
+cat > /etc/cyclonedds.xml <<'CDDS'
+@cyclonedds_xml
+CDDS
+echo 'export CYCLONEDDS_URI=file:///etc/cyclonedds.xml' >> /etc/profile.d/rosmac-cyclonedds.sh

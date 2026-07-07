@@ -11,6 +11,15 @@ from string import Template
 from rosmac.config import Config
 
 RENDERED_LIMA_PATH = Path.home() / ".rosmac" / "lima" / "rosmac.yaml"
+MAC_CYCLONEDDS_PATH = Path.home() / ".rosmac" / "cyclonedds.xml"
+
+
+def ensure_mac_cyclonedds() -> str:
+    """맥 쪽 CycloneDDS 설정 파일을 보장하고 CYCLONEDDS_URI 값을 반환 (KI-23)."""
+    if not MAC_CYCLONEDDS_PATH.exists():
+        MAC_CYCLONEDDS_PATH.parent.mkdir(parents=True, exist_ok=True)
+        MAC_CYCLONEDDS_PATH.write_text(_read_asset("cyclonedds.xml"))
+    return f"file://{MAC_CYCLONEDDS_PATH}"
 
 
 class _AtTemplate(Template):
@@ -39,6 +48,7 @@ def render_lima_yaml(cfg: Config) -> str:
         "domain_id": str(cfg.ros.domain_id),
         "distro": cfg.ros.distro,
         "rmw": cfg.ros.rmw,
+        "cyclonedds_xml": _read_asset("cyclonedds.xml").rstrip(),
     }
     provision_ros = _AtTemplate(_read_asset("provision/10-ros2-humble.sh")).substitute(subs)
     provision_bridge = _AtTemplate(_read_asset("provision/20-bridge.sh")).substitute(subs)

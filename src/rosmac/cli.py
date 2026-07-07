@@ -259,7 +259,8 @@ def shell(
             wrapped = (
                 f"source /opt/ros/{cfg.ros.distro}/setup.bash; "
                 f"export ROS_LOCALHOST_ONLY=1 ROS_DOMAIN_ID={cfg.ros.domain_id} "
-                f"RMW_IMPLEMENTATION={cfg.ros.rmw}; {command}"
+                f"RMW_IMPLEMENTATION={cfg.ros.rmw} "
+                f"CYCLONEDDS_URI=file:///etc/cyclonedds.xml; {command}"
             )
             print(lima.shell(cfg.vm.name, wrapped, timeout=300), end="")
             return
@@ -286,6 +287,7 @@ def shell(
             f"export ROS_DOMAIN_ID={cfg.ros.domain_id}\n"
             f"export RMW_IMPLEMENTATION={cfg.ros.rmw}\n"
             f"export ROS_DISTRO={cfg.ros.distro}\n"
+            f"export CYCLONEDDS_URI={assets.ensure_mac_cyclonedds()}\n"
             'export PS1="(rosmac) $PS1"\n'
         )
     env = dict(os.environ, ZDOTDIR=tmpdir)

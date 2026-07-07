@@ -98,18 +98,34 @@ def ensure_apt(cfg: Config, packages: list[str], progress=None) -> list[str]:
     return installed
 
 
+def _push_preset_assets(cfg: Config, preset: Preset) -> None:
+    """assets/presets/<name>/ 디렉토리가 있으면 VM ~/rosmac-presets/<name>/으로 전송."""
+    d = _asset_preset_dir() / preset.name
+    if not d.is_dir():
+        return
+    for f in d.iterdir():
+        if f.is_file():
+            lima.push(
+                cfg.vm.name,
+                f.read_text(),
+                f"~/rosmac-presets/{preset.name}/{Path(str(f)).name}",
+            )
+
+
 def start(cfg: Config, preset: Preset, progress=None) -> None:
     """tmux 세션으로 launch.cmd 실행. 이미 세션이 있으면 RuntimeError (R6 패턴)."""
     if session_alive(cfg):
         raise RuntimeError(
             f"tmux 세션 '{SESSION}'이 이미 있음 — rosmac sim status/stop 또는 --attach 사용"
         )
+    _push_preset_assets(cfg, preset)
     env_exports = " ".join(
         f"{k}={v}"
         for k, v in {
             "ROS_LOCALHOST_ONLY": "1",
             "ROS_DOMAIN_ID": str(cfg.ros.domain_id),
             "RMW_IMPLEMENTATION": cfg.ros.rmw,
+            "CYCLONEDDS_URI": "file:///etc/cyclonedds.xml",  # KI-23
             **preset.vm_env,
         }.items()
     )

@@ -54,6 +54,17 @@ def delete(name: str, timeout: int = 120) -> None:
     _check(["limactl", "delete", "-f", name], timeout=timeout)
 
 
+def push(name: str, content: str, dest: str, timeout: int = 60) -> None:
+    """텍스트 파일을 VM의 dest 경로로 쓴다 (디렉토리 자동 생성)."""
+    p = subprocess.run(
+        ["limactl", "shell", name, "--", "bash", "-c",
+         f'mkdir -p "$(dirname {dest})" && cat > {dest}'],
+        input=content, capture_output=True, text=True, timeout=timeout,
+    )
+    if p.returncode != 0:
+        raise RuntimeError(f"push to {dest} failed (exit {p.returncode}): {p.stderr.strip()}")
+
+
 def shell(name: str, cmd: str, timeout: int = 60) -> str:
     """VM 안에서 명령 실행, stdout 반환. 로그인 셸(bash -lc) 경유 (부록 C-1 예외)."""
     p = _check(["limactl", "shell", name, "--", "bash", "-lc", cmd], timeout=timeout)

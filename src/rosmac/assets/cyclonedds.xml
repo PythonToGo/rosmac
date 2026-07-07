@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- rosmac 공통 CycloneDDS 설정 (KI-23).
+     ROS_LOCALHOST_ONLY=1 → lo 인터페이스는 멀티캐스트 불가 → 유니캐스트 디스커버리 →
+     참가자 인덱스가 필요해지는데 기본 MaxAutoParticipantIndex=9라 호스트당
+     DDS 참가자 10개 제한. MoveIt 스택(노드 7+) + 브리지 2개 + CLI로 즉시 고갈됨. -->
+<CycloneDDS xmlns="https://cdds.io/config">
+  <Domain Id="any">
+    <Discovery>
+      <ParticipantIndex>auto</ParticipantIndex>
+      <MaxAutoParticipantIndex>120</MaxAutoParticipantIndex>
+    </Discovery>
+  </Domain>
+</CycloneDDS>

@@ -1,12 +1,15 @@
 name: panda-moveit
-description: "Panda 팔 + MoveIt move_group (RViz 없음, Foxglove 시각화)"
+description: "Panda 팔 + MoveIt move_group (headless, Foxglove 시각화)"
 vm_apt:
   - ros-humble-moveit
   - ros-humble-moveit-resources
+  - ros-humble-ros2-control
+  - ros-humble-ros2-controllers
 vm_env: {}
 launch:
-  # 후보 1 (phase2 2.3) — 실측 후 확정/교체하고 phase2-results.md에 기록할 것
-  cmd: "ros2 launch moveit_resources_panda_moveit_config demo.launch.py use_rviz:=false"
+  # 실측 확정 (P2.3): apt demo.launch.py는 rviz를 끌 수 없어(rviz_tutorial은 config 선택일 뿐)
+  # rviz/db만 제거한 동봉 headless launch 사용 (부록 C 패턴, 구성은 상류와 동일)
+  cmd: "ros2 launch ~/rosmac-presets/panda-moveit/demo_headless.launch.py"
 foxglove_layout: panda.json
 health_topics:
   - { name: /joint_states, timeout: 30 }

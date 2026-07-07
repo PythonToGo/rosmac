@@ -135,7 +135,8 @@ class _C8RoundTrip:
                     # bash -lc는 비인터랙티브 → .bashrc의 ROS 소싱에 도달 못 함 (KI-19)
                     f"source /opt/ros/{cfg.ros.distro}/setup.bash; "
                     f"export ROS_LOCALHOST_ONLY=1 ROS_DOMAIN_ID={cfg.ros.domain_id} "
-                    f"RMW_IMPLEMENTATION={cfg.ros.rmw}; "
+                    f"RMW_IMPLEMENTATION={cfg.ros.rmw} "
+                    f"CYCLONEDDS_URI=file:///etc/cyclonedds.xml; "
                     f"timeout 60 ros2 topic pub -r 5 {topic} std_msgs/msg/String 'data: ping'",
                 ],
                 stdout=subprocess.DEVNULL,

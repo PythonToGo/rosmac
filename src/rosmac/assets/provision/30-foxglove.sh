@@ -12,6 +12,7 @@ After=network-online.target
 [Service]
 # HOME 없으면 rcl_logging이 "Failed to get logging directory"로 죽음 (Phase 2 실측)
 Environment=HOME=/root ROS_LOCALHOST_ONLY=1 ROS_DOMAIN_ID=@domain_id RMW_IMPLEMENTATION=@rmw
+Environment=CYCLONEDDS_URI=file:///etc/cyclonedds.xml
 ExecStart=/bin/bash -c 'source /opt/ros/@distro/setup.bash && exec ros2 run foxglove_bridge foxglove_bridge --ros-args -p port:=@foxglove_port -p address:=0.0.0.0'
 Restart=on-failure
 KillSignal=SIGINT
