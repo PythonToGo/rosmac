@@ -34,7 +34,7 @@ ROS2 Humble은 macOS를 사실상 지원하지 않는다. 2026-07-07 딥리서�
 | 순서 | 문서 | 용도 |
 |---|---|---|
 | 1 | `AGENTS.md` (이 문서) | 작업 규칙, 배경, 용어 |
-| 2 | `PLAN.md` | 아키텍처, 페이즈 개요, **결정 로그(D1~D13)**, **리스크(R1~R10)** |
+| 2 | `PLAN.md` | 아키텍처, 페이즈 개요, **결정 로그(D1~D14)**, **리스크(R1~R10)** |
 | 3 | `docs/plan/phaseN-*.md` | 지금 수행할 태스크의 상세 절차 |
 | 4 | `docs/plan/known-issues.md` | 막혔을 때 **가장 먼저** 볼 함정 DB |
 | 5 | `docs/plan/phaseN-results.md` | 선행 태스크의 실측 결과 (존재하면 반드시 읽기 — 버전 핀, 확정된 채널명 등이 여기 있음) |
@@ -46,7 +46,7 @@ ROS2 Humble은 macOS를 사실상 지원하지 않는다. 2026-07-07 딥리서�
 2. **사용자 글로벌 환경을 임의로 바꾸지 않는다.** `~/.zshrc` 수정, 시스템 Python 변경,
    brew 패키지 임의 설치 금지. 설치가 필요하면 명령을 출력하고 사용자 확인을 받거나,
    문서에 명시된 것(`brew install lima/micromamba` 등)만 실행한다.
-3. **결정 로그(D1~D13) 변경은 사용자 승인 필요.** "Lima 대신 Docker가 낫겠다" 같은
+3. **결정 로그(D1~D14) 변경은 사용자 승인 필요.** "Lima 대신 Docker가 낫겠다" 같은
    아키텍처 변경을 임의로 하지 않는다. 근거를 정리해 사용자에게 묻고, 승인되면
    PLAN.md의 결정 로그를 갱신한 뒤 진행한다. *(제안 — 승인 대기)* 표시가 붙은 결정은
    아직 확정이 아니다 — 해당 결정에 의존하는 태스크 착수 전에 승인을 받는다.
@@ -63,7 +63,7 @@ ROS2 Humble은 macOS를 사실상 지원하지 않는다. 2026-07-07 딥리서�
 9. **외부 공개 행위는 에이전트가 실행하지 않는다.** GitHub push, repo public 전환,
    PyPI/TestPyPI publish, Homebrew tap 게시, 포럼·SNS 포스팅, JOSS 제출 등
    외부로 나가는 모든 행위는 **사용자가 직접** 하거나 명시 승인 하에서만.
-   에이전트의 역할은 초안·자산·자동화 파이프라인 준비까지다 (Phase 4~6 공통).
+   에이전트의 역할은 초안·자산·자동화 파이프라인 준비까지다 (Phase 5~7 공통).
 
 ## 4. 태스크 수행 프로토콜
 
@@ -83,7 +83,7 @@ ROS2 Humble은 macOS를 사실상 지원하지 않는다. 2026-07-07 딥리서�
 ```
 
 ### 에스컬레이션 기준 (사용자에게 물어야 하는 경우)
-- 결정 로그 D1~D13을 바꿔야 하거나, *(제안)* 상태 결정의 승인이 필요할 때
+- 결정 로그 D1~D14를 바꿔야 하거나, *(제안)* 상태 결정의 승인이 필요할 때
 - 외부 공개 행위가 다음 단계일 때 (절대 규칙 9 — 준비 완료 보고 후 대기)
 - Phase 0의 게이트 판정 (GO / GO-수정 / NO-GO)
 - 문서에 없는 유료 서비스 가입, 계정 생성이 필요할 때
@@ -135,8 +135,8 @@ ROS2 Humble은 macOS를 사실상 지원하지 않는다. 2026-07-07 딥리서�
 | **RTF** | Real Time Factor — 시뮬 시간/실제 시간 비. 1.0 = 실시간 |
 | **SIP** | macOS System Integrity Protection. 끄지 않는다 (절대 규칙 1) |
 | **Tier 1/3, REP-2000** | ROS2 공식 플랫폼 지원 등급 문서. 1절 참조 |
-| **JOSS** | Journal of Open Source Software — 연구용 오픈소스 도구의 소프트웨어 페이퍼 저널. 공개 repo + 코드 리뷰 기반, DOI 발급. Phase 6의 1차 출판 타깃 (D13) |
-| **SemVer / Trusted Publishing** | 유의미 버저닝(major.minor.patch) / PyPI의 토큰 없는 GitHub Actions 배포 방식. Phase 4 배포 파이프라인의 기반 (D10, D12) |
+| **JOSS** | Journal of Open Source Software — 연구용 오픈소스 도구의 소프트웨어 페이퍼 저널. 공개 repo + 코드 리뷰 기반, DOI 발급. Phase 7의 1차 출판 타깃 (D13 — 준비까지만, 제출 보류) |
+| **SemVer / Trusted Publishing** | 유의미 버저닝(major.minor.patch) / PyPI의 토큰 없는 GitHub Actions 배포 방식. Phase 5 배포 파이프라인의 기반 (D10, D12) |
 
 ## 8. 실행 환경 사실
 
