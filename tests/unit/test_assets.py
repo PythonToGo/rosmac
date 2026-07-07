@@ -13,7 +13,7 @@ def test_render_lima_yaml_is_valid_yaml_with_config_values() -> None:
     assert doc["disk"] == "30GiB"
     ports = {f["guestPort"] for f in doc["portForwards"]}
     assert ports == {7447, 8765}
-    assert len(doc["provision"]) == 2
+    assert len(doc["provision"]) == 3  # ros / zenoh-bridge / foxglove-bridge
 
 
 def test_render_substitutes_pins_and_keeps_shell_vars() -> None:

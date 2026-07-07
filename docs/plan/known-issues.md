@@ -159,6 +159,18 @@
   ② bridge.stop()이 pidfile 밖 고아(pgrep -f 경로)도 SIGTERM 정리
   ③ 진단은 doctor C6(pidfile) + 로그의 "Address already in use" 지문
 
+## KI-21. foxglove_bridge 3.4.x의 웹소켓 서브프로토콜이 foxglove.sdk.v1로 변경
+- **증상**: `foxglove.websocket.v1`로 접속하는 스크립트/구클라이언트가
+  `HTTP 400 — Missing expected sec-websocket-protocol header`로 거부됨.
+  브리지 로그엔 `foxglove::websocket::server] Dropping client ...: handshake failed`
+  (2026-07-07 실측, ros-humble-foxglove-bridge 3.4.2)
+- **원인**: 3.4.x부터 Rust Foxglove SDK 기반 서버로 재작성 — 서브프로토콜이
+  `foxglove.sdk.v1`. 에러 메시지가 "header 없음"이라 오진하기 쉬움 (헤더는 있고 값이 다름)
+- **해결**: 스크립트 접속 시 subprotocols=["foxglove.sdk.v1"]. Foxglove 데스크톱 앱(신버전)은
+  자동 협상하므로 영향 없음
+- **여담**: foxglove-bridge systemd 유닛에 `HOME` env 필수 — 없으면 rcl_logging이
+  "Failed to get logging directory"로 즉사 (30-foxglove.sh에 반영됨)
+
 ## KI-12. Foxglove가 URDF 메시 파일을 못 찾음 [계획시점]
 - **증상**: 3D 패널에 로봇이 흰 박스/빈 상태로 표시, 콘솔에 `package://` URL 해석 실패
 - **원인**: URDF의 `package://` 메시 경로를 Foxglove(맥)가 로컬에서 해석 못 함
