@@ -199,6 +199,19 @@
   **점검법**: `cat /proc/$(pgrep -x zenoh-bridge-ro)/environ | tr '\0' '\n' | grep CYCLONE`
   — 모든 ROS/DDS 프로세스(systemd 유닛 포함)가 동일 설정을 가져야 한다
 
+## KI-24. lima provision 스크립트는 **매 부팅마다 재실행** — VM 내 수동 수정이 증발
+- **증상**: VM 안에서 고친 systemd 유닛/설정이 재부팅 후 원상복구됨.
+  실측: zenoh-bridge 유닛에 넣은 CYCLONEDDS_URI가 재부팅마다 사라져
+  KI-23 변형(서비스/액션 무응답)이 재발 — 두 번이나 같은 원인으로 디버깅함 (P2.7)
+- **원인**: lima의 `provision: mode: system` 스크립트는 cloud-init **per-boot**로
+  등록됨 (1회성 아님!). 부팅마다 VM "생성 시점"의 스크립트가 다시 돌아
+  유닛 파일을 덮어씀. 스크립트 원본은 `~/.lima/<vm>/lima.yaml` (인스턴스 사본) —
+  리포의 템플릿을 고쳐도 기존 VM에는 반영 안 됨
+- **해결**: ① 영구 수정은 반드시 provision 스크립트(리포 asset)에 반영하고
+  VM 재생성, 또는 ② 기존 VM 유지 시 `~/.lima/<vm>/lima.yaml`의 provision도 함께 패치
+  ③ VM 내 수동 유닛 수정은 임시조치일 뿐임을 기억
+- **지문**: "재부팅 후에만 뭔가 되돌아간다" → 무조건 이것
+
 ## KI-12. Foxglove가 URDF 메시 파일을 못 찾음 [계획시점]
 - **증상**: 3D 패널에 로봇이 흰 박스/빈 상태로 표시, 콘솔에 `package://` URL 해석 실패
 - **원인**: URDF의 `package://` 메시 경로를 Foxglove(맥)가 로컬에서 해석 못 함
