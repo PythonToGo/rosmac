@@ -67,7 +67,7 @@ rosmac viz --layout panda   # Foxglove 연결 (+레이아웃 안내)
 
 ## 아키텍처·설계 결정
 
-[PLAN.md](PLAN.md)의 결정 로그(D1~D9)와 리스크 레지스터,
+[PLAN.md](PLAN.md)의 결정 로그와 리스크 레지스터,
 막히면 [docs/plan/known-issues.md](docs/plan/known-issues.md) (함정 26개 실측 DB).
 
 ## 라이선스
