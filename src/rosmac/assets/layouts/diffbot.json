@@ -1,0 +1,42 @@
+{
+  "configById": {
+    "3D!diffbot": {
+      "cameraState": {
+        "distance": 12,
+        "phi": 50,
+        "thetaOffset": 90
+      },
+      "followTf": "vehicle_blue/odom",
+      "topics": {
+        "/odom": { "visible": true, "type": "foxglove.Pose" }
+      },
+      "layers": {
+        "grid": { "layerId": "foxglove.Grid", "visible": true }
+      }
+    },
+    "Image!cam": {
+      "imageMode": { "imageTopic": "/camera" }
+    },
+    "Plot!vel": {
+      "paths": [
+        { "value": "/odom.twist.twist.linear.x", "enabled": true, "timestampMethod": "receiveTime" }
+      ],
+      "minYValue": -1,
+      "maxYValue": 1
+    }
+  },
+  "globalVariables": {},
+  "userNodes": {},
+  "playbackConfig": { "speed": 1 },
+  "layout": {
+    "direction": "row",
+    "first": "3D!diffbot",
+    "second": {
+      "direction": "column",
+      "first": "Image!cam",
+      "second": "Plot!vel",
+      "splitPercentage": 60
+    },
+    "splitPercentage": 60
+  }
+}
