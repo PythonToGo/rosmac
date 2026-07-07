@@ -210,7 +210,13 @@ def shell(
     cfg = load()
     if vm:
         if command:
-            print(lima.shell(cfg.vm.name, command, timeout=300), end="")
+            # bash -lc는 .bashrc의 ROS 소싱에 도달 못 함 (KI-19) → 명시 소싱 + env 주입
+            wrapped = (
+                f"source /opt/ros/{cfg.ros.distro}/setup.bash; "
+                f"export ROS_LOCALHOST_ONLY=1 ROS_DOMAIN_ID={cfg.ros.domain_id} "
+                f"RMW_IMPLEMENTATION={cfg.ros.rmw}; {command}"
+            )
+            print(lima.shell(cfg.vm.name, wrapped, timeout=300), end="")
             return
         os.execvp("limactl", ["limactl", "shell", cfg.vm.name])
 

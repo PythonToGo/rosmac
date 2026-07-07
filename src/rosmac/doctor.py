@@ -79,6 +79,12 @@ class _C5Port:
     name = "C5 포트 도달성"
 
     def run(self, cfg: Config) -> CheckResult:
+        # 주의: 맥 브리지도 [::]:{port}를 listen하므로 (router 모드) VM이 꺼져 있어도
+        # TCP 연결이 성사될 수 있음 — VM 상태를 먼저 가려서 오탐 방지 (Phase 0 관찰)
+        if lima.state(cfg.vm.name) is not lima.VmState.RUNNING:
+            return CheckResult(
+                self.name, "FAIL", "VM이 실행 중이 아니라 포트포워딩 없음", "rosmac up"
+            )
         try:
             with socket.create_connection(("127.0.0.1", cfg.bridge.port), timeout=2):
                 return CheckResult(self.name, "PASS", f"127.0.0.1:{cfg.bridge.port} open")
@@ -118,21 +124,26 @@ class _C8RoundTrip:
     name = "C8 왕복 자가 테스트"
 
     def run(self, cfg: Config) -> CheckResult:
+        import time
+
         topic = f"/rosmac/doctor/{uuid.uuid4().hex[:8]}"
         pub = None
         try:
             pub = subprocess.Popen(
                 [
                     "limactl", "shell", cfg.vm.name, "--", "bash", "-lc",
+                    # bash -lc는 비인터랙티브 → .bashrc의 ROS 소싱에 도달 못 함 (KI-19)
+                    f"source /opt/ros/{cfg.ros.distro}/setup.bash; "
                     f"export ROS_LOCALHOST_ONLY=1 ROS_DOMAIN_ID={cfg.ros.domain_id} "
                     f"RMW_IMPLEMENTATION={cfg.ros.rmw}; "
-                    f"timeout 20 ros2 topic pub -r 5 {topic} std_msgs/msg/String 'data: ping'",
+                    f"timeout 60 ros2 topic pub -r 5 {topic} std_msgs/msg/String 'data: ping'",
                 ],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
             )
+            time.sleep(3)  # 발행자·라우트 안정화 (브리지 경유 디스커버리 ~10s 관찰됨)
             out = conda.run_in_env(
-                cfg, f"ros2 topic echo --once {topic} std_msgs/msg/String", timeout=15
+                cfg, f"ros2 topic echo --once {topic} std_msgs/msg/String", timeout=40
             )
             if "ping" in out:
                 return CheckResult(self.name, "PASS", f"{topic} 왕복 수신")
