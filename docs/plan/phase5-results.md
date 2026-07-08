@@ -41,10 +41,16 @@
 - weekly 핵심 로직 실검증: 버전/sha 추출 스크립트 + 실제 릴리스 자산 2종 다운로드
   → **sha256 둘 다 OK** (2026-07-08 기준 드리프트 없음 확인)
 
-### 남은 AC (push 후 — 사용자 push 필요, 규칙 9)
-- [ ] PR/push에서 ci.yml green + 의도적 lint 오류로 red 확인
-- [ ] weekly 수동 트리거 1회 성공 + simulate_failure로 이슈 생성 확인
-- [ ] e2e-probe 1회 실행 → 결과 기록, 불가면 tests/e2e/README에 "로컬 전용" 명시
+### Actions 실측 (push 후 2026-07-08)
+- ✅ push에서 ci.yml **green** (run 28972331567, 3매트릭스) — 사용자 확인
+- ✅ weekly 수동 트리거 1회 **success** (run 28972637873): bridge-artifacts
+  darwin/linux sha **양쪽 OK**(7s), robostack-drift env 실생성+rclpy/xacro 스모크
+  (3m16s — 러너 캐시 덕에 예상보다 빠름), notify-on-failure는 설계대로 skipped
+- ✅ **E2E-in-CI 불가 확정** (e2e-probe run 28972640343): 러너에 `kern.hv_support`
+  oid 부재, `limactl start` 부팅 중 fatal(1분 내 종료) — nested virtualization
+  미지원. → `tests/e2e/README.md` 신설: 로컬 전용 절차 + CI가 대신 커버하는 범위
+- [ ] ci red 확인 (의도적 lint 오류 PR) — `ci-red-check` 브랜치 준비됨, push 승인 대기
+- [ ] simulate_failure → 이슈 자동 생성 확인 — 테스트 이슈 1개 생성되므로 승인 대기
 
 ## 부수 작업 — 상품성 점검 (2026-07-08, 사용자 요청, Run F 전)
 
