@@ -10,9 +10,20 @@ Lima VM의 Ubuntu 22.04 arm64(Tier 1), 시각화는 맥 Foxglove, 경계는 zeno
 개발(rclpy/colcon, 맥) ↔ zenoh(tcp:7447) ↔ VM(MoveIt·Gazebo) → Foxglove(ws:8765, 맥)
 ```
 
+## 지원 매트릭스
+
+| 항목 | 지원 | 비고 |
+|---|---|---|
+| HW | Apple Silicon (M1 이상) | **Intel Mac 비지원** (검증 수단 없음) |
+| OS | macOS 14 (Sonoma) 이상 | 실측: macOS 26.x / M3 Pro / 18GB |
+| Python | 3.11+ | 실측: 3.12 |
+| ROS 2 | Humble (양측 rmw_cyclonedds_cpp 고정) | VM: Ubuntu 22.04 arm64 |
+
+버전 정책: [SemVer](https://semver.org/lang/ko/). **0.y.z 동안은 마이너 버전이
+breaking change를 포함할 수 있다.** 변경 이력은 [CHANGELOG.md](CHANGELOG.md).
+
 ## 요구 사항
 
-- Apple Silicon Mac, macOS (실측: 26.x / M3 Pro / 18GB)
 - [Homebrew](https://brew.sh), 디스크 여유 ≥ 40GB
 - [Foxglove 앱](https://foxglove.dev/download) (시각화용, 선택)
 

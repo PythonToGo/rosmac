@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "rosmac"
-version = "0.1.0"
+dynamic = ["version"]  # 단일 소스: src/rosmac/__init__.py __version__ (P5.1, D12)
 description = "One-command ROS2 Humble dev environment for Apple Silicon Macs"
 requires-python = ">=3.11"
 dependencies = [
@@ -19,6 +19,9 @@ dev = ["pytest>=8", "ruff>=0.4", "mypy>=1.10", "types-PyYAML"]
 
 [project.scripts]
 rosmac = "rosmac.cli:app"
+
+[tool.hatch.version]
+path = "src/rosmac/__init__.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/rosmac"]
