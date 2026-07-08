@@ -1,0 +1,94 @@
+# 주간 드리프트 감시 (R7): 신규 설치가 업스트림 변화(RoboStack 채널, zenoh 릴리스)로
+# 깨지는 걸 사용자보다 먼저 발견한다. 실패 시 이슈 자동 생성 (P5.4)
+name: weekly-drift
+on:
+  schedule:
+    - cron: "0 3 * * 1" # 매주 월 03:00 UTC
+  workflow_dispatch:
+    inputs:
+      simulate_failure:
+        description: "Use a bogus bridge version to test the failure->issue path"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  robostack-drift:
+    # conda.py ENV_PACKAGES와 동일 목록을 실제 생성 — 솔버 충돌/패키지 소실/다운로드
+    # 깨짐 감지. rclpy import와 xacro 존재(KI-26)는 런타임 드리프트(R2) 신호
+    runs-on: macos-14
+    timeout-minutes: 60
+    env:
+      MAMBA_ROOT_PREFIX: /Users/runner/micromamba
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install micromamba
+        run: brew install micromamba
+      - name: Create RoboStack env (real create, same list as conda.py)
+        run: |
+          micromamba create -y -n drift-check -c conda-forge -c robostack-humble \
+            ros-humble-desktop ros-humble-rmw-cyclonedds-cpp ros-humble-xacro \
+            compilers "cmake<4" pkg-config make ninja colcon-common-extensions rosdep
+      - name: Runtime smoke (rclpy import, xacro presence)
+        run: |
+          micromamba run -n drift-check python -c "import rclpy; print('rclpy ok')"
+          micromamba run -n drift-check bash -c "command -v xacro && command -v colcon && command -v ros2"
+
+  bridge-artifacts:
+    # config.py에 핀된 버전/sha로 실제 릴리스 자산 다운로드 + 무결성 검증 (양측 타깃)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download and verify pinned bridge artifacts
+        env:
+          SIMULATE_FAILURE: ${{ inputs.simulate_failure }}
+        run: |
+          VER=$(python3 -c "import re; s=open('src/rosmac/config.py').read(); print(re.search(r'BRIDGE_VERSION = \"(.+?)\"', s).group(1))")
+          if [ "$SIMULATE_FAILURE" = "true" ]; then
+            echo "::warning::simulate_failure=true — using bogus version to test issue creation"
+            VER="0.0.0-bogus"
+          fi
+          BASE="https://github.com/eclipse-zenoh/zenoh-plugin-ros2dds/releases/download/$VER"
+          curl -fL --retry 3 -o darwin.zip "$BASE/zenoh-plugin-ros2dds-$VER-aarch64-apple-darwin-standalone.zip"
+          curl -fL --retry 3 -o linux.zip "$BASE/zenoh-plugin-ros2dds-$VER-aarch64-unknown-linux-gnu-standalone.zip"
+          python3 - <<'EOF'
+          import hashlib, re, sys
+          s = open("src/rosmac/config.py").read()
+          pins = {
+              "darwin.zip": re.search(r'BRIDGE_SHA256_DARWIN = "(\w+)"', s).group(1),
+              "linux.zip": re.search(r'BRIDGE_SHA256_LINUX = "(\w+)"', s).group(1),
+          }
+          ok = True
+          for f, want in pins.items():
+              got = hashlib.sha256(open(f, "rb").read()).hexdigest()
+              print(f"{f}: {'OK' if got == want else f'MISMATCH want={want} got={got}'}")
+              ok &= got == want
+          sys.exit(0 if ok else 1)
+          EOF
+
+  notify-on-failure:
+    needs: [robostack-drift, bridge-artifacts]
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const date = new Date().toISOString().slice(0, 10);
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `weekly drift check failed (${date})`,
+              body: [
+                `Upstream drift detected (R7) — a fresh install may be broken for new users.`,
+                ``,
+                `Run: ${runUrl}`,
+                ``,
+                `Check which job failed: RoboStack env creation / runtime smoke (rclpy, xacro) / pinned bridge artifact download+sha256.`,
+              ].join("\n"),
+            });

@@ -1,0 +1,38 @@
+# PR/push마다: lint + format + type + unit + 설치 스모크 (P5.4)
+# E2E(VM 필요)는 여기 없음 — e2e-probe.yml 실측 결과에 따라 로컬 전용일 수 있음
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  checks:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, python: "3.11" } # 지원 하한
+          - { os: ubuntu-latest, python: "3.12" }
+          - { os: macos-14, python: "3.12" } # 실제 타깃 (arm64)
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install (editable + dev tools)
+        run: python -m pip install -e ".[dev]"
+      - name: Lint
+        run: python -m ruff check src tests
+      - name: Format check
+        run: python -m ruff format --check src tests
+      - name: Type check
+        run: python -m mypy
+      - name: Unit tests
+        run: python -m pytest tests/unit -q
+      - name: CLI smoke
+        run: |
+          rosmac --version
+          rosmac --help

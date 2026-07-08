@@ -36,7 +36,9 @@ Issues = "https://github.com/PythonToGo/rosmac/issues"
 Changelog = "https://github.com/PythonToGo/rosmac/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "ruff>=0.4", "mypy>=1.10", "types-PyYAML"]
+# ruff/mypy는 정확 핀 — 도구 메이저 업이 lint/format/type 기준을 조용히 바꿔
+# CI·로컬이 어긋나는 드리프트 방지 (P5.1 실측 후 P5.4에서 고정 결정)
+dev = ["pytest>=8", "ruff==0.15.20", "mypy==2.2.0", "types-PyYAML"]
 
 [project.scripts]
 rosmac = "rosmac.cli:main"  # exit code 규약·에러 패널의 단일 지점 (P5.2)

@@ -1,0 +1,24 @@
+# P5.4 ③ 실측: GitHub macOS 러너에서 Lima VM 기동이 가능한가 (nested virtualization)
+# 수동 트리거 1회용 — 결과를 phase5-results.md에 기록하고, 불가면 E2E는 로컬 전용 확정
+name: e2e-runner-probe
+on: workflow_dispatch
+
+jobs:
+  lima-probe:
+    runs-on: macos-14
+    timeout-minutes: 30
+    steps:
+      - name: Runner virtualization capability
+        run: |
+          sw_vers
+          sysctl kern.hv_support || true
+          sysctl -n machdep.cpu.brand_string || true
+      - name: Install lima
+        run: brew install lima
+      - name: Try starting a minimal VM
+        run: |
+          set -x
+          limactl start --name=probe template://default --tty=false || echo "::warning::limactl start failed (exit $?)"
+          limactl list
+      - name: Shell into VM if it started
+        run: limactl shell probe -- uname -a || echo "::warning::VM shell unavailable — nested virtualization likely unsupported"
