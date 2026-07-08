@@ -69,3 +69,34 @@ def shell(name: str, cmd: str, timeout: int = 60) -> str:
     """VM 안에서 명령 실행, stdout 반환. 로그인 셸(bash -lc) 경유 (부록 C-1 예외)."""
     p = _check(["limactl", "shell", name, "--", "bash", "-lc", cmd], timeout=timeout)
     return p.stdout
+
+
+def push_tree(name: str, src_dir: str, dest: str, timeout: int = 600) -> None:
+    """디렉토리 트리를 tar 파이프로 VM에 복사 — dest 내용을 통째로 교체 (P4.4, D14).
+
+    limactl copy -r은 버전별 동작 편차가 있어 tar 파이프를 쓴다.
+    dest는 호출자가 ~/rosmac-ws/<이름>/src 고정 프리픽스로만 만든다 (rm -rf 안전장치).
+    """
+    import shlex
+
+    if not dest.startswith("~/rosmac-ws/"):
+        raise ValueError(f"push_tree dest는 ~/rosmac-ws/ 아래만 허용: {dest}")
+    inner = f"rm -rf {shlex.quote(dest)} && mkdir -p {shlex.quote(dest)} && tar -C {shlex.quote(dest)} -xf -"
+    # shlex.quote가 ~를 감싸면 확장이 안 되므로 dest의 ~는 $HOME으로 치환
+    inner = inner.replace("'~/", "\"$HOME\"'/")
+    tar = subprocess.Popen(
+        ["tar", "-C", src_dir, "-cf", "-", "."], stdout=subprocess.PIPE
+    )
+    try:
+        p = subprocess.run(
+            ["limactl", "shell", name, "--", "bash", "-c", inner],
+            stdin=tar.stdout, capture_output=True, text=True, timeout=timeout,
+        )
+    finally:
+        if tar.stdout:
+            tar.stdout.close()
+        tar_rc = tar.wait()
+    if tar_rc != 0:
+        raise RuntimeError(f"tar 생성 실패 (exit {tar_rc}) — 소스: {src_dir}")
+    if p.returncode != 0:
+        raise RuntimeError(f"VM 전송 실패 (exit {p.returncode}): {p.stderr.strip()}")

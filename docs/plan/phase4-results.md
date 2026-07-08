@@ -76,3 +76,22 @@ colcon이 `COLCON_DEFAULTS_FILE`을 읽는지 — 고의로 깨진 YAML을 지�
 - **KI-28 (미해결, 에스컬레이션)**: 맥 zenoh-bridge가 SPDP를 아예 송신하지 않아
   로컬 DDS와 양방향 불통 (CycloneDDS 트레이스 실측). 5가지 접근 실패 — 상세·다음
   가설은 known-issues.md. **P4.5 E2E의 브리지 경유 단계가 이것에 차단됨**
+
+## P4.4 — rosmac push (2026-07-08, D14 승인 후)
+
+### 구현
+- `lima.push_tree`: tar 파이프 (`tar -C src -cf - . | limactl shell -- bash -c
+  'rm -rf … && tar -xf -'`). rm -rf 대상은 `~/rosmac-ws/` 프리픽스만 허용
+  (ValueError 안전장치 + 유닛 테스트). 이름은 `[A-Za-z0-9_-]+`만
+- CLI: `rosmac push <ws> [--name] [--build]`. --build는 명시적 소싱(KI-19) 후
+  `colcon build --symlink-install`, 실패 시 VM rosdep 안내 출력
+
+### AC 실측 (픽스처 `tests/fixtures/linux_only_pkg` — sys/epoll.h)
+| AC | 결과 |
+|---|---|
+| D14 승인 기록 | ✅ PLAN.md 결정 로그 (2026-07-08) |
+| 음성 대조군 (맥 빌드) | ✅ `fatal error: 'sys/epoll.h' file not found` |
+| push + VM 빌드·실행 | ✅ `Finished <<< linux_only_pkg [0.53s]` → VM 실행 `epoll fd=3` |
+| 재push 오염 방지 | ✅ VM쪽 src에 심은 STALE_MARKER가 재push 후 제거됨 (통째 교체) |
+| sim 경로와 분리 | ✅ `~/rosmac-ws/` vs `~/rosmac-presets/` 공존 확인 |
+| 유닛 테스트 | ✅ test_push.py (dest 프리픽스 안전장치) — 총 28 passed |
