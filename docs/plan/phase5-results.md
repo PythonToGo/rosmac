@@ -22,6 +22,30 @@
 | README 지원 매트릭스 표 | ✅ "지원 매트릭스" 절 |
 | CHANGELOG.md 존재 + CONTRIBUTING에서 참조 가능한 형태 | ✅ Keep a Changelog/SemVer 규약을 문서 서두에 명시 (Phase 6에서 링크만 하면 됨) |
 
+## P5.4 — CI 파이프라인 (진행 중: 작성·로컬 검증 완료, push 후 Actions 실측 대기)
+
+### 구현 (2026-07-08)
+- `ci.yml`: push(main)/PR — ruff check·format check·mypy·pytest unit·설치+CLI 스모크.
+  매트릭스: ubuntu(3.11 하한/3.12) + macos-14(3.12, 실타깃 arm64)
+- `weekly.yml` (월 03:00 UTC + workflow_dispatch): ① macos-14에서 conda.py
+  ENV_PACKAGES와 동일 목록 **실제 create** + 런타임 스모크(rclpy import, xacro/
+  colcon/ros2 존재 — R2·KI-26 신호) ② config.py 핀 버전/sha로 브리지 릴리스 자산
+  양측(darwin/linux) 다운로드+sha256 검증 ③ 실패 시 github-script로 이슈 자동 생성.
+  `simulate_failure` 입력으로 가짜 버전 → 실패 경로 테스트 가능
+- `e2e-probe.yml` (dispatch 1회용): macOS 러너에서 limactl start 실측용
+  (nested virtualization 판정 — 결과에 따라 E2E 로컬 전용 확정)
+- dev 도구 정확 핀: ruff==0.15.20, mypy==2.2.0 (P5.1에서 예고한 드리프트 대응 결정)
+
+### 로컬 검증 (push 전)
+- 워크플로 3개 YAML 파스 OK, ci 스텝 전부 로컬 green (61 passed 포함)
+- weekly 핵심 로직 실검증: 버전/sha 추출 스크립트 + 실제 릴리스 자산 2종 다운로드
+  → **sha256 둘 다 OK** (2026-07-08 기준 드리프트 없음 확인)
+
+### 남은 AC (push 후 — 사용자 push 필요, 규칙 9)
+- [ ] PR/push에서 ci.yml green + 의도적 lint 오류로 red 확인
+- [ ] weekly 수동 트리거 1회 성공 + simulate_failure로 이슈 생성 확인
+- [ ] e2e-probe 1회 실행 → 결과 기록, 불가면 tests/e2e/README에 "로컬 전용" 명시
+
 ## 부수 작업 — 상품성 점검 (2026-07-08, 사용자 요청, Run F 전)
 
 - **경쟁 조사** (웹 리서치): 직접 경쟁자 없음. 최근접 대안은 RoboStack+pixi(신뢰성

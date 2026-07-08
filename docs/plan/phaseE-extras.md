@@ -57,8 +57,8 @@
    + `rosmac report`로 조교 원격 트리아지. The Construct(€40/월)·Codespaces가
    못 하는 로컬 하드웨어 시나리오.
 
-## E.6 LICENSE 저작권자 표기 확인 (**사용자 확인 1분**)
+## E.6 LICENSE 저작권자 표기 확인 — ✅ 완료 (2026-07-08)
 
 - **배경**: LICENSE 신설 시 "Copyright (c) 2026 Taeyoung Kim"으로 기재 —
   표기(실명/핸들/병기)는 사용자 결정 사안.
-- **AC**: [ ] 사용자 확인 (수정 필요 시 LICENSE + pyproject authors 동기화)
+- **AC**: [x] 사용자 확인 — "그대로" (2026-07-08, push 전 확정)
