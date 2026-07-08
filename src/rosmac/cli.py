@@ -307,7 +307,12 @@ def shell(
             f"export RMW_IMPLEMENTATION={cfg.ros.rmw}\n"
             f"export ROS_DISTRO={cfg.ros.distro}\n"
             f"export CYCLONEDDS_URI={assets.ensure_mac_cyclonedds()}\n"
-            'export PS1="(rosmac) $PS1"\n'
+            + (
+                f"export COLCON_DEFAULTS_FILE={assets.ensure_colcon_defaults()}\n"  # KI-25
+                if cfg.build.colcon_defaults
+                else ""
+            )
+            + 'export PS1="(rosmac) $PS1"\n'
         )
     env = dict(os.environ, ZDOTDIR=tmpdir)
     raise typer.Exit(subprocess.run(["zsh", "-i"], env=env).returncode)

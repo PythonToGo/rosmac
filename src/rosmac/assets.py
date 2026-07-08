@@ -12,6 +12,7 @@ from rosmac.config import Config
 
 RENDERED_LIMA_PATH = Path.home() / ".rosmac" / "lima" / "rosmac.yaml"
 MAC_CYCLONEDDS_PATH = Path.home() / ".rosmac" / "cyclonedds.xml"
+COLCON_DEFAULTS_PATH = Path.home() / ".rosmac" / "colcon-defaults.yaml"
 
 
 def ensure_mac_cyclonedds() -> str:
@@ -20,6 +21,19 @@ def ensure_mac_cyclonedds() -> str:
         MAC_CYCLONEDDS_PATH.parent.mkdir(parents=True, exist_ok=True)
         MAC_CYCLONEDDS_PATH.write_text(_read_asset("cyclonedds.xml"))
     return f"file://{MAC_CYCLONEDDS_PATH}"
+
+
+def ensure_colcon_defaults() -> str:
+    """colcon 기본값 파일을 보장하고 COLCON_DEFAULTS_FILE 값을 반환 (KI-25).
+
+    항상 자산 내용으로 덮어쓴다 — 이 파일은 rosmac 소유이며 (사용자 파일은
+    ~/.colcon/defaults.yaml, 절대 규칙 2로 불가침) 버전 업 시 내용이 갱신돼야 한다.
+    """
+    COLCON_DEFAULTS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    content = _read_asset("colcon-defaults.yaml")
+    if not COLCON_DEFAULTS_PATH.exists() or COLCON_DEFAULTS_PATH.read_text() != content:
+        COLCON_DEFAULTS_PATH.write_text(content)
+    return str(COLCON_DEFAULTS_PATH)
 
 
 class _AtTemplate(Template):

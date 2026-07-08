@@ -68,10 +68,24 @@ def create_env(cfg: Config, timeout: int = 3600) -> None:
     )
 
 
+def ros_env_pairs(cfg: Config) -> list[str]:
+    """rosmac이 주입하는 ROS 환경변수 KEY=VALUE 목록 (KI-6/23/25의 단일 소스)."""
+    from rosmac.assets import ensure_colcon_defaults, ensure_mac_cyclonedds
+
+    pairs = [
+        "ROS_LOCALHOST_ONLY=1",
+        f"ROS_DOMAIN_ID={cfg.ros.domain_id}",
+        f"RMW_IMPLEMENTATION={cfg.ros.rmw}",
+        f"ROS_DISTRO={cfg.ros.distro}",
+        f"CYCLONEDDS_URI={ensure_mac_cyclonedds()}",
+    ]
+    if cfg.build.colcon_defaults:
+        pairs.append(f"COLCON_DEFAULTS_FILE={ensure_colcon_defaults()}")  # KI-25
+    return pairs
+
+
 def run_in_env(cfg: Config, cmd: str, timeout: int = 60) -> str:
     """env 안에서 명령 실행 (ROS 환경변수 주입 포함), stdout 반환."""
-    from rosmac.assets import ensure_mac_cyclonedds
-
     p = _check(
         [
             "micromamba",
@@ -79,11 +93,7 @@ def run_in_env(cfg: Config, cmd: str, timeout: int = 60) -> str:
             "-n",
             cfg.conda_env,
             "env",
-            "ROS_LOCALHOST_ONLY=1",
-            f"ROS_DOMAIN_ID={cfg.ros.domain_id}",
-            f"RMW_IMPLEMENTATION={cfg.ros.rmw}",
-            f"ROS_DISTRO={cfg.ros.distro}",
-            f"CYCLONEDDS_URI={ensure_mac_cyclonedds()}",
+            *ros_env_pairs(cfg),
             "bash",
             "-c",
             cmd,

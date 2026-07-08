@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<!-- KI-25 재현 픽스처: 구식 cmake_minimum_required(3.5) + rosidl 메시지 생성.
+     rosmac의 colcon 기본값 주입(CMP0094=NEW) 없이는 conda/macOS에서
+     "Could NOT find Python"으로 빌드가 실패해야 정상이다. -->
+<package format="3">
+  <name>legacy_msgs</name>
+  <version>0.0.1</version>
+  <description>KI-25 regression fixture (old-style CMake + rosidl)</description>
+  <maintainer email="pythontogoplease@gmail.com">rosmac</maintainer>
+  <license>MIT</license>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>rosidl_default_generators</buildtool_depend>
+  <depend>std_msgs</depend>
+  <exec_depend>rosidl_default_runtime</exec_depend>
+  <member_of_group>rosidl_interface_packages</member_of_group>
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
