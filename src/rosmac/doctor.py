@@ -131,7 +131,12 @@ class _C8RoundTrip:
         try:
             pub = subprocess.Popen(
                 [
-                    "limactl", "shell", cfg.vm.name, "--", "bash", "-lc",
+                    "limactl",
+                    "shell",
+                    cfg.vm.name,
+                    "--",
+                    "bash",
+                    "-lc",
                     # bash -lc는 비인터랙티브 → .bashrc의 ROS 소싱에 도달 못 함 (KI-19)
                     f"source /opt/ros/{cfg.ros.distro}/setup.bash; "
                     f"export ROS_LOCALHOST_ONLY=1 ROS_DOMAIN_ID={cfg.ros.domain_id} "
@@ -149,7 +154,9 @@ class _C8RoundTrip:
             if "ping" in out:
                 return CheckResult(self.name, "PASS", f"{topic} 왕복 수신")
             return CheckResult(
-                self.name, "FAIL", f"수신 실패 (출력: {out[:80]!r})",
+                self.name,
+                "FAIL",
+                f"수신 실패 (출력: {out[:80]!r})",
                 f"브리지 로그 확인: {bridge.LOG_PATH}",
             )
         except (RuntimeError, subprocess.TimeoutExpired) as e:
@@ -197,8 +204,17 @@ class _C11Disk:
 
 
 CHECKS: list[Check] = [
-    _C1Lima(), _C2Vm(), _C3CondaEnv(), _C4EnvVars(), _C5Port(),
-    _C6MacBridge(), _C7VmBridge(), _C8RoundTrip(), _C9Dylib(), _C10Sip(), _C11Disk(),
+    _C1Lima(),
+    _C2Vm(),
+    _C3CondaEnv(),
+    _C4EnvVars(),
+    _C5Port(),
+    _C6MacBridge(),
+    _C7VmBridge(),
+    _C8RoundTrip(),
+    _C9Dylib(),
+    _C10Sip(),
+    _C11Disk(),
 ]
 
 

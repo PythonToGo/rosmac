@@ -21,8 +21,6 @@ def test_unknown_preset_lists_available() -> None:
 
 def test_user_preset_overrides(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(sim, "USER_PRESET_DIR", tmp_path)
-    (tmp_path / "panda-moveit.yaml").write_text(
-        "name: panda-moveit\nlaunch: {cmd: echo custom}\n"
-    )
+    (tmp_path / "panda-moveit.yaml").write_text("name: panda-moveit\nlaunch: {cmd: echo custom}\n")
     p = sim.load_preset("panda-moveit")
     assert p.launch.cmd == "echo custom"

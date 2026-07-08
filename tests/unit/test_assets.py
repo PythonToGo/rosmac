@@ -14,9 +14,7 @@ def test_render_lima_yaml_is_valid_yaml_with_config_values() -> None:
     ports = {f["guestPort"] for f in doc["portForwards"] if "guestPort" in f}
     assert ports == {7447, 8765}
     # KI-27: UDP 자동 포워딩 차단 규칙 2개 (일반 + guestIP 0.0.0.0)가 최상단에 있어야 함
-    udp_ignores = [
-        f for f in doc["portForwards"] if f.get("proto") == "udp" and f.get("ignore")
-    ]
+    udp_ignores = [f for f in doc["portForwards"] if f.get("proto") == "udp" and f.get("ignore")]
     assert len(udp_ignores) == 2
     assert doc["portForwards"][0] in udp_ignores  # TCP 포워드보다 먼저 평가돼야 함
     assert len(doc["provision"]) == 3  # ros / zenoh-bridge / foxglove-bridge

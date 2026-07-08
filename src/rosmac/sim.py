@@ -46,7 +46,10 @@ def list_presets() -> dict[str, str]:
     """{이름: 설명}. 사용자 프리셋이 패키지 프리셋을 가린다."""
     out: dict[str, str] = {}
     entries = list(_asset_preset_dir().iterdir()) if _asset_preset_dir().is_dir() else []
-    for src in (entries, sorted(USER_PRESET_DIR.glob("*.yaml")) if USER_PRESET_DIR.is_dir() else []):
+    for src in (
+        entries,
+        sorted(USER_PRESET_DIR.glob("*.yaml")) if USER_PRESET_DIR.is_dir() else [],
+    ):
         for f in src:
             name = Path(str(f)).stem
             if not str(f).endswith(".yaml"):
@@ -84,7 +87,9 @@ def ensure_apt(cfg: Config, packages: list[str], progress=None) -> list[str]:
     """미설치 패키지만 설치. 설치한 목록 반환 (멱등: dpkg -s 확인)."""
     installed: list[str] = []
     for pkg in packages:
-        ok = lima.shell(cfg.vm.name, f"dpkg -s {pkg} >/dev/null 2>&1 && echo yes || echo no").strip()
+        ok = lima.shell(
+            cfg.vm.name, f"dpkg -s {pkg} >/dev/null 2>&1 && echo yes || echo no"
+        ).strip()
         if ok == "yes":
             continue
         if progress:
