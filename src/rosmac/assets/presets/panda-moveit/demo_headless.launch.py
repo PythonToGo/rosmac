@@ -19,7 +19,7 @@ def generate_launch_description():
     ros2_control_hardware_type = DeclareLaunchArgument(
         "ros2_control_hardware_type",
         default_value="mock_components",
-        description="ros2_control 하드웨어 타입 (mock_components = 가짜 하드웨어)",
+        description="ros2_control hardware type (mock_components = fake hardware)",
     )
 
     moveit_config = (

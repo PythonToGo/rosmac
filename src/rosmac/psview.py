@@ -113,11 +113,13 @@ def core_topic_warning(publishers: list[str]) -> str | None:
         local = [p for p in publishers if not any(m in p for m in _BRIDGE_MARKERS)]
         if via_bridge and local:
             return (
-                f"발행자 {len(publishers)}개 — 로컬({', '.join(local)})과 "
-                f"브리지 유래(VM)가 동시 발행 중. VM에 잔존 스택이 있는지 "
-                f"`rosmac sim status`/`rosmac ps` VM 절 확인 (2026-07-07 튕김 패턴)"
+                f"{len(publishers)} publishers — local ({', '.join(local)}) and "
+                f"bridge-origin (VM) publishing simultaneously. Check for leftover VM stack "
+                f"in `rosmac sim status` / the VM section of `rosmac ps` (2026-07-07 flapping pattern)"
             )
-        return f"발행자 {len(publishers)}개 ({', '.join(publishers)}) — 의도한 구성인지 확인"
+        return (
+            f"{len(publishers)} publishers ({', '.join(publishers)}) — verify this is intentional"
+        )
     return None
 
 
@@ -189,8 +191,8 @@ def collect(cfg: Config) -> PsReport:
     r.orphan_bridges = find_orphan_bridges(procs, pidfile_pid)
     if r.orphan_bridges:
         r.warnings.append(
-            f"고아 zenoh-bridge {len(r.orphan_bridges)}개 (KI-20) — "
-            f"`rosmac down --keep-vm && rosmac up`으로 정리 권장"
+            f"{len(r.orphan_bridges)} orphan zenoh-bridge(s) (KI-20) — "
+            f"clean up with `rosmac down --keep-vm && rosmac up`"
         )
 
     daemon_procs = [p for p in procs if "ros2-daemon" in p.command]
@@ -204,8 +206,8 @@ def collect(cfg: Config) -> PsReport:
         r.daemon = DaemonStatus(pid=daemon_procs[0].pid, responsive=responsive, latency_ms=latency)
         if not responsive:
             r.warnings.append(
-                "ros2 데몬 응답 없음(hang) — `ros2 topic echo/list`가 무한 대기하는 원인. "
-                "처방: rosmac shell 안에서 `ros2 daemon stop && ros2 daemon start`"
+                "ros2 daemon unresponsive (hung) — why `ros2 topic echo/list` waits forever. "
+                "Fix: run `ros2 daemon stop && ros2 daemon start` inside rosmac shell"
             )
 
     # 3) VM
@@ -213,7 +215,7 @@ def collect(cfg: Config) -> PsReport:
         vm_state = lima.state(cfg.vm.name)
         r.vm_state = vm_state.value
     except (RuntimeError, subprocess.TimeoutExpired):
-        r.vm_state = "질의 실패"
+        r.vm_state = "query failed"
         vm_state = None
     if vm_state == lima.VmState.RUNNING:
         combined = (
@@ -251,9 +253,10 @@ def collect(cfg: Config) -> PsReport:
                 r.warnings.append(f"{topic}: {warn}")
     else:
         r.graph_note = (
-            "데몬 미기동/무응답 — 발행자 질의 생략"
+            "daemon unresponsive — publisher query skipped"
             if r.daemon.pid
-            else "ros2 데몬 미기동 — 발행자 질의 생략 (rosmac shell에서 ros2 명령을 쓰면 자동 기동)"
+            else "ros2 daemon not running — publisher query skipped "
+            "(starts automatically when you run ros2 commands in rosmac shell)"
         )
 
     return r

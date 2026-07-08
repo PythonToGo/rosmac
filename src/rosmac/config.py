@@ -70,13 +70,13 @@ def load(path: Path = CONFIG_PATH) -> Config:
     try:
         raw = yaml.safe_load(path.read_text()) or {}
     except yaml.YAMLError as e:
-        raise ConfigError(f"{path} 파싱 실패 (YAML 문법 오류): {e}") from e
+        raise ConfigError(f"{path} parse failed (YAML syntax error): {e}") from e
     if not isinstance(raw, dict):
-        raise ConfigError(f"{path} 최상위가 매핑이 아님 (현재: {type(raw).__name__})")
+        raise ConfigError(f"{path} top level is not a mapping (got: {type(raw).__name__})")
     try:
         return Config.model_validate(raw)
     except ValidationError as e:
-        raise ConfigError(f"{path} 스키마 검증 실패:\n{e}") from e
+        raise ConfigError(f"{path} schema validation failed:\n{e}") from e
 
 
 def save(cfg: Config, path: Path = CONFIG_PATH) -> None:

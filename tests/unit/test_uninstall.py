@@ -43,7 +43,7 @@ def test_uninstall_confirm_skips_on_no(fake_world: dict[str, list[str]]) -> None
     assert result.exit_code == 0
     assert fake_world["removed"] == []
     assert Path(fake_world["rosmac_dir"][0]).exists()
-    assert "건너뜀" in result.output
+    assert "skipped" in result.output
 
 
 def test_uninstall_clean_world(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -55,4 +55,4 @@ def test_uninstall_clean_world(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) 
     monkeypatch.setattr("rosmac.config.CONFIG_PATH", tmp_path / "nope" / "config.yaml")
     result = runner.invoke(cli.app, ["uninstall", "--yes"])
     assert result.exit_code == 0
-    assert "제거할 것이 없습니다" in result.output
+    assert "nothing to remove" in result.output

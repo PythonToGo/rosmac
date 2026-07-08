@@ -59,7 +59,7 @@ def list_presets() -> dict[str, str]:
                 doc = yaml.safe_load(f.read_text()) or {}
                 out[name] = doc.get("description", "")
             except Exception:  # noqa: BLE001 — 목록 표시는 최대한 관대하게
-                out[name] = "(파싱 실패)"
+                out[name] = "(parse failed)"
     return out
 
 
@@ -70,8 +70,8 @@ def load_preset(name: str) -> Preset:
     pkg = _asset_preset_dir() / f"{name}.yaml"
     if pkg.is_file():
         return Preset.model_validate(yaml.safe_load(pkg.read_text()))
-    available = ", ".join(sorted(list_presets())) or "(없음)"
-    raise KeyError(f"프리셋 '{name}' 없음. 사용 가능: {available}")
+    available = ", ".join(sorted(list_presets())) or "(none)"
+    raise KeyError(f"preset '{name}' not found. Available: {available}")
 
 
 def session_alive(cfg: Config) -> bool:
@@ -94,7 +94,7 @@ def ensure_apt(cfg: Config, packages: list[str], progress=None) -> list[str]:
         if ok == "yes":
             continue
         if progress:
-            progress(f"apt 설치: {pkg}")
+            progress(f"apt install: {pkg}")
         lima.shell(
             cfg.vm.name,
             f"sudo DEBIAN_FRONTEND=noninteractive apt-get install -y {pkg}",
@@ -122,7 +122,7 @@ def start(cfg: Config, preset: Preset, progress=None) -> None:
     """tmux 세션으로 launch.cmd 실행. 이미 세션이 있으면 RuntimeError (R6 패턴)."""
     if session_alive(cfg):
         raise RosmacError(
-            f"tmux 세션 '{SESSION}'이 이미 있음 — rosmac sim status/stop 또는 --attach 사용"
+            f"tmux session '{SESSION}' already exists — use rosmac sim status/stop or --attach"
         )
     _push_preset_assets(cfg, preset)
     env_exports = " ".join(
@@ -164,8 +164,8 @@ def wait_healthy(cfg: Config, preset: Preset, progress=None) -> None:
                 except RuntimeError:
                     pass
                 raise RosmacError(
-                    f"health topic {ht.name}이 {ht.timeout}s 내에 안 보임.\n"
-                    f"--- VM sim 로그 (마지막 30줄) ---\n{tail}"
+                    f"health topic {ht.name} not visible within {ht.timeout}s.\n"
+                    f"--- VM sim log (last 30 lines) ---\n{tail}"
                 )
             time.sleep(2)
 

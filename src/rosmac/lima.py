@@ -92,7 +92,7 @@ def push_tree(name: str, src_dir: str, dest: str, timeout: int = 600) -> None:
     import shlex
 
     if not dest.startswith("~/rosmac-ws/"):
-        raise ValueError(f"push_tree dest는 ~/rosmac-ws/ 아래만 허용: {dest}")
+        raise ValueError(f"push_tree dest must be under ~/rosmac-ws/: {dest}")
     inner = f"rm -rf {shlex.quote(dest)} && mkdir -p {shlex.quote(dest)} && tar -C {shlex.quote(dest)} -xf -"
     # shlex.quote가 ~를 감싸면 확장이 안 되므로 dest의 ~는 $HOME으로 치환
     inner = inner.replace("'~/", '"$HOME"\'/')
@@ -110,6 +110,6 @@ def push_tree(name: str, src_dir: str, dest: str, timeout: int = 600) -> None:
             tar.stdout.close()
         tar_rc = tar.wait()
     if tar_rc != 0:
-        raise RosmacError(f"tar 생성 실패 (exit {tar_rc}) — 소스: {src_dir}")
+        raise RosmacError(f"tar creation failed (exit {tar_rc}) — source: {src_dir}")
     if p.returncode != 0:
-        raise RosmacError(f"VM 전송 실패 (exit {p.returncode}): {p.stderr.strip()}")
+        raise RosmacError(f"VM transfer failed (exit {p.returncode}): {p.stderr.strip()}")

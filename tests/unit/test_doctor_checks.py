@@ -29,7 +29,7 @@ def test_c12_hung_daemon_is_fail(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(doctor.psview, "probe_daemon", lambda d: (False, None))
     r = doctor._C12DaemonResponsive().run(CFG)
     assert r.status == "FAIL"
-    assert "hang" in r.detail
+    assert "hung" in r.detail
     assert r.remedy is not None and "ros2 daemon stop" in r.remedy
 
 
