@@ -22,6 +22,21 @@
 | README 지원 매트릭스 표 | ✅ "지원 매트릭스" 절 |
 | CHANGELOG.md 존재 + CONTRIBUTING에서 참조 가능한 형태 | ✅ Keep a Changelog/SemVer 규약을 문서 서두에 명시 (Phase 6에서 링크만 하면 됨) |
 
+## 부수 작업 — 상품성 점검 (2026-07-08, 사용자 요청, Run F 전)
+
+- **경쟁 조사** (웹 리서치): 직접 경쟁자 없음. 최근접 대안은 RoboStack+pixi(신뢰성
+  공백)·devcontainer(맥 네트워킹/GUI 공백)·multipass blueprint(사망). 방어 가능한
+  해자는 ① 하이브리드+zenoh 단일 TCP 경계의 제품화 ② **실측 함정 DB→doctor/--fix/
+  report 제품화**(최강) ③ deps rosdep-대체 ④ push-to-VM. **서사 교정**: "MoveIt/Gazebo가
+  맥에 없다"(사실 아님 — robostack-humble osx-arm64에 존재) → "존재해도 신뢰 불가,
+  Tier 1에서 돌린다". 시한 리스크: Kilted 네이티브 흐름(2025-12~) 주시.
+  기회: 진단·복구 카테고리 공백, 네이티브 전환기의 다리, 교육 온보딩
+- **README 개편**: README.md 영어 메인(교정된 서사+차별점 전면 배치) +
+  README.ko.md 한국어 전문, 상호 링크
+- **완비성 갭 수리**: LICENSE(MIT) 파일 신설, pyproject 배포 메타데이터(authors/
+  license/readme/keywords/classifiers/urls) 추가. PyPI `rosmac` 이름 미점유 확인(404).
+  남은 항목: docs/workflow.md 영어화(후속), PyPI 선점(P5.5, 사용자 액션)
+
 ## P5.3 ③ — rosmac report (2026-07-08 완료 → P5.3 전체 완료)
 
 ### 구현
