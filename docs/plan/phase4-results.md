@@ -25,3 +25,27 @@ colcon이 `COLCON_DEFAULTS_FILE`을 읽는지 — 고의로 깨진 YAML을 지�
 | 양성 (rosmac shell, 주입 on) | ✅ `Summary: 1 package finished [5.77s]` |
 | 옵트아웃 | ✅ `build.colcon_defaults: false` → `$COLCON_DEFAULTS_FILE` 빈 값 + KI-25 재발(grep 1건) 확인, 복원 후 재주입 확인 |
 | 유닛 테스트 | ✅ `tests/unit/test_colcon_defaults.py` 4건 — 총 19 passed |
+
+## P4.2 — rosmac deps (2026-07-08)
+
+### 구현
+- `src/rosmac/deps.py`: 수집(`scan_workspace` — DEP_TAGS 6종, 깨진 XML은 broken_xml로
+  보고) → 매핑(`map_dep`: ①SPECIAL_MAP ②python3-접두 제거 ③ROS 관례명 →
+  `ros-humble-<->`, 하이픈 포함 미등록 이름은 None=unknown — 틀린 이름을 지어내지
+  않음) → 판정(installed: `micromamba list --json` 1회 / 가용성: `repoquery search
+  --json`의 `result.pkgs`, 실측 확인) → `DepsReport` 6필드
+- CLI: `rosmac deps <ws> [--install] [--json]`. src/ 없으면 exit 2.
+  `--json`일 때 stdout은 JSON만 (진행 메시지 억제 — 파이프 안전)
+
+### AC 실측
+| AC | 결과 |
+|---|---|
+| 픽스처 4버킷 분류 (`tests/fixtures/deps_ws`) | ✅ installed 5 / missing 0 / unknown `libweird-system-dev` / unavailable `ros-humble-totally-fake-ros-pkg-xyz` / 내부 `alpha,beta` 제외. 소요 2.9s |
+| `--install` 실동작 | ✅ `topic_tools` 선언 ws → missing `ros-humble-topic-tools` 검출 → 설치 → 재분석 missing 0 |
+| 가짜 패키지 unavailable 분류 | ✅ repoquery pkgs=0 → unavailable |
+| 한계 문서화 | ✅ workflow.md (선언된 의존성만 — FindExecutable류는 doctor 영역) |
+| 유닛 테스트 | ✅ `test_deps.py` 4건 — 총 23 passed |
+
+**실전 검증 (~/rcm_ws)**: installed 20종 정확 분류 + ws 내부 3패키지 제외 +
+**실제 미설치 의존성 `ros-humble-joint-state-publisher-gui` 발견** (수동 지원
+세션에서 놓쳤던 것 — 도구가 사람보다 나은 첫 사례).

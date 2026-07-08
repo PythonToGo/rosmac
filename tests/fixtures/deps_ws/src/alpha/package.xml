@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<!-- P4.2 픽스처: 매핑 규칙 4버킷을 전부 건드리는 의존성 조합 -->
+<package format="3">
+  <name>alpha</name>
+  <version>0.0.1</version>
+  <description>deps mapper fixture</description>
+  <maintainer email="pythontogoplease@gmail.com">rosmac</maintainer>
+  <license>MIT</license>
+  <depend>rclpy</depend>              <!-- 규칙 ③ → ros-humble-rclpy (installed 기대) -->
+  <depend>xacro</depend>              <!-- 규칙 ③ → ros-humble-xacro -->
+  <depend>beta</depend>               <!-- ws 내부 → 제외 기대 -->
+  <depend>eigen</depend>              <!-- 규칙 ① → eigen -->
+  <depend>libweird-system-dev</depend><!-- 하이픈 + 특수표 밖 → unknown 기대 -->
+  <exec_depend>totally_fake_ros_pkg_xyz</exec_depend> <!-- ③ 매핑되나 채널에 없음 → unavailable 기대 -->
+</package>

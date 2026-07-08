@@ -7,6 +7,7 @@ from rich.table import Table
 
 import rosmac
 from rosmac import assets, bridge, conda, lima
+from rosmac import deps as depsmod
 from rosmac.config import Config, load
 
 app = typer.Typer(
@@ -316,6 +317,58 @@ def shell(
         )
     env = dict(os.environ, ZDOTDIR=tmpdir)
     raise typer.Exit(subprocess.run(["zsh", "-i"], env=env).returncode)
+
+
+@app.command()
+def deps(
+    ws: str = typer.Argument(".", help="colcon 워크스페이스 루트 (src/ 포함 디렉토리)"),
+    install: bool = typer.Option(False, "--install", help="missing 버킷을 즉시 설치"),
+    json_out: bool = typer.Option(False, "--json", help="기계 판독용 JSON 출력"),
+) -> None:
+    """package.xml 의존성 → RoboStack conda 패키지 점검 (맥에서 rosdep 대체, P4.2)."""
+    import json as _json
+    from pathlib import Path
+
+    cfg = load()
+    root = Path(ws).expanduser().resolve()
+    if not (root / "src").is_dir():
+        console.print(f"[red]{root}에 src/가 없음 — colcon 워크스페이스 루트를 지정하세요[/]")
+        raise typer.Exit(2)
+    try:
+        report = depsmod.analyze(cfg, root)
+        if install and report.missing:
+            if not json_out:  # --json일 땐 stdout을 JSON만으로 유지 (파이프 안전)
+                console.print(f"설치 중: {', '.join(report.missing)}")
+            depsmod.install_missing(cfg, report.missing)
+            report = depsmod.analyze(cfg, root)  # 재분석으로 설치 결과 검증
+    except RuntimeError as e:
+        console.print(f"[red]{e}[/]")
+        raise typer.Exit(1) from None
+
+    if json_out:
+        print(_json.dumps(report.model_dump(), ensure_ascii=False, indent=2))
+        return
+    table = Table(title=f"rosmac deps — {root}")
+    table.add_column("버킷")
+    table.add_column("패키지")
+    table.add_row("installed", ", ".join(report.installed) or "-")
+    table.add_row("[yellow]missing[/]", ", ".join(report.missing) or "-")
+    table.add_row("[red]unknown[/]", ", ".join(report.unknown) or "-")
+    table.add_row("[red]unavailable[/]", ", ".join(report.unavailable) or "-")
+    table.add_row("(ws 내부)", ", ".join(report.skipped_local) or "-")
+    console.print(table)
+    if report.missing:
+        console.print(
+            f"[yellow]→ rosmac deps {ws} --install[/] 또는:\n"
+            f"  micromamba install -n {cfg.conda_env} -c conda-forge "
+            f"-c {cfg.conda_channel} {' '.join(report.missing)}"
+        )
+    if report.unknown:
+        console.print(
+            "[red]unknown[/]: 매핑 확신 불가 — 시스템 의존성일 수 있음. "
+            "conda-forge에서 이름을 찾아 수동 설치 후, 매핑을 알게 되면 "
+            "deps.py SPECIAL_MAP에 기여해 주세요"
+        )
 
 
 @app.command()
