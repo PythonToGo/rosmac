@@ -234,6 +234,39 @@
   기존 env는 `micromamba install -n ros_env -c conda-forge -c robostack-humble ros-humble-xacro`
 - **지문**: launch 에러에 `TextSubstitution object ... not found on the PATH` → FindExecutable 대상이 env에 없는 것
 
+## KI-27. lima가 VM의 DDS UDP 포트를 자동 포워딩 → 맥 로컬 DDS 디스커버리 파괴
+- **증상**: 맥 로컬 DDS 참가자끼리 일부만 서로 보임. 저인덱스 참가자(먼저 뜬 브리지 등)가
+  발견 불능. VM 쪽 DDS 참가자 수에 따라 **간헐 발현** — "어제는 됐는데 오늘 안 됨"
+  (2026-07-08 실측)
+- **원인**: lima hostagent는 게스트가 listen하는 포트를 자동으로 맥 127.0.0.1에
+  포워딩한다. VM DDS의 유니캐스트 포트(UDP 7410+2i)가 포워딩되면 limactl 소켓이
+  맥 DDS의 SPDP 핑(127.0.0.1:7410~)을 가로채 VM으로 흘려보낸다
+- **진단**: `lsof -nP -iUDP | grep limactl | grep ':74'` — limactl이 74xx를 쥐고 있으면 이것
+- **해결**: lima 템플릿 portForwards 최상단에 UDP 전면 차단 규칙 2개
+  (`guestPortRange: [1,65535], proto: udp, ignore: true` + 동일 규칙에 `guestIP: "0.0.0.0"`).
+  **규칙 2개 다 필요** (게스트가 0.0.0.0에 bind한 경우 기본 규칙이 안 맞음 — 실측).
+  기존 VM은 `~/.lima/<vm>/lima.yaml`에도 반영(KI-24) 후 VM 재시작
+- **지문**: rosmac 경계는 TCP뿐(zenoh 7447, foxglove 8765) — UDP 포워딩은 어떤 경우에도 불필요
+
+## KI-28. [미해결] 맥 zenoh-bridge의 로컬 DDS 디스커버리 정지 (SPDP 무송신)
+- **증상**: 맥 브리지가 로컬 DDS 참가자를 전혀 발견 못 하고(로그에 `declares` 0건)
+  로컬 참가자들도 브리지를 못 봄 — **양방향 불통**. zenoh 세션(VM과의 TCP)과 원격
+  라우트 생성은 정상이라 `rosmac up`의 "브리지 상호 감지"는 통과함 (가짜 안심).
+  결과: VM 토픽이 맥 CLI에 안 보이고 맥 노드 토픽이 VM에 못 감. 2026-07-08 발현
+- **확인된 사실 (실측)**: ① 맥 CLI↔CLI 디스커버리는 정상 ② 브리지 프로세스는
+  idx0 포트(7410/7411) 정상 바인드 ③ CycloneDDS discovery 트레이스에 **SPDP 송신
+  기록이 0** — 디스커버리가 시작조차 안 함 ④ 브리지 재시작·KI-27 수정·명시적
+  `<Peers>`·샌드박스 배제 전부 무효 ⑤ VM 쪽 브리지·노드는 전부 정상
+- **정황**: 마지막 정상 확인 2026-07-07 21:26 (CLI가 브리지 엔티티를 봄).
+  그 사이 변화: 맥 절전/네트워크 변경(en0 IP 변경). 어제까지 수 주간 동일 바이너리
+  (1.9.0)·설정으로 정상
+- **다음 가설 (조사 순서)**: ① en0 변경과 vendored cyclonedds의 인터페이스 선택
+  상호작용 (ROS_LOCALHOST_ONLY 처리 경로) ② 브리지 버전 업/다운그레이드 A/B
+  (1.9.0 ↔ 최신) ③ zenoh-bridge에 `ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST` 등
+  대체 env ④ tcpdump lo0로 SPDP 패킷 부재 최종 확인
+- **영향**: 브리지 경유 E2E(P4.5의 일부, sim 헬스체크) 차단. VM 내부 작업(P4.4)과
+  맥 로컬 작업은 무영향
+
 ## KI-12. Foxglove가 URDF 메시 파일을 못 찾음 [계획시점]
 - **증상**: 3D 패널에 로봇이 흰 박스/빈 상태로 표시, 콘솔에 `package://` URL 해석 실패
 - **원인**: URDF의 `package://` 메시 경로를 Foxglove(맥)가 로컬에서 해석 못 함

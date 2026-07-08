@@ -9,6 +9,17 @@ cpus: @cpus
 memory: "@memory"
 disk: "@disk"
 portForwards:
+  # KI-27: lima는 게스트가 listen하는 포트를 자동 포워딩한다. VM DDS의 UDP 74xx가
+  # 맥 127.0.0.1에 포워딩되면 맥 로컬 DDS의 SPDP 유니캐스트 핑을 삼켜 저인덱스
+  # 참가자(브리지 등)가 디스커버리 불능이 된다 (VM 참가자 수에 따라 간헐 발현).
+  # rosmac 경계는 TCP(zenoh 7447, foxglove 8765)뿐 — UDP 포워딩은 전면 차단.
+  - guestPortRange: [1, 65535]
+    proto: udp
+    ignore: true
+  - guestIP: "0.0.0.0"        # 게스트가 0.0.0.0에 bind한 UDP도 차단 (실측: 규칙 2개 다 필요)
+    guestPortRange: [1, 65535]
+    proto: udp
+    ignore: true
   - guestPort: @bridge_port   # zenoh
     hostPort: @bridge_port
   - guestPort: @foxglove_port   # foxglove_bridge (Phase 2)

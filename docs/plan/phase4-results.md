@@ -49,3 +49,30 @@ colcon이 `COLCON_DEFAULTS_FILE`을 읽는지 — 고의로 깨진 YAML을 지�
 **실전 검증 (~/rcm_ws)**: installed 20종 정확 분류 + ws 내부 3패키지 제외 +
 **실제 미설치 의존성 `ros-humble-joint-state-publisher-gui` 발견** (수동 지원
 세션에서 놓쳤던 것 — 도구가 사람보다 나은 첫 사례).
+
+## P4.3 — rosmac ps (2026-07-08)
+
+### 구현
+- `src/rosmac/psview.py` + `rosmac ps [--json]`. 데몬 응답성 XMLRPC 프로브(5s 컷,
+  포트 11511+domain) 선행 → 결과에 따라 그래프 질의 분기. 전 외부 호출 타임아웃.
+  맥 프로세스는 `ps -axo` 수집 후 자기/부모 PID 제외(KI-18 회피), VM은 단일
+  `lima.shell` 합성 명령(units+tmux+ps). 핵심 토픽 5종의 발행자를
+  `topic info --verbose`의 Publisher 섹션에서만 추출, 이중 발행 경고
+  (`zenoh_bridge`/`_CREATED_BY_BARE_DDS_APP_` = 브리지 유래 마커, 실측)
+
+### AC 실측
+| AC | 결과 |
+|---|---|
+| 데몬 SIGSTOP에서 15초 내 완주 | ✅ 5.40s 완주 + "응답 없음(hang)" 경고 + 처방 출력 |
+| 이중 발행 경고 | ✅ /tf 로컬 발행자 2개 구성에서 ⚠ 발화. 브리지 유래 케이스는 KI-28로 브리지 정지 상태라 마커 로직은 유닛으로 검증 |
+| 고아 브리지 감지 | ✅ pidfile 제거 시나리오에서 "⚠ 고아 브리지 PID ..." |
+| --json 스키마 | ✅ PsReport (daemon/bridge_pid/orphan_bridges/mac_nodes/vm_*/core_topics/warnings) |
+| 유닛 테스트 | ✅ test_psview.py 4건 — 총 27 passed |
+
+### 부산물: 실제 장애 2건 발견 (도구의 존재 이유 증명)
+- **KI-27 (해결)**: lima의 UDP 자동 포워딩이 VM DDS 포트(7410~)를 맥 127.0.0.1에
+  선점 → 맥 로컬 SPDP 핑을 가로챔. 템플릿+인스턴스 lima.yaml에 UDP 차단 규칙 2개
+  추가로 해결 (`lsof`로 0건 확인)
+- **KI-28 (미해결, 에스컬레이션)**: 맥 zenoh-bridge가 SPDP를 아예 송신하지 않아
+  로컬 DDS와 양방향 불통 (CycloneDDS 트레이스 실측). 5가지 접근 실패 — 상세·다음
+  가설은 known-issues.md. **P4.5 E2E의 브리지 경유 단계가 이것에 차단됨**
