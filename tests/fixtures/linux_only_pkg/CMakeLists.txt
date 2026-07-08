@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.10)
+project(linux_only_pkg)
+find_package(ament_cmake REQUIRED)
+add_executable(epoll_node src/epoll_node.cpp)
+install(TARGETS epoll_node DESTINATION lib/${PROJECT_NAME})
+ament_package()

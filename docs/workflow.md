@@ -52,6 +52,22 @@ feedback/result가 되돌아온다. Foxglove 3D 패널에서 팔이 움직이는
 쓰는 실행 파일(launch의 `FindExecutable` 등, KI-26 사례)은 못 잡는다 —
 그런 유형은 함정표와 doctor의 영역이다.
 
+### 맥에서 안 빌드되는 패키지 → VM 빌드 (`rosmac push`)
+
+libfranka 같은 **linux 전용 의존성** 패키지는 맥 빌드가 원천 불가하다. 공식 탈출로:
+
+```bash
+rosmac push ~/my_ws --build     # src/만 VM ~/rosmac-ws/my_ws/로 복사 + colcon build
+rosmac shell --vm               # VM 셸 진입
+source ~/rosmac-ws/my_ws/install/setup.bash && ros2 run …
+```
+
+- 복사 방식(D14)이라 수정 후엔 재push 필요. 재push는 VM쪽 src를 **통째로 교체**한다.
+- apt 의존성은 VM이 표준 Ubuntu라 rosdep이 그대로 동작:
+  `rosdep install --from-paths src -y`
+- 실행한 노드의 토픽은 zenoh 브리지를 타고 맥에서도 보인다.
+- 문제 파악은 언제나 `rosmac ps` — 맥+VM 프로세스와 핵심 토픽 발행자를 한 화면에.
+
 ## 3. 흔한 함정 (막히면 `rosmac doctor` 먼저)
 
 | 증상 | 원인 | 도구 |

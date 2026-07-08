@@ -320,6 +320,62 @@ def shell(
 
 
 @app.command()
+def push(
+    ws: str = typer.Argument(".", help="colcon 워크스페이스 루트 (src/ 포함 디렉토리)"),
+    name: str | None = typer.Option(None, "--name", help="VM 쪽 워크스페이스 이름 (기본: 디렉토리명)"),
+    build: bool = typer.Option(False, "--build", help="전송 후 VM에서 colcon build까지 실행"),
+) -> None:
+    """워크스페이스 src/를 VM ~/rosmac-ws/<이름>/으로 복사 (맥에서 안 빌드되는 패키지용, P4.4/D14)."""
+    import re
+    from pathlib import Path
+
+    cfg = load()
+    root = Path(ws).expanduser().resolve()
+    if not (root / "src").is_dir():
+        console.print(f"[red]{root}에 src/가 없음 — colcon 워크스페이스 루트를 지정하세요[/]")
+        raise typer.Exit(2)
+    ws_name = name or root.name
+    if not re.fullmatch(r"[A-Za-z0-9_-]+", ws_name):
+        console.print(f"[red]워크스페이스 이름이 유효하지 않음: {ws_name!r} (영숫자/_/-만)[/]")
+        raise typer.Exit(2)
+    if lima.state(cfg.vm.name) is not lima.VmState.RUNNING:
+        console.print("[red]VM이 실행 중이 아님 — rosmac up 먼저[/]")
+        raise typer.Exit(1)
+
+    dest = f"~/rosmac-ws/{ws_name}/src"
+    console.print(f"전송: {root}/src → VM {dest}")
+    try:
+        lima.push_tree(cfg.vm.name, str(root / "src"), dest)
+    except (RuntimeError, ValueError) as e:
+        console.print(f"[red]{e}[/]")
+        raise typer.Exit(1) from None
+    console.print("[green]✓ 전송 완료[/] (재실행 시 VM쪽 src는 통째로 교체됨)")
+
+    if build:
+        console.print("VM에서 colcon build 실행 중…")
+        # KI-19: 비인터랙티브 셸은 ROS 소싱이 안 됨 — 명시적 source 필수
+        build_cmd = (
+            f"source /opt/ros/{cfg.ros.distro}/setup.bash && "
+            f"cd ~/rosmac-ws/{ws_name} && colcon build --symlink-install 2>&1 | tail -15"
+        )
+        try:
+            print(lima.shell(cfg.vm.name, build_cmd, timeout=1800), end="")
+        except RuntimeError as e:
+            console.print(f"[red]VM 빌드 실패[/]: {e}")
+            console.print(
+                "apt 의존성이 필요하면 VM은 표준 Ubuntu이므로 rosdep이 동작합니다:\n"
+                f"  rosmac shell --vm  →  cd ~/rosmac-ws/{ws_name} && "
+                "rosdep install --from-paths src -y"
+            )
+            raise typer.Exit(1) from None
+    console.print(
+        f"실행: [bold]rosmac shell --vm[/] → "
+        f"source ~/rosmac-ws/{ws_name}/install/setup.bash → ros2 run …\n"
+        "(토픽은 zenoh 브리지로 맥에서도 보임)"
+    )
+
+
+@app.command()
 def ps(
     json_out: bool = typer.Option(False, "--json", help="기계 판독용 JSON 출력"),
 ) -> None:

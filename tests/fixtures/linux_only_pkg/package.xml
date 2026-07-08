@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<!-- P4.4 픽스처: linux 전용 헤더(sys/epoll.h) 사용 — 맥에서 빌드 불가가 정상,
+     rosmac push로 VM에서 빌드·실행하는 경로의 검증체 -->
+<package format="3">
+  <name>linux_only_pkg</name>
+  <version>0.0.1</version>
+  <description>rosmac push fixture (linux-only dependency)</description>
+  <maintainer email="pythontogoplease@gmail.com">rosmac</maintainer>
+  <license>MIT</license>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
