@@ -31,6 +31,8 @@
 rosmac up                      # VM + 브리지 기동
 rosmac sim panda-moveit        # VM에서 MoveIt 스택 기동, READY까지 대기
 
+rosmac deps .                  # 빌드 전: package.xml 의존성 점검 (맥의 rosdep 대체)
+                               #   missing이 있으면 --install로 한 번에 설치
 rosmac shell                   # ROS env가 주입된 서브셸 진입 — env 수동 설정 0회
 cd ~/workspace/rosmac/examples
 colcon build                   # 맥 네이티브 빌드 (RoboStack)
@@ -45,6 +47,10 @@ feedback/result가 되돌아온다. Foxglove 3D 패널에서 팔이 움직이는
 디버거는 평범한 파이썬처럼 붙는다: `rosmac shell` 안에서
 `python -m pdb $(which pick_demo)` 또는 IDE 인터프리터를
 `~/micromamba/envs/ros_env/bin/python`으로 지정.
+
+`rosmac deps`의 한계: **package.xml에 선언된** 의존성만 본다. 코드가 선언 없이
+쓰는 실행 파일(launch의 `FindExecutable` 등, KI-26 사례)은 못 잡는다 —
+그런 유형은 함정표와 doctor의 영역이다.
 
 ## 3. 흔한 함정 (막히면 `rosmac doctor` 먼저)
 
