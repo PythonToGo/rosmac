@@ -17,8 +17,18 @@ app = typer.Typer(
 console = Console()
 
 
+def _print_version(value: bool) -> None:
+    if value:
+        console.print(f"rosmac {rosmac.__version__}")
+        raise typer.Exit()
+
+
 @app.callback()
-def _main() -> None:
+def _main(
+    _version: bool = typer.Option(
+        False, "--version", callback=_print_version, is_eager=True, help="버전 출력 후 종료"
+    ),
+) -> None:
     """커맨드가 1개뿐이어도 서브커맨드 모드를 유지한다 (typer 특성)."""
 
 
@@ -86,8 +96,13 @@ def init(
     # 3. 맥 브리지 바이너리
     t0 = time.monotonic()
     installed = bridge.ensure_binary(cfg)
-    steps.append(("zenoh-bridge(맥)", "✓ 다운로드" if installed else "스킵 (이미 존재)",
-                  time.monotonic() - t0))
+    steps.append(
+        (
+            "zenoh-bridge(맥)",
+            "✓ 다운로드" if installed else "스킵 (이미 존재)",
+            time.monotonic() - t0,
+        )
+    )
 
     # 4. VM
     t0 = time.monotonic()
@@ -125,13 +140,18 @@ def _start_viz(cfg: Config) -> None:
         except OSError:
             time.sleep(1)
     else:
-        console.print(f"[yellow]⚠ 포트 {cfg.foxglove_port} 미개방 — "
-                      f"limactl shell {cfg.vm.name} -- journalctl -u foxglove-bridge[/]")
+        console.print(
+            f"[yellow]⚠ 포트 {cfg.foxglove_port} 미개방 — "
+            f"limactl shell {cfg.vm.name} -- journalctl -u foxglove-bridge[/]"
+        )
         return
     console.print(f"✓ foxglove_bridge active (ws://localhost:{cfg.foxglove_port})")
     if glob.glob("/Applications/Foxglove*.app"):
         subprocess.run(
-            ["open", f"foxglove://open?ds=foxglove-websocket&ds.url=ws://localhost:{cfg.foxglove_port}"],
+            [
+                "open",
+                f"foxglove://open?ds=foxglove-websocket&ds.url=ws://localhost:{cfg.foxglove_port}",
+            ],
             check=False,
         )
         console.print("✓ Foxglove 앱 오픈 (딥링크)")
@@ -144,7 +164,9 @@ def _start_viz(cfg: Config) -> None:
 
 @app.command()
 def viz(
-    layout: str | None = typer.Option(None, "--layout", help="프리셋 레이아웃 이름 (panda|diffbot)"),
+    layout: str | None = typer.Option(
+        None, "--layout", help="프리셋 레이아웃 이름 (panda|diffbot)"
+    ),
 ) -> None:
     """Foxglove 시각화 연결 (VM foxglove_bridge 기동 + 앱 오픈)."""
     cfg = load()
@@ -322,7 +344,9 @@ def shell(
 @app.command()
 def push(
     ws: str = typer.Argument(".", help="colcon 워크스페이스 루트 (src/ 포함 디렉토리)"),
-    name: str | None = typer.Option(None, "--name", help="VM 쪽 워크스페이스 이름 (기본: 디렉토리명)"),
+    name: str | None = typer.Option(
+        None, "--name", help="VM 쪽 워크스페이스 이름 (기본: 디렉토리명)"
+    ),
     build: bool = typer.Option(False, "--build", help="전송 후 VM에서 colcon build까지 실행"),
 ) -> None:
     """워크스페이스 src/를 VM ~/rosmac-ws/<이름>/으로 복사 (맥에서 안 빌드되는 패키지용, P4.4/D14)."""
@@ -395,11 +419,12 @@ def ps(
     daemon_str = (
         "미기동"
         if d.pid is None
-        else f"PID {d.pid}  " + (f"응답 ✓ ({d.latency_ms}ms)" if d.responsive else "[red]응답 없음(hang)[/]")
+        else f"PID {d.pid}  "
+        + (f"응답 ✓ ({d.latency_ms}ms)" if d.responsive else "[red]응답 없음(hang)[/]")
     )
     console.print(f"  ros2 daemon    {daemon_str}")
     console.print(
-        f"  zenoh-bridge   "
+        "  zenoh-bridge   "
         + (f"PID {report.bridge_pid} (pidfile 일치)" if report.bridge_pid else "미기동")
     )
     for o in report.orphan_bridges:
@@ -423,7 +448,9 @@ def ps(
         console.print(f"  {report.graph_note}")
     for t in report.core_topics:
         mark = "[yellow]⚠[/] " if t.warning else ""
-        console.print(f"  {mark}{t.topic}  발행자 {len(t.publishers)}: {', '.join(t.publishers) or '-'}")
+        console.print(
+            f"  {mark}{t.topic}  발행자 {len(t.publishers)}: {', '.join(t.publishers) or '-'}"
+        )
 
     if report.warnings:
         console.print("[bold yellow]── 경고 ──[/]")
@@ -512,8 +539,10 @@ def sim(
         console.print(sim_mod.status(cfg))
         return
     if attach:
-        os.execvp("limactl", ["limactl", "shell", cfg.vm.name, "--",
-                              "tmux", "attach", "-t", sim_mod.SESSION])
+        os.execvp(
+            "limactl",
+            ["limactl", "shell", cfg.vm.name, "--", "tmux", "attach", "-t", sim_mod.SESSION],
+        )
 
     try:
         preset = sim_mod.load_preset(name)
@@ -522,8 +551,7 @@ def sim(
         raise typer.Exit(1) from None
 
     # 사전 점검 (C2 VM, C5 포트, C6 맥 브리지, C7 VM 브리지 — C8은 느려서 제외)
-    pre = [c for c in doctor_mod.CHECKS
-           if c.name.split()[0] in ("C2", "C5", "C6", "C7")]
+    pre = [c for c in doctor_mod.CHECKS if c.name.split()[0] in ("C2", "C5", "C6", "C7")]
     failed = [r for r in (c.run(cfg) for c in pre) if r.status == "FAIL"]
     if failed:
         for r in failed:

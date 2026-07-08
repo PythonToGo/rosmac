@@ -1,0 +1,29 @@
+# Changelog
+
+이 프로젝트의 주요 변경 사항을 기록한다.
+형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/),
+버전은 [SemVer](https://semver.org/lang/ko/)를 따른다 (D12).
+**0.y.z 동안은 마이너 버전이 breaking change를 포함할 수 있다.**
+
+## [0.1.0] - Unreleased
+
+첫 공개 준비 버전 — Phase 0~4의 소급 요약.
+
+### Added
+- 코어 CLI: `init`(conda env·브리지·VM 프로비저닝, 멱등) / `up`·`down`·`status` /
+  `doctor`(C1~C11 진단 + 처방, `--json`) / `shell`(ROS env 주입, `--vm`, `-c`) /
+  `version` (Phase 1)
+- 시뮬레이션: `sim panda-moveit`·`sim gazebo-diffbot` 프리셋(tmux 기동 + health 판정),
+  `viz`(foxglove_bridge + 앱 딥링크) (Phase 2)
+- 외부 워크스페이스 수용: `deps`(package.xml → RoboStack 설치, rosdep 대체) /
+  `ps`(맥+VM 프로세스·토픽 발행자 관찰) / `push`(VM 전송 +`--build`) /
+  colcon 빌드 기본값 자동 주입(구식 CMake 함정 우회) (Phase 4)
+- 아키텍처: 맥 네이티브 개발(RoboStack) ↔ zenoh 브리지(TCP 7447) ↔
+  Lima VM Ubuntu 22.04 arm64(MoveIt·Gazebo) ↔ Foxglove(ws 8765),
+  양측 rmw_cyclonedds_cpp 고정 (D9)
+- 함정 DB: 실측 known issues 28건 (`docs/plan/known-issues.md`)
+
+### 실측 검증 (Phase 0/2/4 게이트)
+- 브리지 대역폭 10.3 MB/s (1MB@10Hz 무손실), MoveGroup 액션 왕복 3연속 SUCCEEDED
+- Gazebo Fortress headless RTF 1.00 (물리) / 0.99 (카메라 320x240@15Hz)
+- 외부 워크스페이스 E2E (deps→빌드→ps→push) 무인 완주 38초
