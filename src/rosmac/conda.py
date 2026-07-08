@@ -40,6 +40,12 @@ def _run(cmd: list[str], timeout: int = 60) -> subprocess.CompletedProcess[str]:
 def _check(cmd: list[str], timeout: int = 60) -> subprocess.CompletedProcess[str]:
     p = _run(cmd, timeout)
     if p.returncode != 0:
+        # libmamba 원문은 사용자에게 무의미 — env 부재는 "초기화 안 됨"으로 번역 (P5.2 ④)
+        if "The given prefix does not exist" in p.stderr:
+            raise RosmacError(
+                "RoboStack conda env가 없습니다 — rosmac이 초기화되지 않았거나 제거됨",
+                hint="rosmac init",
+            )
         raise RosmacError(f"{' '.join(cmd)} failed (exit {p.returncode}): {p.stderr.strip()}")
     return p
 
@@ -67,6 +73,11 @@ def create_env(cfg: Config, timeout: int = 3600) -> None:
         ],
         timeout=timeout,
     )
+
+
+def remove_env(cfg: Config, timeout: int = 300) -> None:
+    """RoboStack env 제거 (rosmac uninstall 전용 — 절대 규칙 7: 호출부가 확인 책임)."""
+    _check(["micromamba", "env", "remove", "-y", "-n", cfg.conda_env], timeout=timeout)
 
 
 def ros_env_pairs(cfg: Config) -> list[str]:
