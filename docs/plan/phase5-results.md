@@ -22,6 +22,32 @@
 | README 지원 매트릭스 표 | ✅ "지원 매트릭스" 절 |
 | CHANGELOG.md 존재 + CONTRIBUTING에서 참조 가능한 형태 | ✅ Keep a Changelog/SemVer 규약을 문서 서두에 명시 (Phase 6에서 링크만 하면 됨) |
 
+## P5.3 ① — 신규 doctor 체크 C12/C13/C14 (2026-07-08 완료; --fix·report는 다음 run)
+
+### 구현
+- **C12 ros2 데몬 응답성**: pgrep으로 데몬 탐지(KI-18 자기매칭 없음 확인) →
+  psview.probe_daemon(XMLRPC 5s)으로 판정. 미기동=PASS(자동 기동되므로),
+  hang=FAIL + 데몬 재시작 처방. psview의 `_probe_daemon`/`_run_ros`를 공개로 승격
+- **C13 필수 실행파일**: env 안에서 `command -v ros2 colcon xacro` (KI-26).
+  누락 시 conda 패키지명 매핑(xacro→ros-humble-xacro, colcon→colcon-common-extensions)
+  으로 설치 명령 처방
+- **C14 그래프 오염**: sim 세션이 없는데 /robot_description·/tf 발행자가 있으면 WARN
+  (2026-07-07 시각화 튕김 패턴). 데몬 hang이면 질의로 같이 매달리지 않고 WARN 회피
+- README·cli 문구 C1~C11 → C1~C14
+
+### AC 실측
+| AC | 결과 |
+|---|---|
+| 데몬 SIGSTOP → doctor가 C12 FAIL 감지 | ✅ `rosmac doctor` 표에서 C12 FAIL("pid 29261 응답 없음(hang)") + 처방 출력. 이때 C14는 "데몬 hang — 질의 불가" WARN으로 회피(설계 의도) |
+| SIGCONT 복구 | ✅ C12 PASS(3ms) — --fix 자동 복구는 다음 run(P5.3 ②) |
+| C13 | ✅ PASS(ros2, colcon, xacro 존재). 누락 시나리오는 유닛으로 커버 |
+| C14 양성/음성 | ✅ 기대 밖 /tf 발행자 주입 → WARN("/tf ← _ros2cli_33201") → 정리 → PASS |
+| (유닛) | ✅ test_doctor_checks.py 10건 — 총 50 passed, ruff/mypy clean |
+
+### 부수 발견 — KI-29 신규 등록
+C14 양성 실측 중 `rosmac shell -c 'nohup … &'`가 300s 블록 + nohup 손자 생존을
+실측 — known-issues.md에 KI-29로 기록 (rosmac 자체 코드는 해당 패턴 미사용)
+
 ## P5.2 — CLI 견고성 ③④: uninstall·부분 초기화 방어 (2026-07-08 완료 → P5.2 전체 완료)
 
 ### 구현

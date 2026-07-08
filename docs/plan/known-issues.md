@@ -316,6 +316,20 @@
 - **영향**: 브리지 경유 기능(sim 헬스체크, 맥↔VM 토픽, Foxglove의 맥 노드 데이터)
   간헐 마비. VM 내부 작업·맥 로컬 빌드·`rosmac push`는 무영향
 
+## KI-29. `rosmac shell -c`로 맥 백그라운드 프로세스 기동 시 호출이 블록될 수 있음
+- **증상**: `rosmac shell -c 'nohup ros2 topic pub … >/log 2>&1 & true'`가 즉시
+  반환되지 않고 run_in_env의 300s 타임아웃까지 hang → TimeoutExpired traceback.
+  이때 nohup 손자 프로세스는 wrapper가 죽어도 **살아남아** 좀비 발행자가 됨
+  (2026-07-08 실측: C14 양성 테스트 중 /tf pub이 정확히 이 패턴)
+- **원인(추정)**: `micromamba run`이 자식 bash 종료 후에도 프로세스 그룹 종료를
+  대기하는 것으로 보임. 같은 패턴이 블록 없이 동작한 사례도 있어(KI-28 정량화
+  스크립트) 발동 조건 미상 — micromamba 락/버전 상태 의존 추정
+- **우회**: 맥 쪽 백그라운드 프로세스가 필요하면 ① `rosmac shell`(인터랙티브) 안에서
+  띄우거나 ② VM이면 `rosmac shell --vm -c`(limactl 경유라 무관) ③ 스크립트라면
+  rosmac 밖에서 env를 직접 조립해 setsid로 기동. 정리는 `pkill -f <패턴>`으로
+- **영향**: 자동화 스크립트/에이전트가 이 패턴을 쓰면 5분 hang + 좀비 프로세스.
+  rosmac 자체 코드는 이 패턴을 쓰지 않음 (doctor C8은 limactl 직접 Popen)
+
 ## KI-12. Foxglove가 URDF 메시 파일을 못 찾음 [계획시점]
 - **증상**: 3D 패널에 로봇이 흰 박스/빈 상태로 표시, 콘솔에 `package://` URL 해석 실패
 - **원인**: URDF의 `package://` 메시 경로를 Foxglove(맥)가 로컬에서 해석 못 함

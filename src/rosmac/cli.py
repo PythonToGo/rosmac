@@ -289,7 +289,7 @@ def down(
 def doctor(
     json_out: bool = typer.Option(False, "--json", help="JSON으로 출력 (자동화용)"),
 ) -> None:
-    """C1~C11 진단. FAIL이 하나라도 있으면 exit 1."""
+    """C1~C14 진단. FAIL이 하나라도 있으면 exit 1."""
     from rosmac import doctor as doctor_mod
 
     cfg = load()
