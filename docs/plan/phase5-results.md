@@ -22,6 +22,28 @@
 | README 지원 매트릭스 표 | ✅ "지원 매트릭스" 절 |
 | CHANGELOG.md 존재 + CONTRIBUTING에서 참조 가능한 형태 | ✅ Keep a Changelog/SemVer 규약을 문서 서두에 명시 (Phase 6에서 링크만 하면 됨) |
 
+## P5.3 ② — doctor --fix (2026-07-08 완료; report는 다음 run)
+
+### 구현
+- 픽서 3종 (`doctor.FIXERS`, 자가 진단 후 필요할 때만 적용·보고):
+  ① **hung 데몬 재시작** — hung 데몬은 stop 명령도 안 먹으므로 SIGKILL 후
+  `ros2 daemon start` + 재프로브 검증 ② **고아 브리지 sweep(KI-20)** — pidfile과
+  무관한 zenoh-bridge를 SIGTERM(KI-17 라우트 잔재 방지) → 5s 대기 → 잔존 시 SIGKILL.
+  정규 브리지는 불가침 ③ **lima UDP 규칙 보정(KI-24/KI-27)** — 인스턴스 lima.yaml에
+  차단 규칙 2종 누락 시 최상단 삽입(멱등, 이미 있으면 파일 불변), VM 재시작 안내
+- `rosmac doctor --fix`: 픽서 실행·보고 후 전체 체크. `--json --fix`는
+  {fixes, checks} 스키마, 플레인 `--json`은 기존 리스트 유지(자동화 호환)
+- **C8 재시도 내장**: 콜드 데몬 첫 echo만 실패하는 일시 FAIL 2회 관측(프레시 설치
+  직후·데몬 재기동 직후) → 1회 재시도 추가, pub 수명 60→120s
+
+### AC 실측 (hung 데몬 + 고아 브리지 동시 주입 → --fix 1회)
+| AC | 결과 |
+|---|---|
+| 데몬 SIGSTOP → C12 FAIL → --fix 복구 | ✅ "killed hung daemon pid [39847] → restarted (447ms)", 새 pid 40029 응답 3ms |
+| KI-20 고아 시나리오 --fix 복구 | ✅ 대체 listen 포트로 살아있는 고아 재현(주: `-e`만 주면 7447 listen 충돌로 즉사 — KI-20 지문 재확인) → "terminated 1 orphan bridge(s): [39884]", 정규 브리지(29011) 불가침 |
+| KI-24 보정 | ✅ 실기는 규칙 존재 → no-op("rules already present"), 삽입/멱등/부분 보충은 유닛 5건 |
+| (유닛) | ✅ test_doctor_fix.py 9건 — 총 59 passed, ruff/mypy clean. C8 콜드 데몬 조건 재현 → PASS |
+
 ## 부수 작업 — CLI 출력 전면 영어화 (2026-07-08, 사용자 요청)
 
 - 대상: 사용자에게 보이는 문자열 전부 — typer 도움말(커맨드 docstring, help=),

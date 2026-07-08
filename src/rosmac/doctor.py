@@ -2,10 +2,15 @@
 
 import os
 import shutil
+import signal
 import socket
 import subprocess
+import time
 import uuid
+from pathlib import Path
 from typing import Literal, NamedTuple, Protocol
+
+import yaml
 
 from rosmac import bridge, conda, lima, psview, sim
 from rosmac.config import Config
@@ -123,9 +128,11 @@ class _C7VmBridge:
 class _C8RoundTrip:
     name = "C8 round-trip self test"
 
-    def run(self, cfg: Config) -> CheckResult:
-        import time
+    # 실측 2회(프레시 설치 직후, 데몬 재기동 직후): 콜드 데몬의 첫 echo만 실패하고
+    # 재시도는 통과 — 1회 재시도를 내장해 일시 실패를 오탐하지 않는다 (P5.3)
+    _ATTEMPTS = 2
 
+    def run(self, cfg: Config) -> CheckResult:
         topic = f"/rosmac/doctor/{uuid.uuid4().hex[:8]}"
         pub = None
         try:
@@ -142,27 +149,26 @@ class _C8RoundTrip:
                     f"export ROS_LOCALHOST_ONLY=1 ROS_DOMAIN_ID={cfg.ros.domain_id} "
                     f"RMW_IMPLEMENTATION={cfg.ros.rmw} "
                     f"CYCLONEDDS_URI=file:///etc/cyclonedds.xml; "
-                    f"timeout 60 ros2 topic pub -r 5 {topic} std_msgs/msg/String 'data: ping'",
+                    f"timeout 120 ros2 topic pub -r 5 {topic} std_msgs/msg/String 'data: ping'",
                 ],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
             )
             time.sleep(3)  # 발행자·라우트 안정화 (브리지 경유 디스커버리 ~10s 관찰됨)
-            out = conda.run_in_env(
-                cfg, f"ros2 topic echo --once {topic} std_msgs/msg/String", timeout=40
-            )
-            if "ping" in out:
-                return CheckResult(self.name, "PASS", f"{topic} round-trip received")
-            return CheckResult(
-                self.name,
-                "FAIL",
-                f"receive failed (output: {out[:80]!r})",
-                f"check bridge log: {bridge.LOG_PATH}",
-            )
-        except (RuntimeError, subprocess.TimeoutExpired) as e:
-            return CheckResult(
-                self.name, "FAIL", f"{e}"[:120], f"check bridge log: {bridge.LOG_PATH}"
-            )
+            last = "no output"
+            for attempt in range(1, self._ATTEMPTS + 1):
+                try:
+                    out = conda.run_in_env(
+                        cfg, f"ros2 topic echo --once {topic} std_msgs/msg/String", timeout=40
+                    )
+                except (RuntimeError, subprocess.TimeoutExpired) as e:
+                    last = f"{e}"[:120]
+                    continue
+                if "ping" in out:
+                    note = " (attempt 2 — daemon was cold)" if attempt == 2 else ""
+                    return CheckResult(self.name, "PASS", f"{topic} round-trip received{note}")
+                last = f"receive failed (output: {out[:80]!r})"
+            return CheckResult(self.name, "FAIL", last, f"check bridge log: {bridge.LOG_PATH}")
         finally:
             if pub is not None:
                 pub.terminate()
@@ -307,3 +313,137 @@ CHECKS: list[Check] = [
 
 def run_all(cfg: Config) -> list[CheckResult]:
     return [c.run(cfg) for c in CHECKS]
+
+
+# ── doctor --fix: 자동 처방이 안전한 항목만 (P5.3 ②) ──────────────────────
+# 각 픽서는 자가 진단 후 필요할 때만 손대고, 무엇을 했는지 detail로 보고한다.
+# 수리 불가 항목은 여기 넣지 않는다 — 체크의 remedy(처방 명령)로 안내 유지.
+
+
+class FixResult(NamedTuple):
+    name: str
+    applied: bool  # False = 고칠 것이 없었음 (정상)
+    detail: str
+
+
+def _alive(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)
+        return True
+    except OSError:
+        return False
+
+
+def _fix_hung_daemon(cfg: Config) -> FixResult:
+    """C12 처방 자동화 — hung 데몬은 stop 명령도 안 먹으므로 SIGKILL 후 재기동."""
+    name = "fix: restart hung ros2 daemon"
+    pids = _daemon_pids()
+    if not pids:
+        return FixResult(name, False, "daemon not running — nothing to fix")
+    if psview.probe_daemon(cfg.ros.domain_id)[0]:
+        return FixResult(name, False, "daemon responsive — nothing to fix")
+    for pid in pids:
+        try:
+            os.kill(pid, signal.SIGKILL)  # P5.2 실측: hung 데몬은 SIGTERM 무시
+        except OSError:
+            pass
+    try:
+        conda.run_in_env(cfg, "ros2 daemon start", timeout=60)
+    except RuntimeError as e:
+        return FixResult(name, True, f"killed pid {pids} but restart failed: {e}"[:200])
+    ok, latency = psview.probe_daemon(cfg.ros.domain_id)
+    if ok:
+        return FixResult(name, True, f"killed hung daemon pid {pids} → restarted ({latency}ms)")
+    return FixResult(name, True, f"killed pid {pids}, restarted, but still unresponsive")
+
+
+def _list_ros_procs() -> list[psview.ProcInfo]:
+    """픽서용 프로세스 스냅샷 (테스트 mock 지점)."""
+    ps_out = subprocess.run(
+        ["ps", "-axo", "pid=,command="], capture_output=True, text=True, timeout=10
+    ).stdout
+    return psview.parse_ps_lines(ps_out, exclude_pids={os.getpid(), os.getppid()})
+
+
+def _fix_orphan_bridges(cfg: Config) -> FixResult:
+    """KI-20 고아 브리지 sweep — KI-17 때문에 SIGTERM 우선, 5s 후 SIGKILL."""
+    name = "fix: orphan bridge sweep (KI-20)"
+    procs = _list_ros_procs()
+    pidfile_pid = None
+    if bridge.PID_PATH.exists():
+        try:
+            candidate = int(bridge.PID_PATH.read_text().strip())
+            if any(p.pid == candidate for p in procs):
+                pidfile_pid = candidate
+        except ValueError:
+            pass
+    orphans = psview.find_orphan_bridges(procs, pidfile_pid)
+    if not orphans:
+        return FixResult(name, False, "no orphan bridges")
+    for o in orphans:
+        try:
+            os.kill(o.pid, signal.SIGTERM)  # KI-17: 정상 종료로 상대 브리지 라우트 잔재 방지
+        except OSError:
+            pass
+    deadline = time.monotonic() + 5
+    while time.monotonic() < deadline and any(_alive(o.pid) for o in orphans):
+        time.sleep(0.3)
+    killed = []
+    for o in orphans:
+        if _alive(o.pid):
+            try:
+                os.kill(o.pid, signal.SIGKILL)
+                killed.append(o.pid)
+            except OSError:
+                pass
+    detail = f"terminated {len(orphans)} orphan bridge(s): {[o.pid for o in orphans]}"
+    if killed:
+        detail += f" (SIGKILL needed for {killed})"
+    return FixResult(name, True, detail)
+
+
+_UDP_IGNORE_PLAIN = {"guestPortRange": [1, 65535], "proto": "udp", "ignore": True}
+_UDP_IGNORE_ANYIP = {"guestIP": "0.0.0.0", **_UDP_IGNORE_PLAIN}
+
+
+def ensure_udp_ignore_rules(path: Path) -> int:
+    """인스턴스 lima.yaml에 KI-27의 UDP 차단 규칙 2개를 보장. 삽입한 개수 반환.
+
+    주의: yaml 재직렬화로 주석은 사라진다 — 규칙이 이미 있으면 파일을 건드리지 않는다.
+    """
+    data = yaml.safe_load(path.read_text()) or {}
+    pf: list[dict] = data.get("portForwards") or []
+
+    def _covered(want: dict) -> bool:
+        return any(all(r.get(k) == v for k, v in want.items()) for r in pf)
+
+    missing = [w for w in (_UDP_IGNORE_PLAIN, _UDP_IGNORE_ANYIP) if not _covered(w)]
+    if not missing:
+        return 0
+    data["portForwards"] = missing + pf  # 최상단 — TCP 포워드보다 먼저 평가돼야 함
+    path.write_text(yaml.safe_dump(data, sort_keys=False, allow_unicode=True))
+    return len(missing)
+
+
+def _fix_lima_udp_rules(cfg: Config) -> FixResult:
+    """KI-24 보정 — 템플릿 갱신이 인스턴스 lima.yaml에 반영 안 된 경우 패치."""
+    name = "fix: lima UDP block rules (KI-24/KI-27)"
+    path = Path.home() / ".lima" / cfg.vm.name / "lima.yaml"
+    if not path.exists():
+        return FixResult(name, False, "instance lima.yaml not found (VM absent)")
+    inserted = ensure_udp_ignore_rules(path)
+    if inserted == 0:
+        return FixResult(name, False, "rules already present")
+    return FixResult(
+        name,
+        True,
+        f"inserted {inserted} UDP ignore rule(s) into {path} — "
+        "restart VM to apply (rosmac down && rosmac up). Note: yaml comments were dropped",
+    )
+
+
+FIXERS = (_fix_hung_daemon, _fix_orphan_bridges, _fix_lima_udp_rules)
+
+
+def fix_all(cfg: Config) -> list[FixResult]:
+    return [f(cfg) for f in FIXERS]

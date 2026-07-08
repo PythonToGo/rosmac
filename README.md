@@ -73,7 +73,7 @@ rosmac push ~/my_ws --build     # 맥에서 안 빌드되는 패키지(libfranka
 |---|---|
 | `rosmac init` | 의존성/conda env/브리지/VM 준비 (멱등, 재실행 시 스킵) |
 | `rosmac up` / `down` / `status` | 스택 기동/정지/상태 (`--keep-vm`, `--viz`) |
-| `rosmac doctor` | 14항 진단 + 처방 (`--json`) |
+| `rosmac doctor` | 14항 진단 + 처방 (`--json`, `--fix` 안전 항목 자동 수리) |
 | `rosmac shell` | ROS env 주입 서브셸 (`--vm`, `-c`) — colcon 기본값 자동 주입 |
 | `rosmac deps <ws>` | package.xml 의존성 점검·설치 (`--install`, `--json`) |
 | `rosmac ps` | 맥+VM ROS 프로세스·핵심 토픽 발행자 관찰 (`--json`) |

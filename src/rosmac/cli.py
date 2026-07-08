@@ -290,16 +290,38 @@ def down(
 @app.command()
 def doctor(
     json_out: bool = typer.Option(False, "--json", help="Output JSON (for automation)"),
+    fix: bool = typer.Option(
+        False,
+        "--fix",
+        help="Apply safe automatic fixes first (daemon restart, orphan sweep, lima rules)",
+    ),
 ) -> None:
-    """Run C1~C14 checks. Exit 1 if any check FAILs."""
+    """Run C1~C14 checks. With --fix, apply safe fixes first. Exit 1 if any check FAILs."""
     from rosmac import doctor as doctor_mod
 
     cfg = load()
+    fixes: list[doctor_mod.FixResult] = []
+    if fix:
+        fixes = doctor_mod.fix_all(cfg)
+        if not json_out:
+            for f in fixes:
+                mark = "[green]✓[/]" if f.applied else "-"
+                console.print(f"{mark} {f.name}: {f.detail}")
     results = doctor_mod.run_all(cfg)
     if json_out:
         import json as json_lib
 
-        print(json_lib.dumps([r._asdict() for r in results], ensure_ascii=False, indent=2))
+        checks = [r._asdict() for r in results]
+        if fix:  # --fix 없인 기존 스키마(리스트) 유지 — 자동화 호환
+            print(
+                json_lib.dumps(
+                    {"fixes": [f._asdict() for f in fixes], "checks": checks},
+                    ensure_ascii=False,
+                    indent=2,
+                )
+            )
+        else:
+            print(json_lib.dumps(checks, ensure_ascii=False, indent=2))
     else:
         table = Table(title="rosmac doctor")
         table.add_column("Check")
