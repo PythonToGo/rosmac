@@ -650,6 +650,20 @@ def status() -> None:
     console.print(table)
 
 
+@app.command()
+def report() -> None:
+    """Create a diagnostic bundle for issue reports (rosmac-report-<date>.tar.gz)."""
+    from rosmac import report as report_mod
+
+    cfg = load()
+    console.print("Collecting diagnostics (runs full doctor — about a minute)…")
+    path, names = report_mod.create_bundle(cfg)
+    console.print("Collected (only from ~/.rosmac and command output — nothing else):")
+    for n in names:
+        console.print(f"  {n}")
+    console.print(f"[green]✓ {path}[/] — attach this file to your issue")
+
+
 def _kill_ros2_daemon() -> None:
     """제거될 env 소속의 ros2 데몬 정리 (없으면 no-op).
 

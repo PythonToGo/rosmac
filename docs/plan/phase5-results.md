@@ -22,6 +22,23 @@
 | README 지원 매트릭스 표 | ✅ "지원 매트릭스" 절 |
 | CHANGELOG.md 존재 + CONTRIBUTING에서 참조 가능한 형태 | ✅ Keep a Changelog/SemVer 규약을 문서 서두에 명시 (Phase 6에서 링크만 하면 됨) |
 
+## P5.3 ③ — rosmac report (2026-07-08 완료 → P5.3 전체 완료)
+
+### 구현
+- `report.py`: doctor.json(전체 14체크) + versions.txt(rosmac/python/macOS/lima/
+  micromamba/브리지 핀/ros/conda 매트릭스) + config.yaml + `~/.rosmac/log/`
+  (파일당 마지막 256KB 캡) + vm-units.txt(systemctl status + journalctl tail 40,
+  VM 미기동이면 명시) → `rosmac-report-<날짜>.tar.gz`
+- 개인정보 규칙: 수집원은 ~/.rosmac 파일과 진단 명령 출력뿐 (구조상 홈 밖 접근 없음),
+  수집 목록을 생성 시 출력
+
+### AC 실측 (번들 풀어서 검증)
+| AC | 결과 |
+|---|---|
+| 로그/버전/JSON 포함 | ✅ doctor.json 14체크(FAIL 0)·versions.txt 8항목·log/bridge.log·config.yaml·vm-units.txt(systemd active 확인) |
+| 홈 밖 파일 없음 | ✅ tar 멤버 전부 번들 루트 아래 상대경로, 절대경로/`..` 없음 (실기 + 유닛 양쪽 검증) |
+| (유닛) | ✅ test_report.py 2건(수집 내용·로그 캡 / tar 구조) — 총 61 passed, ruff/mypy clean |
+
 ## P5.3 ② — doctor --fix (2026-07-08 완료; report는 다음 run)
 
 ### 구현
