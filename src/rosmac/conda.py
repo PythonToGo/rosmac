@@ -10,6 +10,7 @@ import subprocess
 from pathlib import Path
 
 from rosmac.config import Config
+from rosmac.errors import RosmacError
 
 # Phase 0.1에서 검증된 패키지 목록 + D9의 rmw 핀
 ENV_PACKAGES = [
@@ -39,7 +40,7 @@ def _run(cmd: list[str], timeout: int = 60) -> subprocess.CompletedProcess[str]:
 def _check(cmd: list[str], timeout: int = 60) -> subprocess.CompletedProcess[str]:
     p = _run(cmd, timeout)
     if p.returncode != 0:
-        raise RuntimeError(f"{' '.join(cmd)} failed (exit {p.returncode}): {p.stderr.strip()}")
+        raise RosmacError(f"{' '.join(cmd)} failed (exit {p.returncode}): {p.stderr.strip()}")
     return p
 
 

@@ -9,6 +9,8 @@ from pathlib import Path
 import yaml
 from pydantic import BaseModel, ValidationError
 
+from rosmac.errors import UsageError
+
 CONFIG_PATH = Path.home() / ".rosmac" / "config.yaml"
 
 # --- Phase 0에서 핀한 값 (D7, D9, P0.3) ---
@@ -55,8 +57,8 @@ class Config(BaseModel):
     foxglove_port: int = 8765
 
 
-class ConfigError(RuntimeError):
-    """config.yaml이 깨졌거나 스키마에 안 맞을 때. 메시지에 경로와 원인을 담는다."""
+class ConfigError(UsageError):
+    """config.yaml이 깨졌거나 스키마에 안 맞을 때 (exit 2). 메시지에 경로와 원인을 담는다."""
 
 
 def load(path: Path = CONFIG_PATH) -> Config:

@@ -81,6 +81,17 @@ rosmac push ~/my_ws --build     # 맥에서 안 빌드되는 패키지(libfranka
 | `rosmac sim <preset>` | VM 시뮬 스택 tmux 기동 + health 판정 |
 | `rosmac viz` | foxglove_bridge 기동 + 앱 딥링크 |
 
+exit code 규약:
+
+| code | 의미 | 예 |
+|---|---|---|
+| 0 | 성공 | |
+| 1 | 실행 실패 (환경·상태 문제) | VM 미기동, conda env 없음, 브리지/빌드 실패 |
+| 2 | 사용법·설정 오류 (입력을 고치면 됨) | 잘못된 프리셋·레이아웃 이름, src/ 없는 워크스페이스, config.yaml 오류 |
+
+오류는 원인+처방 패널로 출력되며, 예상 밖 오류만 traceback을 보여준다
+(그 경우 `rosmac report` 번들과 함께 이슈로 제보).
+
 ## 실측 성능 (M3 Pro, 2026-07)
 
 - 브리지 대역폭: 10.3 MB/s (1MB@10Hz 드랍 없음)

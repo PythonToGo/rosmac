@@ -4,6 +4,8 @@ import json
 import subprocess
 from enum import Enum
 
+from rosmac.errors import RosmacError
+
 
 class VmState(Enum):
     ABSENT = "absent"
@@ -18,7 +20,7 @@ def _run(cmd: list[str], timeout: int = 60) -> subprocess.CompletedProcess[str]:
 def _check(cmd: list[str], timeout: int = 60) -> subprocess.CompletedProcess[str]:
     p = _run(cmd, timeout)
     if p.returncode != 0:
-        raise RuntimeError(f"{' '.join(cmd)} failed (exit {p.returncode}): {p.stderr.strip()}")
+        raise RosmacError(f"{' '.join(cmd)} failed (exit {p.returncode}): {p.stderr.strip()}")
     return p
 
 
@@ -72,7 +74,7 @@ def push(name: str, content: str, dest: str, timeout: int = 60) -> None:
         timeout=timeout,
     )
     if p.returncode != 0:
-        raise RuntimeError(f"push to {dest} failed (exit {p.returncode}): {p.stderr.strip()}")
+        raise RosmacError(f"push to {dest} failed (exit {p.returncode}): {p.stderr.strip()}")
 
 
 def shell(name: str, cmd: str, timeout: int = 60) -> str:
@@ -108,6 +110,6 @@ def push_tree(name: str, src_dir: str, dest: str, timeout: int = 600) -> None:
             tar.stdout.close()
         tar_rc = tar.wait()
     if tar_rc != 0:
-        raise RuntimeError(f"tar 생성 실패 (exit {tar_rc}) — 소스: {src_dir}")
+        raise RosmacError(f"tar 생성 실패 (exit {tar_rc}) — 소스: {src_dir}")
     if p.returncode != 0:
-        raise RuntimeError(f"VM 전송 실패 (exit {p.returncode}): {p.stderr.strip()}")
+        raise RosmacError(f"VM 전송 실패 (exit {p.returncode}): {p.stderr.strip()}")
