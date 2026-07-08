@@ -1,4 +1,4 @@
-# Phase 4 결과 리포트 (진행 중)
+# Phase 4 결과 리포트 — **완료 (E2E ALL PASS 38s, 2026-07-08)**
 
 > 시작: 2026-07-08. 환경: M3 Pro / macOS 26.x / ros_env(RoboStack humble, cmake 3.31.8) /
 > colcon-defaults 0.2.9 / lima 2.1.4 / zenoh-bridge 1.9.0
@@ -95,3 +95,22 @@ colcon이 `COLCON_DEFAULTS_FILE`을 읽는지 — 고의로 깨진 YAML을 지�
 | 재push 오염 방지 | ✅ VM쪽 src에 심은 STALE_MARKER가 재push 후 제거됨 (통째 교체) |
 | sim 경로와 분리 | ✅ `~/rosmac-ws/` vs `~/rosmac-presets/` 공존 확인 |
 | 유닛 테스트 | ✅ test_push.py (dest 프리픽스 안전장치) — 총 28 passed |
+
+## P4.5 — Phase 4 E2E (2026-07-08)
+
+`tests/e2e/test_phase4.sh` — **ALL PASS, 38초** (무인 완주):
+1. 픽스처 3종으로 가짜 외부 프로젝트 조립
+2. deps: `ros-humble-topic-tools` missing 검출 → `--install` → 해소 (4버킷 전부 검증)
+3. legacy_msgs 무플래그 colcon 빌드 (KI-25 자동 우회 실동작)
+4. `ps --json` 경고 0, VM Running
+5. push `--build` → VM 빌드 → VM 실행 `epoll fd=` 확인
+6. 정리 후 잔여 경고 0
+
+주의: 이 E2E는 설계상 브리지 토픽 경유 단계가 없어 **KI-28(미해결)과 무관하게
+유효**하다. 브리지 경유 기능(sim 헬스체크, Foxglove, 맥↔VM 토픽)은 KI-28 해소
+전까지 마비 상태 — Phase 2 E2E는 현재 재현 불가이며 KI-28이 최우선 후속 과제다.
+
+## 종합
+- P4.1~P4.5 전 태스크 AC 완료. 유닛 28 passed. 커밋 [P4.1]~[P4.5]
+- 신규 커맨드: `rosmac deps`, `rosmac ps`, `rosmac push` + colcon 기본값 주입
+- 함정 DB: KI-27(해결·수정 커밋), KI-28(미해결 — 에스컬레이션) 추가

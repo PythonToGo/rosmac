@@ -1,7 +1,9 @@
 # rosmac — macOS(Apple Silicon) ROS2 개발 환경 마스터 플랜
 
 > 최종 수정: 2026-07-07
-> 상태: **Phase 2 완료 (E2E ALL PASS) — 다음은 Phase 4(기능 보강). 트랙: 4 → 5(제품화) → 6(런칭) → 7(출판 준비). Phase 3(GPU)·4.5(완성도)는 비게이트**
+> 상태: **Phase 4 완료 (E2E ALL PASS 38s, 2026-07-08) — 단 KI-28(맥 브리지 SPDP 정지, 미해결)이
+> 브리지 경유 기능을 차단 중 → Phase 5 착수 전 최우선 해소 필요.
+> 트랙: 5(제품화) → 6(런칭) → 7(출판 준비). Phase 3(GPU)·4.5(완성도)는 비게이트**
 > 실측 기록: [`docs/plan/phase0-results.md`](docs/plan/phase0-results.md)
 >
 > **⚠️ 실행 에이전트(모델 무관)는 작업 시작 전에 반드시 [`AGENTS.md`](AGENTS.md)를
