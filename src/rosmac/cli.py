@@ -569,7 +569,8 @@ def sim(
     if failed:
         raise RosmacError(
             "\n".join(f"{r.name}: {r.detail}" for r in failed),
-            hint="\n".join(r.remedy for r in failed if r.remedy),
+            # 같은 처방(rosmac up 등)이 체크마다 반복되므로 순서 보존 중복 제거
+            hint="\n".join(dict.fromkeys(r.remedy for r in failed if r.remedy)),
         )
 
     installed = sim_mod.ensure_apt(cfg, preset.vm_apt, progress=lambda m: console.print(f"  {m}"))
@@ -618,3 +619,70 @@ def status() -> None:
 
     table.add_row("conda env", cfg.conda_env if conda.env_exists(cfg.conda_env) else "없음")
     console.print(table)
+
+
+def _kill_ros2_daemon() -> None:
+    """제거될 env 소속의 ros2 데몬 정리 (없으면 no-op).
+
+    SIGKILL을 쓴다 — 실측(P5.2): 데몬이 SIGTERM을 무시하고 생존, env 삭제 후
+    좀비 잔재가 됨. 데몬은 무상태 캐시라 강제 종료가 안전하다.
+    """
+    import subprocess
+
+    subprocess.run(["pkill", "-9", "-f", "ros2cli.daemon"], capture_output=True)
+
+
+@app.command()
+def uninstall(
+    yes: bool = typer.Option(False, "--yes", help="확인 없이 일괄 제거"),
+) -> None:
+    """rosmac이 만든 것을 제거: conda env → VM → ~/.rosmac (brew 도구·Foxglove 앱은 안내만).
+
+    절대 규칙 7: 각 대상을 경로/명령과 함께 출력하고 개별 확인 후 제거한다.
+    """
+    import shutil as shutil_mod
+    from collections.abc import Callable
+
+    from rosmac.config import CONFIG_PATH
+
+    cfg = load()
+
+    # 실행 중인 것 먼저 정리 (제거 대상에 pidfile·env 프로세스가 얽혀 있음)
+    if bridge.stop():
+        console.print("✓ 맥 브리지 종료")
+    _kill_ros2_daemon()
+
+    targets: list[tuple[str, Callable[[], None]]] = []  # (설명, 제거 액션)
+    if conda.env_exists(cfg.conda_env):
+        targets.append(
+            (
+                f"conda env '{cfg.conda_env}' (micromamba env remove -y -n {cfg.conda_env})",
+                lambda: conda.remove_env(cfg),
+            )
+        )
+    if lima.state(cfg.vm.name) is not lima.VmState.ABSENT:
+        targets.append(
+            (
+                f"VM '{cfg.vm.name}' (limactl delete -f {cfg.vm.name})",
+                lambda: lima.delete(cfg.vm.name),
+            )
+        )
+    rosmac_dir = CONFIG_PATH.parent
+    if rosmac_dir.exists():
+        targets.append((f"{rosmac_dir} (rm -rf)", lambda: shutil_mod.rmtree(rosmac_dir)))
+
+    if not targets:
+        console.print("- 제거할 것이 없습니다 (이미 깨끗함)")
+    for label, action in targets:
+        if not yes and not typer.confirm(f"제거: {label}?"):
+            console.print(f"- 건너뜀: {label}")
+            continue
+        action()
+        console.print(f"✓ 제거: {label}")
+
+    console.print(
+        "\n남은 것 (rosmac 소유가 아니라 직접 제거):\n"
+        "  brew uninstall lima micromamba   (다른 프로젝트가 쓸 수 있음)\n"
+        "  Foxglove 앱 (/Applications)\n"
+        "  이 리포 clone과 .venv"
+    )

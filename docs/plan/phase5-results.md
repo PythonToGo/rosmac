@@ -22,7 +22,34 @@
 | README 지원 매트릭스 표 | ✅ "지원 매트릭스" 절 |
 | CHANGELOG.md 존재 + CONTRIBUTING에서 참조 가능한 형태 | ✅ Keep a Changelog/SemVer 규약을 문서 서두에 명시 (Phase 6에서 링크만 하면 됨) |
 
-## P5.2 — CLI 견고성 (진행 중: ①② 완료 / ③uninstall·④부분초기화는 다음 run)
+## P5.2 — CLI 견고성 ③④: uninstall·부분 초기화 방어 (2026-07-08 완료 → P5.2 전체 완료)
+
+### 구현
+- `rosmac uninstall [--yes]`: 맥 브리지·ros2 데몬 정리 → conda env → VM → `~/.rosmac`
+  순서로 제거. 각 대상을 경로/명령과 함께 출력, 개별 y/n 확인(절대 규칙 7), `--yes` 일괄.
+  brew 도구·Foxglove 앱·리포는 안내만 (rosmac 소유 아님). `conda.remove_env` 신설
+- 부분 초기화 방어(④): conda `_check`가 libmamba "prefix does not exist" 원문을
+  "RoboStack conda env가 없습니다" + 처방 `rosmac init`으로 번역 — shell/deps/sim 전체 커버
+- sim 사전점검 패널의 처방 중복 제거 (순서 보존 dedup)
+
+### AC 실측 (실기 제거→재설치 완주)
+| AC | 결과 |
+|---|---|
+| `uninstall --yes` 후 잔재 0 | ✅ `~/.rosmac` 없음 / `micromamba env list`에 ros_env 없음 / `limactl list`에 rosmac 없음 (rosmac-spike는 대상 아님) |
+| 직후 `rosmac init` 완전 재설치 | ✅ 의존성 0.0s / env 생성 139.8s / 브리지 1.4s / VM 프로비저닝 176.1s (캐시 warm). `rosmac up` → doctor FAIL 0 → VM talker→맥 echo 왕복 수신 |
+| (④ 방어) init 전 up/sim/shell | ✅ 셋 다 "처방: rosmac init" 패널 + exit 1 |
+| (유닛) | ✅ test_uninstall.py 3건(순서·확인 스킵·깨끗한 상태) — 총 40 passed, ruff/mypy clean |
+
+### 실측 중 발견·수정
+- **ros2 데몬이 SIGTERM 무시하고 생존** → uninstall 후 삭제된 env를 참조하는 좀비 잔재.
+  `_kill_ros2_daemon`을 SIGKILL로 변경 (데몬은 무상태 캐시라 안전)
+- **프레시 설치 직후 doctor C8 일시 FAIL 2회** (첫 ros2 호출 콜드 스타트: 데몬 기동 +
+  첫 zenoh 라우트 수립이 40s 창 초과 추정). 수동 왕복 성공 후 C8 단독·전체 doctor 모두
+  PASS. 재현 시 "doctor 재실행" 처방이면 충분하나, 반복되면 C8 타임아웃 상향 검토
+- 사용자 실행 참고: auto 권한 모드에서 uninstall 같은 파괴 명령은 에이전트가 실행 불가
+  (분류기 거부) — 실측 시 사용자가 직접 실행했음
+
+## P5.2 — CLI 견고성 ①②: exit code·non-TTY (완료)
 
 ### 구현 (2026-07-08)
 - `errors.py` 신설: `RosmacError`(exit 1, message+hint) / `UsageError`(exit 2).
