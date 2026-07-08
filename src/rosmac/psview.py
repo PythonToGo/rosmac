@@ -129,7 +129,7 @@ def find_orphan_bridges(procs: list[ProcInfo], pidfile_pid: int | None) -> list[
 # ── 수집 (외부 호출 — 전부 타임아웃) ──────────────────────────────────────
 
 
-def _probe_daemon(domain_id: int, timeout_s: float = 5.0) -> tuple[bool, int | None]:
+def probe_daemon(domain_id: int, timeout_s: float = 5.0) -> tuple[bool, int | None]:
     """ros2 데몬 XMLRPC 응답성 (2026-07-07 실측 검증 방법). (응답 여부, ms)."""
     import time
 
@@ -146,7 +146,7 @@ def _probe_daemon(domain_id: int, timeout_s: float = 5.0) -> tuple[bool, int | N
         socket.setdefaulttimeout(old)
 
 
-def _run_ros(cfg: Config, args: list[str], timeout: int = _SUBPROC_TIMEOUT) -> str | None:
+def run_ros(cfg: Config, args: list[str], timeout: int = _SUBPROC_TIMEOUT) -> str | None:
     """ros2 CLI를 rosmac env로 실행. 실패/타임아웃이면 None (절대 raise 안 함)."""
     cmd = [
         "micromamba",
@@ -200,7 +200,7 @@ def collect(cfg: Config) -> PsReport:
 
     # 2) 데몬 응답성
     if daemon_procs:
-        responsive, latency = _probe_daemon(cfg.ros.domain_id)
+        responsive, latency = probe_daemon(cfg.ros.domain_id)
         r.daemon = DaemonStatus(pid=daemon_procs[0].pid, responsive=responsive, latency_ms=latency)
         if not responsive:
             r.warnings.append(
@@ -241,7 +241,7 @@ def collect(cfg: Config) -> PsReport:
     # 4) 그래프 — 데몬이 살아있을 때만 발행자 질의 (topic info는 데몬 의존)
     if r.daemon.responsive:
         for topic in CORE_TOPICS:
-            info = _run_ros(cfg, ["topic", "info", topic, "--verbose"])
+            info = run_ros(cfg, ["topic", "info", topic, "--verbose"])
             if info is None:
                 continue  # 존재하지 않는 토픽 등 — 표시 생략
             pubs = parse_publisher_nodes(info)
