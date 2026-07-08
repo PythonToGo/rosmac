@@ -67,6 +67,7 @@ Apple Silicon Mac에서 ROS2 Humble + MoveIt + RViz(대체: Foxglove) + Gazebo �
 | 5 | 제품화 (릴리스 엔지니어링) | 배포 파이프라인, doctor --fix, uninstall, CI | **프레시 macOS 계정**에서 pipx 설치 → 문서만으로 Phase 2 E2E 통과 | [phase5](docs/plan/phase5-productionize.md) |
 | 6 | 오픈소스 런칭 | 영어 문서, 데모 자산, 커뮤니티 인프라, v0.1.0 공개 | 제3자가 README만으로 도구의 필요성 이해 + 설치 성공. 공개 행위는 사용자 실행 | [phase6](docs/plan/phase6-launch.md) |
 | 7 | 출판 (준비까지만 — 제출은 보류, D13) | 벤치마크 스위트, JOSS paper.md, Zenodo 연동 | 제출 가능 상태 완성 (JOSS 체크리스트 전 항목 충족) | [phase7](docs/plan/phase7-publication.md) |
+| E | 상품성 파생 (**비게이트** — 2026-07-08 점검 산출) | workflow 영어화, PyPI 선점, repo 메타, 로드맵 백로그 | 착수한 태스크만 AC 완주 | [phaseE](docs/plan/phaseE-extras.md) |
 
 **순서 규칙**: Phase 0의 게이트를 통과하기 전에는 Phase 1 코드를 쓰지 않는다.
 Phase 0에서 아키텍처 가정이 깨지면 이 문서의 2절부터 수정한다.
@@ -107,6 +108,7 @@ Phase 3(GPU)과 Phase 4.5(완성도)는 비게이트 — 언제든 병행/생략
 | R8 | 단일 메인테이너 부하 — 공개 후 이슈/PR 대응이 지속 불가능해짐 | 중 | 중 | 지원 범위 명문화(비목표 절), `rosmac report`로 이슈 품질 강제, 함정 DB 기여 구조로 커뮤니티 분담 | Phase 6 런칭 후 |
 | R9 | 이름·상표 — PyPI `rosmac` 선점, "ROS" 상표 정책(Open Robotics) 저촉 | 저 | 저 | P5.5에서 이름 확보 선행, P6.5에서 상표 정책 확인·기록. 비상업·비접두(ros-*) 이름이라 위험 낮음 | Phase 5.5 |
 | R10 | 공개 이력 리스크 — git 이력의 민감정보(경로, 이메일, 내부 메모) | 중 | 저 | P6.5 점검 체크리스트에 이력 전수 스캔 포함. 발견 시 공개 전 처리 (필요시 squash 재구성 — 사용자 결정) | Phase 6.5 |
+| R11 | 네이티브 macOS ROS 2 성숙 (Kilted+Gazebo Ionic 네이티브 데모, 2025-12~) — "VM이 필요한 이유"의 절반 침식 | 중 (장기 포지셔닝) | 중 | 위협이 아닌 흡수: "네이티브에 있는 건 네이티브, 없는 것만 VM" 자동 판단 레이어(E.5-1, deps/push 확장)로 대응. Humble LTS(2027 EOL) 수요·함정DB 가치는 잔존. 분기별 재평가 | 상시 (2026-07-08 등록) |
 
 ## 6. 리포지토리 구조 (Phase 1에서 생성)
 
