@@ -320,6 +320,62 @@ def shell(
 
 
 @app.command()
+def ps(
+    json_out: bool = typer.Option(False, "--json", help="기계 판독용 JSON 출력"),
+) -> None:
+    """맥+VM의 ROS 프로세스·핵심 토픽 발행자를 한 화면에 (P4.3, 장애 1차 진단용)."""
+    import json as _json
+
+    from rosmac import psview
+
+    cfg = load()
+    report = psview.collect(cfg)
+    if json_out:
+        print(_json.dumps(report.model_dump(), ensure_ascii=False, indent=2))
+        return
+
+    console.print("[bold]── 맥 ──[/]")
+    d = report.daemon
+    daemon_str = (
+        "미기동"
+        if d.pid is None
+        else f"PID {d.pid}  " + (f"응답 ✓ ({d.latency_ms}ms)" if d.responsive else "[red]응답 없음(hang)[/]")
+    )
+    console.print(f"  ros2 daemon    {daemon_str}")
+    console.print(
+        f"  zenoh-bridge   "
+        + (f"PID {report.bridge_pid} (pidfile 일치)" if report.bridge_pid else "미기동")
+    )
+    for o in report.orphan_bridges:
+        console.print(f"  [yellow]⚠ 고아 브리지[/] PID {o.pid}")
+    if report.mac_nodes:
+        console.print("  ROS 프로세스:")
+        for p in report.mac_nodes:
+            console.print(f"    {p.pid:>7}  {p.command}")
+    else:
+        console.print("  ROS 프로세스: 없음")
+
+    console.print(f"[bold]── VM ({cfg.vm.name}: {report.vm_state}) ──[/]")
+    if report.vm_units:
+        units = "   ".join(f"{k} {v}" for k, v in report.vm_units.items())
+        console.print(f"  {units}   sim 세션: {'있음' if report.vm_sim_session else '없음'}")
+    for p in report.vm_ros_procs:
+        console.print(f"    {p.pid:>7}  {p.command}")
+
+    console.print("[bold]── 그래프 (핵심 토픽 발행자) ──[/]")
+    if report.graph_note:
+        console.print(f"  {report.graph_note}")
+    for t in report.core_topics:
+        mark = "[yellow]⚠[/] " if t.warning else ""
+        console.print(f"  {mark}{t.topic}  발행자 {len(t.publishers)}: {', '.join(t.publishers) or '-'}")
+
+    if report.warnings:
+        console.print("[bold yellow]── 경고 ──[/]")
+        for w in report.warnings:
+            console.print(f"  ⚠ {w}")
+
+
+@app.command()
 def deps(
     ws: str = typer.Argument(".", help="colcon 워크스페이스 루트 (src/ 포함 디렉토리)"),
     install: bool = typer.Option(False, "--install", help="missing 버킷을 즉시 설치"),
