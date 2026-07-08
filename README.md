@@ -78,6 +78,7 @@ rosmac push ~/my_ws --build     # 맥에서 안 빌드되는 패키지(libfranka
 | `rosmac deps <ws>` | package.xml 의존성 점검·설치 (`--install`, `--json`) |
 | `rosmac ps` | 맥+VM ROS 프로세스·핵심 토픽 발행자 관찰 (`--json`) |
 | `rosmac push <ws>` | 워크스페이스를 VM으로 복사 (+`--build`) — linux 전용 패키지용 |
+| `rosmac report` | 이슈 첨부용 진단 번들 생성 (~/.rosmac 밖은 수집 안 함) |
 | `rosmac sim <preset>` | VM 시뮬 스택 tmux 기동 + health 판정 |
 | `rosmac viz` | foxglove_bridge 기동 + 앱 딥링크 |
 
