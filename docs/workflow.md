@@ -80,6 +80,7 @@ source ~/rosmac-ws/my_ws/install/setup.bash && ros2 run …
 | VM 명령에서 ros2 not found | bash -lc는 .bashrc 소싱 안 됨 | `rosmac shell --vm -c` 사용 (KI-19) |
 | 빌드가 `Could NOT find Python`으로 실패 | 구식 cmake_minimum_required(3.5) + CMP0094 | `rosmac shell` 안에선 자동 우회(P4.1 주입). 밖이라면 `--cmake-args -DCMAKE_POLICY_DEFAULT_CMP0094=NEW` (KI-25) |
 | launch가 `TextSubstitution object ... not found on the PATH` | FindExecutable 대상(주로 xacro)이 env에 없음 | `micromamba install -n ros_env ... ros-humble-xacro` (KI-26) |
-| `ros2 topic echo/list`가 무한 대기 | ros2 데몬 hang | `ros2 daemon stop && ros2 daemon start` (rosmac shell 안에서) |
+| `ros2 topic echo/list`가 무한 대기 | ros2 데몬 hang | `rosmac ps`가 감지·처방. `ros2 daemon stop && ros2 daemon start` (rosmac shell 안에서) |
+| 맥↔VM 토픽이 갑자기 안 흐름 | lima UDP 포워딩의 DDS 포트 하이잭(KI-27) 또는 브리지 디스커버리 정지(KI-28) | `rosmac ps`로 발행자 확인 → `lsof -nP -iUDP \| grep limactl` (KI-27) → 브리지 재시작 |
 
 전체 함정 DB: [docs/plan/known-issues.md](plan/known-issues.md)

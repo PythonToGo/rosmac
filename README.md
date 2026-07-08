@@ -47,6 +47,15 @@ rosmac viz --layout panda   # Foxglove 연결 (+레이아웃 안내)
 
 맥 네이티브 개발 루프와 예제(pick_demo)는 [docs/workflow.md](docs/workflow.md) 참조.
 
+## 내 프로젝트 가져오기 (Phase 4)
+
+```bash
+rosmac deps ~/my_ws --install   # package.xml 의존성 → RoboStack 패키지 설치 (rosdep 대체)
+rosmac shell                    # 이 안에서의 colcon build는 구식 CMake 함정(KI-25) 자동 우회
+rosmac ps                       # 막히면: 맥+VM 프로세스·토픽 발행자 한 화면 진단
+rosmac push ~/my_ws --build     # 맥에서 안 빌드되는 패키지(libfranka 등)는 VM에서
+```
+
 ## 커맨드 요약
 
 | 커맨드 | 역할 |
@@ -54,7 +63,10 @@ rosmac viz --layout panda   # Foxglove 연결 (+레이아웃 안내)
 | `rosmac init` | 의존성/conda env/브리지/VM 준비 (멱등, 재실행 시 스킵) |
 | `rosmac up` / `down` / `status` | 스택 기동/정지/상태 (`--keep-vm`, `--viz`) |
 | `rosmac doctor` | 11항 진단 + 처방 (`--json`) |
-| `rosmac shell` | ROS env 주입 서브셸 (`--vm`, `-c`) |
+| `rosmac shell` | ROS env 주입 서브셸 (`--vm`, `-c`) — colcon 기본값 자동 주입 |
+| `rosmac deps <ws>` | package.xml 의존성 점검·설치 (`--install`, `--json`) |
+| `rosmac ps` | 맥+VM ROS 프로세스·핵심 토픽 발행자 관찰 (`--json`) |
+| `rosmac push <ws>` | 워크스페이스를 VM으로 복사 (+`--build`) — linux 전용 패키지용 |
 | `rosmac sim <preset>` | VM 시뮬 스택 tmux 기동 + health 판정 |
 | `rosmac viz` | foxglove_bridge 기동 + 앱 딥링크 |
 
@@ -68,7 +80,7 @@ rosmac viz --layout panda   # Foxglove 연결 (+레이아웃 안내)
 ## 아키텍처·설계 결정
 
 [PLAN.md](PLAN.md)의 결정 로그와 리스크 레지스터,
-막히면 [docs/plan/known-issues.md](docs/plan/known-issues.md) (함정 26개 실측 DB).
+막히면 [docs/plan/known-issues.md](docs/plan/known-issues.md) (함정 28개 실측 DB).
 
 ## 라이선스
 
