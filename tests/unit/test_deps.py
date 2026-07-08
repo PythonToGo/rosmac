@@ -40,9 +40,7 @@ def test_scan_workspace_reports_broken_xml(tmp_path) -> None:
 
 def test_analyze_buckets(monkeypatch) -> None:
     cfg = Config()
-    monkeypatch.setattr(
-        deps, "installed_packages", lambda _cfg: {"ros-humble-rclpy", "eigen"}
-    )
+    monkeypatch.setattr(deps, "installed_packages", lambda _cfg: {"ros-humble-rclpy", "eigen"})
     # 채널 존재: fake만 없음
     monkeypatch.setattr(
         deps,

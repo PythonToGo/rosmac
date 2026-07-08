@@ -27,9 +27,7 @@ def generate_launch_description():
         .robot_description(
             file_path="config/panda.urdf.xacro",
             mappings={
-                "ros2_control_hardware_type": LaunchConfiguration(
-                    "ros2_control_hardware_type"
-                )
+                "ros2_control_hardware_type": LaunchConfiguration("ros2_control_hardware_type")
             },
         )
         .robot_description_semantic(file_path="config/panda.srdf")

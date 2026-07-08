@@ -22,9 +22,7 @@ def generate_launch_description():
     pkg_ros_gz_sim = get_package_share_directory("ros_gz_sim")
 
     gz_sim = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(pkg_ros_gz_sim, "launch", "gz_sim.launch.py")
-        ),
+        PythonLaunchDescriptionSource(os.path.join(pkg_ros_gz_sim, "launch", "gz_sim.launch.py")),
         launch_arguments={"gz_args": f"-s --headless-rendering -r {WORLD}"}.items(),
     )
 
@@ -41,9 +39,7 @@ def generate_launch_description():
             ("/model/vehicle_blue/cmd_vel", "/cmd_vel"),
             ("/model/vehicle_blue/odometry", "/odom"),
         ],
-        parameters=[
-            {"qos_overrides./model/vehicle_blue.subscriber.reliability": "reliable"}
-        ],
+        parameters=[{"qos_overrides./model/vehicle_blue.subscriber.reliability": "reliable"}],
         output="screen",
     )
 

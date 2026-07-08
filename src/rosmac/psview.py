@@ -123,11 +123,7 @@ def core_topic_warning(publishers: list[str]) -> str | None:
 
 def find_orphan_bridges(procs: list[ProcInfo], pidfile_pid: int | None) -> list[ProcInfo]:
     """pidfile과 무관하게 살아있는 zenoh-bridge 프로세스 = 고아 (KI-20 패턴)."""
-    return [
-        p
-        for p in procs
-        if "zenoh-bridge-ros2dds" in p.command and p.pid != pidfile_pid
-    ]
+    return [p for p in procs if "zenoh-bridge-ros2dds" in p.command and p.pid != pidfile_pid]
 
 
 # ── 수집 (외부 호출 — 전부 타임아웃) ──────────────────────────────────────
@@ -163,9 +159,7 @@ def _run_ros(cfg: Config, args: list[str], timeout: int = _SUBPROC_TIMEOUT) -> s
         *args,
     ]
     try:
-        p = subprocess.run(
-            cmd, capture_output=True, text=True, timeout=timeout, env=conda._env()
-        )
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, env=conda._env())
     except subprocess.TimeoutExpired:
         return None
     return p.stdout if p.returncode == 0 else None
@@ -201,17 +195,13 @@ def collect(cfg: Config) -> PsReport:
 
     daemon_procs = [p for p in procs if "ros2-daemon" in p.command]
     r.mac_nodes = [
-        p
-        for p in procs
-        if p not in daemon_procs and "zenoh-bridge-ros2dds" not in p.command
+        p for p in procs if p not in daemon_procs and "zenoh-bridge-ros2dds" not in p.command
     ]
 
     # 2) 데몬 응답성
     if daemon_procs:
         responsive, latency = _probe_daemon(cfg.ros.domain_id)
-        r.daemon = DaemonStatus(
-            pid=daemon_procs[0].pid, responsive=responsive, latency_ms=latency
-        )
+        r.daemon = DaemonStatus(pid=daemon_procs[0].pid, responsive=responsive, latency_ms=latency)
         if not responsive:
             r.warnings.append(
                 "ros2 데몬 응답 없음(hang) — `ros2 topic echo/list`가 무한 대기하는 원인. "
@@ -243,22 +233,18 @@ def collect(cfg: Config) -> PsReport:
                 r.vm_units["foxglove-bridge"] = line.removeprefix("UNIT_F=") or "unknown"
             elif line.startswith("SIM="):
                 r.vm_sim_session = line.endswith("yes")
-        vm_ps = "\n".join(
-            ln for ln in out.splitlines() if not ln.startswith(("UNIT_", "SIM="))
-        )
+        vm_ps = "\n".join(ln for ln in out.splitlines() if not ln.startswith(("UNIT_", "SIM=")))
         r.vm_ros_procs = [
-            p
-            for p in parse_ps_lines(vm_ps, exclude_pids=set())
-            if "ros2-daemon" not in p.command
+            p for p in parse_ps_lines(vm_ps, exclude_pids=set()) if "ros2-daemon" not in p.command
         ]
 
     # 4) 그래프 — 데몬이 살아있을 때만 발행자 질의 (topic info는 데몬 의존)
     if r.daemon.responsive:
         for topic in CORE_TOPICS:
-            out = _run_ros(cfg, ["topic", "info", topic, "--verbose"])
-            if out is None:
+            info = _run_ros(cfg, ["topic", "info", topic, "--verbose"])
+            if info is None:
                 continue  # 존재하지 않는 토픽 등 — 표시 생략
-            pubs = parse_publisher_nodes(out)
+            pubs = parse_publisher_nodes(info)
             warn = core_topic_warning(pubs)
             r.core_topics.append(TopicPublishers(topic=topic, publishers=pubs, warning=warn))
             if warn:

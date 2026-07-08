@@ -57,9 +57,19 @@ def delete(name: str, timeout: int = 120) -> None:
 def push(name: str, content: str, dest: str, timeout: int = 60) -> None:
     """텍스트 파일을 VM의 dest 경로로 쓴다 (디렉토리 자동 생성)."""
     p = subprocess.run(
-        ["limactl", "shell", name, "--", "bash", "-c",
-         f'mkdir -p "$(dirname {dest})" && cat > {dest}'],
-        input=content, capture_output=True, text=True, timeout=timeout,
+        [
+            "limactl",
+            "shell",
+            name,
+            "--",
+            "bash",
+            "-c",
+            f'mkdir -p "$(dirname {dest})" && cat > {dest}',
+        ],
+        input=content,
+        capture_output=True,
+        text=True,
+        timeout=timeout,
     )
     if p.returncode != 0:
         raise RuntimeError(f"push to {dest} failed (exit {p.returncode}): {p.stderr.strip()}")
@@ -83,14 +93,15 @@ def push_tree(name: str, src_dir: str, dest: str, timeout: int = 600) -> None:
         raise ValueError(f"push_tree dest는 ~/rosmac-ws/ 아래만 허용: {dest}")
     inner = f"rm -rf {shlex.quote(dest)} && mkdir -p {shlex.quote(dest)} && tar -C {shlex.quote(dest)} -xf -"
     # shlex.quote가 ~를 감싸면 확장이 안 되므로 dest의 ~는 $HOME으로 치환
-    inner = inner.replace("'~/", "\"$HOME\"'/")
-    tar = subprocess.Popen(
-        ["tar", "-C", src_dir, "-cf", "-", "."], stdout=subprocess.PIPE
-    )
+    inner = inner.replace("'~/", '"$HOME"\'/')
+    tar = subprocess.Popen(["tar", "-C", src_dir, "-cf", "-", "."], stdout=subprocess.PIPE)
     try:
         p = subprocess.run(
             ["limactl", "shell", name, "--", "bash", "-c", inner],
-            stdin=tar.stdout, capture_output=True, text=True, timeout=timeout,
+            stdin=tar.stdout,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
         )
     finally:
         if tar.stdout:
