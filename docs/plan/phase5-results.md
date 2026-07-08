@@ -22,6 +22,17 @@
 | README 지원 매트릭스 표 | ✅ "지원 매트릭스" 절 |
 | CHANGELOG.md 존재 + CONTRIBUTING에서 참조 가능한 형태 | ✅ Keep a Changelog/SemVer 규약을 문서 서두에 명시 (Phase 6에서 링크만 하면 됨) |
 
+## 부수 작업 — CLI 출력 전면 영어화 (2026-07-08, 사용자 요청)
+
+- 대상: 사용자에게 보이는 문자열 전부 — typer 도움말(커맨드 docstring, help=),
+  console.print 메시지, 오류 패널(title "rosmac error", 라벨 "Fix:"), 테이블
+  제목/컬럼, doctor 체크명·detail·remedy(C{n} 접두사 보존), 모듈들의
+  RosmacError/ConfigError 메시지, psview 경고, sim/preset launch 메시지
+- 비대상(한국어 유지): 코드 주석, 모듈/내부 docstring, 계획 문서. 커맨드 문자열·
+  KI-xx 식별자·rich 마크업 불변
+- 한글 검증 테스트 4건 영어 문자열로 갱신. 실기 확인: `--help`/오류 패널/status/
+  up/doctor 출력 전부 영어. 50 passed, ruff/mypy clean
+
 ## P5.3 ① — 신규 doctor 체크 C12/C13/C14 (2026-07-08 완료; --fix·report는 다음 run)
 
 ### 구현

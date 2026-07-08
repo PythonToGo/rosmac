@@ -43,7 +43,7 @@ def _check(cmd: list[str], timeout: int = 60) -> subprocess.CompletedProcess[str
         # libmamba 원문은 사용자에게 무의미 — env 부재는 "초기화 안 됨"으로 번역 (P5.2 ④)
         if "The given prefix does not exist" in p.stderr:
             raise RosmacError(
-                "RoboStack conda env가 없습니다 — rosmac이 초기화되지 않았거나 제거됨",
+                "RoboStack conda env not found — rosmac not initialized or removed",
                 hint="rosmac init",
             )
         raise RosmacError(f"{' '.join(cmd)} failed (exit {p.returncode}): {p.stderr.strip()}")

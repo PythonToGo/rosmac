@@ -25,17 +25,17 @@ class Check(Protocol):
 
 
 class _C1Lima:
-    name = "C1 lima 설치/버전"
+    name = "C1 lima install/version"
 
     def run(self, cfg: Config) -> CheckResult:
         if not shutil.which("limactl"):
-            return CheckResult(self.name, "FAIL", "limactl 없음", "brew install lima")
+            return CheckResult(self.name, "FAIL", "limactl not found", "brew install lima")
         p = subprocess.run(["limactl", "--version"], capture_output=True, text=True)
         return CheckResult(self.name, "PASS", p.stdout.strip())
 
 
 class _C2Vm:
-    name = "C2 VM 존재/상태"
+    name = "C2 VM existence/state"
 
     def run(self, cfg: Config) -> CheckResult:
         st = lima.state(cfg.vm.name)
@@ -43,7 +43,7 @@ class _C2Vm:
             return CheckResult(self.name, "PASS", "Running")
         if st is lima.VmState.STOPPED:
             return CheckResult(self.name, "WARN", "Stopped", "rosmac up")
-        return CheckResult(self.name, "FAIL", "VM 없음", "rosmac init")
+        return CheckResult(self.name, "FAIL", "VM not found", "rosmac init")
 
 
 class _C3CondaEnv:
@@ -51,12 +51,12 @@ class _C3CondaEnv:
 
     def run(self, cfg: Config) -> CheckResult:
         if conda.env_exists(cfg.conda_env):
-            return CheckResult(self.name, "PASS", f"'{cfg.conda_env}' 존재")
-        return CheckResult(self.name, "FAIL", f"'{cfg.conda_env}' 없음", "rosmac init")
+            return CheckResult(self.name, "PASS", f"'{cfg.conda_env}' present")
+        return CheckResult(self.name, "FAIL", f"'{cfg.conda_env}' missing", "rosmac init")
 
 
 class _C4EnvVars:
-    name = "C4 필수 env vars"
+    name = "C4 required env vars"
 
     def run(self, cfg: Config) -> CheckResult:
         expected = {
@@ -66,62 +66,62 @@ class _C4EnvVars:
         }
         wrong = [k for k, v in expected.items() if os.environ.get(k) != v]
         if not wrong:
-            return CheckResult(self.name, "PASS", "현재 셸에 전부 설정됨")
+            return CheckResult(self.name, "PASS", "all set in current shell")
         return CheckResult(
             self.name,
             "WARN",
-            f"현재 셸에 미설정/불일치: {', '.join(wrong)}",
-            "ros2를 직접 쓸 땐 `rosmac shell`로 진입 (KI-6 예방)",
+            f"unset/mismatched in current shell: {', '.join(wrong)}",
+            "enter `rosmac shell` when using ros2 directly (KI-6 prevention)",
         )
 
 
 class _C5Port:
-    name = "C5 포트 도달성"
+    name = "C5 port reachability"
 
     def run(self, cfg: Config) -> CheckResult:
         # 주의: 맥 브리지도 [::]:{port}를 listen하므로 (router 모드) VM이 꺼져 있어도
         # TCP 연결이 성사될 수 있음 — VM 상태를 먼저 가려서 오탐 방지 (Phase 0 관찰)
         if lima.state(cfg.vm.name) is not lima.VmState.RUNNING:
             return CheckResult(
-                self.name, "FAIL", "VM이 실행 중이 아니라 포트포워딩 없음", "rosmac up"
+                self.name, "FAIL", "VM not running, so no port forwarding", "rosmac up"
             )
         try:
             with socket.create_connection(("127.0.0.1", cfg.bridge.port), timeout=2):
                 return CheckResult(self.name, "PASS", f"127.0.0.1:{cfg.bridge.port} open")
         except OSError as e:
             return CheckResult(
-                self.name, "FAIL", f"연결 실패: {e}", "rosmac up (VM/포트포워딩 점검)"
+                self.name, "FAIL", f"connection failed: {e}", "rosmac up (check VM/port forwarding)"
             )
 
 
 class _C6MacBridge:
-    name = "C6 맥 브리지 프로세스"
+    name = "C6 mac bridge process"
 
     def run(self, cfg: Config) -> CheckResult:
         if bridge.is_running():
             return CheckResult(self.name, "PASS", f"pid {bridge.PID_PATH.read_text().strip()}")
-        return CheckResult(self.name, "FAIL", "실행 중 아님", "rosmac up")
+        return CheckResult(self.name, "FAIL", "not running", "rosmac up")
 
 
 class _C7VmBridge:
-    name = "C7 VM 브리지 서비스"
+    name = "C7 VM bridge service"
 
     def run(self, cfg: Config) -> CheckResult:
         if lima.state(cfg.vm.name) is not lima.VmState.RUNNING:
-            return CheckResult(self.name, "WARN", "VM이 실행 중이 아님 — 판단 불가", "rosmac up")
+            return CheckResult(self.name, "WARN", "VM not running — cannot determine", "rosmac up")
         out = lima.shell(cfg.vm.name, "systemctl is-active zenoh-bridge || true").strip()
         if out == "active":
             return CheckResult(self.name, "PASS", "systemd active")
         return CheckResult(
             self.name,
             "FAIL",
-            f"상태: {out}",
+            f"state: {out}",
             f"limactl shell {cfg.vm.name} -- journalctl -u zenoh-bridge -n 50",
         )
 
 
 class _C8RoundTrip:
-    name = "C8 왕복 자가 테스트"
+    name = "C8 round-trip self test"
 
     def run(self, cfg: Config) -> CheckResult:
         import time
@@ -152,16 +152,16 @@ class _C8RoundTrip:
                 cfg, f"ros2 topic echo --once {topic} std_msgs/msg/String", timeout=40
             )
             if "ping" in out:
-                return CheckResult(self.name, "PASS", f"{topic} 왕복 수신")
+                return CheckResult(self.name, "PASS", f"{topic} round-trip received")
             return CheckResult(
                 self.name,
                 "FAIL",
-                f"수신 실패 (출력: {out[:80]!r})",
-                f"브리지 로그 확인: {bridge.LOG_PATH}",
+                f"receive failed (output: {out[:80]!r})",
+                f"check bridge log: {bridge.LOG_PATH}",
             )
         except (RuntimeError, subprocess.TimeoutExpired) as e:
             return CheckResult(
-                self.name, "FAIL", f"{e}"[:120], f"브리지 로그 확인: {bridge.LOG_PATH}"
+                self.name, "FAIL", f"{e}"[:120], f"check bridge log: {bridge.LOG_PATH}"
             )
         finally:
             if pub is not None:
@@ -173,34 +173,34 @@ BROKEN_DYLIB_FINGERPRINTS: list[str] = []
 
 
 class _C9Dylib:
-    name = "C9 RoboStack 지문"
+    name = "C9 RoboStack fingerprint"
 
     def run(self, cfg: Config) -> CheckResult:
         if not BROKEN_DYLIB_FINGERPRINTS:
-            return CheckResult(self.name, "PASS", "지문 DB 비어 있음 (Phase 0: 깨진 링크 0건)")
-        return CheckResult(self.name, "WARN", "지문 검사 미구현 항목 있음")
+            return CheckResult(self.name, "PASS", "fingerprint DB empty (Phase 0: 0 broken links)")
+        return CheckResult(self.name, "WARN", "some fingerprint checks not implemented")
 
 
 class _C10Sip:
-    name = "C10 SIP 상태"
+    name = "C10 SIP status"
 
     def run(self, cfg: Config) -> CheckResult:
         p = subprocess.run(["csrutil", "status"], capture_output=True, text=True)
         enabled = "enabled" in p.stdout.lower()
         # 정보성: 우리는 SIP를 끄지 않는 것이 정상 전제 (절대 규칙 1)
         return CheckResult(
-            self.name, "PASS" if enabled else "WARN", p.stdout.strip() or "확인 불가"
+            self.name, "PASS" if enabled else "WARN", p.stdout.strip() or "cannot determine"
         )
 
 
 class _C11Disk:
-    name = "C11 디스크 여유"
+    name = "C11 disk space"
 
     def run(self, cfg: Config) -> CheckResult:
         usage = shutil.disk_usage(os.path.expanduser("~"))
         free_gb = usage.free / 1e9
         status: Literal["PASS", "WARN"] = "PASS" if free_gb > 20 else "WARN"
-        return CheckResult(self.name, status, f"홈 볼륨 여유 {free_gb:.0f}GB")
+        return CheckResult(self.name, status, f"home volume free {free_gb:.0f}GB")
 
 
 def _daemon_pids() -> list[int]:
@@ -210,21 +210,21 @@ def _daemon_pids() -> list[int]:
 
 
 class _C12DaemonResponsive:
-    name = "C12 ros2 데몬 응답성"
+    name = "C12 ros2 daemon responsiveness"
 
     def run(self, cfg: Config) -> CheckResult:
         pids = _daemon_pids()
         if not pids:
-            return CheckResult(self.name, "PASS", "미기동 (첫 ros2 호출 시 자동 기동)")
+            return CheckResult(self.name, "PASS", "not started (auto-starts on first ros2 call)")
         responsive, latency = psview.probe_daemon(cfg.ros.domain_id)
         if responsive:
-            return CheckResult(self.name, "PASS", f"pid {pids[0]} 응답 ({latency}ms)")
+            return CheckResult(self.name, "PASS", f"pid {pids[0]} responsive ({latency}ms)")
         return CheckResult(
             self.name,
             "FAIL",
-            f"pid {pids[0]} 응답 없음(hang) — ros2 topic echo/list 무한 대기의 원인"
-            " (2026-07-07 실측)",
-            "rosmac shell에서 `ros2 daemon stop && ros2 daemon start`",
+            f"pid {pids[0]} unresponsive (hung) — causes ros2 topic echo/list to wait forever"
+            " (observed 2026-07-07)",
+            "run `ros2 daemon stop && ros2 daemon start` in rosmac shell",
         )
 
 
@@ -234,29 +234,31 @@ _CONDA_PKG_OF = {"xacro": "ros-{distro}-xacro", "colcon": "colcon-common-extensi
 
 
 class _C13Executables:
-    name = "C13 필수 실행파일"
+    name = "C13 required executables"
 
     def run(self, cfg: Config) -> CheckResult:
         if not conda.env_exists(cfg.conda_env):
-            return CheckResult(self.name, "WARN", "conda env 없음 — 판단 불가", "rosmac init")
+            return CheckResult(
+                self.name, "WARN", "conda env missing — cannot determine", "rosmac init"
+            )
         probe = "; ".join(f"command -v {x} >/dev/null || echo {x}" for x in _REQUIRED_EXECUTABLES)
         try:
             missing = conda.run_in_env(cfg, probe, timeout=60).split()
         except RuntimeError as e:
             return CheckResult(self.name, "FAIL", f"{e}"[:120], "rosmac init")
         if not missing:
-            return CheckResult(self.name, "PASS", ", ".join(_REQUIRED_EXECUTABLES) + " 존재")
+            return CheckResult(self.name, "PASS", ", ".join(_REQUIRED_EXECUTABLES) + " present")
         pkgs = " ".join(_CONDA_PKG_OF.get(m, m).format(distro=cfg.ros.distro) for m in missing)
         return CheckResult(
             self.name,
             "FAIL",
-            f"env에 없음: {', '.join(missing)}",
+            f"missing from env: {', '.join(missing)}",
             f"micromamba install -n {cfg.conda_env} -c conda-forge -c {cfg.conda_channel} {pkgs}",
         )
 
 
 class _C14GraphPollution:
-    name = "C14 그래프 오염"
+    name = "C14 graph pollution"
 
     # 2026-07-07 실사용 장애: VM sim 잔존 스택의 /tf·/robot_description이 시각화 튕김 유발
     _WATCHED = ("/robot_description", "/tf")
@@ -264,9 +266,9 @@ class _C14GraphPollution:
     def run(self, cfg: Config) -> CheckResult:
         pids = _daemon_pids()
         if pids and not psview.probe_daemon(cfg.ros.domain_id)[0]:
-            return CheckResult(self.name, "WARN", "데몬 hang — 그래프 질의 불가 (C12 참조)")
+            return CheckResult(self.name, "WARN", "daemon hung — cannot query graph (see C12)")
         if sim.session_alive(cfg):
-            return CheckResult(self.name, "PASS", "sim 세션 실행 중 — 발행자 존재는 정상")
+            return CheckResult(self.name, "PASS", "sim session running — publishers are expected")
         polluted = []
         for topic in self._WATCHED:
             out = psview.run_ros(cfg, ["topic", "info", topic, "--verbose"])
@@ -276,12 +278,12 @@ class _C14GraphPollution:
             if pubs:
                 polluted.append(f"{topic} ← {', '.join(pubs)}")
         if not polluted:
-            return CheckResult(self.name, "PASS", "sim 미실행 상태, 기대 밖 발행자 없음")
+            return CheckResult(self.name, "PASS", "sim not running, no unexpected publishers")
         return CheckResult(
             self.name,
             "WARN",
-            "sim 미실행인데 발행자 존재: " + "; ".join(polluted),
-            "의도한 노드가 아니면 잔존 스택 의심 — rosmac ps로 확인 (2026-07-07 튕김 패턴)",
+            "publishers present while sim not running: " + "; ".join(polluted),
+            "if not intentional, suspect leftover stack — check with rosmac ps (2026-07-07 flapping pattern)",
         )
 
 

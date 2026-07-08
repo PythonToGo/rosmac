@@ -49,7 +49,7 @@ def test_parse_publisher_nodes_ignores_subscribers() -> None:
 def test_core_topic_warning_dual_source() -> None:
     # 2026-07-07 튕김 패턴: 로컬 + 브리지 유래 동시 발행
     warn = psview.core_topic_warning(["robot_state_publisher", "zenoh_bridge_ros2dds"])
-    assert warn is not None and "브리지 유래" in warn
+    assert warn is not None and "bridge-origin" in warn
     # 단일 발행자는 경고 없음
     assert psview.core_topic_warning(["robot_state_publisher"]) is None
     # 로컬 2개도 확인 요청 경고

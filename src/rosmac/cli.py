@@ -33,16 +33,16 @@ def main() -> None:
         app()
     except RosmacError as e:
         # 메시지는 로그 tail 등 [브래킷] 텍스트가 흔해 escape 필수, hint는 rosmac 소유 마크업
-        body = escape(str(e)) + (f"\n\n[bold]처방:[/] {e.hint}" if e.hint else "")
-        console.print(Panel(body, title="rosmac 오류", border_style="red", expand=False))
+        body = escape(str(e)) + (f"\n\n[bold]Fix:[/] {e.hint}" if e.hint else "")
+        console.print(Panel(body, title="rosmac error", border_style="red", expand=False))
         sys.exit(e.exit_code)
     except Exception:
         import traceback
 
         traceback.print_exc()
         console.print(
-            "[red]예상 밖 오류입니다[/] — `rosmac doctor` 진단 후, "
-            "위 traceback과 `rosmac report` 번들을 첨부해 이슈를 열어주세요"
+            "[red]Unexpected error[/] — run `rosmac doctor`, then open an issue "
+            "with the traceback above and a `rosmac report` bundle"
         )
         sys.exit(1)
 
@@ -56,15 +56,15 @@ def _print_version(value: bool) -> None:
 @app.callback()
 def _main(
     _version: bool = typer.Option(
-        False, "--version", callback=_print_version, is_eager=True, help="버전 출력 후 종료"
+        False, "--version", callback=_print_version, is_eager=True, help="Print version and exit"
     ),
 ) -> None:
-    """커맨드가 1개뿐이어도 서브커맨드 모드를 유지한다 (typer 특성)."""
+    """Keep subcommand mode even with a single command (typer behavior)."""
 
 
 @app.command()
 def version() -> None:
-    """rosmac 버전을 출력한다."""
+    """Print the rosmac version."""
     console.print(f"rosmac {rosmac.__version__}")
 
 
@@ -77,16 +77,16 @@ def _verify_vm_provisioned(cfg: Config) -> None:
     )
     if "setup.bash" not in out or "active" not in out:
         raise RosmacError(
-            f"VM 프로비저닝 불완전 (검증 출력: {out!r})",
-            hint=f"limactl delete -f {cfg.vm.name} 후 rosmac init 재실행을 권장",
+            f"VM provisioning incomplete (verification output: {out!r})",
+            hint=f"Recommended: limactl delete -f {cfg.vm.name}, then rerun rosmac init",
         )
 
 
 @app.command()
 def init(
-    auto: bool = typer.Option(False, "--auto", help="brew 의존성을 확인 후 자동 설치"),
+    auto: bool = typer.Option(False, "--auto", help="Check and auto-install brew dependencies"),
 ) -> None:
-    """의존성 검사 → conda env → 맥 브리지 바이너리 → VM 프로비저닝 (전 단계 멱등)."""
+    """Dependency check → conda env → Mac bridge binary → VM provisioning (all steps idempotent)."""
     cfg = load()
     steps: list[tuple[str, str, float]] = []  # (단계, 결과, 소요초)
 
@@ -103,34 +103,36 @@ def init(
             import subprocess
 
             for tool in missing:
-                console.print(f"[yellow]--auto: {install_hint[tool]} 실행 중…[/]")
+                console.print(f"[yellow]--auto: running {install_hint[tool]}…[/]")
                 subprocess.run(install_hint[tool].split(), check=True)
-            steps.append(("의존성", "✓ 자동 설치", time.monotonic() - t0))
+            steps.append(("dependencies", "✓ auto-installed", time.monotonic() - t0))
         else:
             raise RosmacError(
-                f"누락된 의존성: {', '.join(missing)}",
-                hint="아래를 직접 실행하거나 `rosmac init --auto`:\n"
+                f"Missing dependencies: {', '.join(missing)}",
+                hint="Run the following yourself, or `rosmac init --auto`:\n"
                 + "\n".join(f"  {install_hint[tool]}" for tool in missing),
             )
     else:
-        steps.append(("의존성", "✓", time.monotonic() - t0))
+        steps.append(("dependencies", "✓", time.monotonic() - t0))
 
     # 2. conda env
     t0 = time.monotonic()
     if conda.env_exists(cfg.conda_env):
-        steps.append(("conda env", "스킵 (이미 존재)", time.monotonic() - t0))
+        steps.append(("conda env", "skipped (already exists)", time.monotonic() - t0))
     else:
-        with console.status(f"[cyan]RoboStack env '{cfg.conda_env}' 생성 중 (수 분 소요)…[/]"):
+        with console.status(
+            f"[cyan]Creating RoboStack env '{cfg.conda_env}' (takes a few minutes)…[/]"
+        ):
             conda.create_env(cfg)
-        steps.append(("conda env", "✓ 생성", time.monotonic() - t0))
+        steps.append(("conda env", "✓ created", time.monotonic() - t0))
 
     # 3. 맥 브리지 바이너리
     t0 = time.monotonic()
     installed = bridge.ensure_binary(cfg)
     steps.append(
         (
-            "zenoh-bridge(맥)",
-            "✓ 다운로드" if installed else "스킵 (이미 존재)",
+            "zenoh-bridge (Mac)",
+            "✓ downloaded" if installed else "skipped (already exists)",
             time.monotonic() - t0,
         )
     )
@@ -140,17 +142,17 @@ def init(
     vm_state = lima.state(cfg.vm.name)
     if vm_state is lima.VmState.ABSENT:
         yaml_path = assets.write_lima_yaml(cfg)
-        with console.status("[cyan]VM 프로비저닝 중 (10분 내외 소요)…[/]"):
+        with console.status("[cyan]Provisioning VM (about 10 minutes)…[/]"):
             lima.start(cfg.vm.name, str(yaml_path))
             _verify_vm_provisioned(cfg)
-        steps.append(("VM", "✓ 프로비저닝", time.monotonic() - t0))
+        steps.append(("VM", "✓ provisioned", time.monotonic() - t0))
     else:
-        steps.append(("VM", f"스킵 (상태: {vm_state.value})", time.monotonic() - t0))
+        steps.append(("VM", f"skipped (state: {vm_state.value})", time.monotonic() - t0))
 
-    table = Table(title="rosmac init 요약")
-    table.add_column("단계")
-    table.add_column("결과")
-    table.add_column("소요", justify="right")
+    table = Table(title="rosmac init summary")
+    table.add_column("Step")
+    table.add_column("Result")
+    table.add_column("Time", justify="right")
     for name, result, dur in steps:
         table.add_row(name, result, f"{dur:.1f}s")
     console.print(table)
@@ -172,7 +174,7 @@ def _start_viz(cfg: Config) -> None:
             time.sleep(1)
     else:
         console.print(
-            f"[yellow]⚠ 포트 {cfg.foxglove_port} 미개방 — "
+            f"[yellow]⚠ port {cfg.foxglove_port} not open — "
             f"limactl shell {cfg.vm.name} -- journalctl -u foxglove-bridge[/]"
         )
         return
@@ -185,24 +187,22 @@ def _start_viz(cfg: Config) -> None:
             ],
             check=False,
         )
-        console.print("✓ Foxglove 앱 오픈 (딥링크)")
+        console.print("✓ Foxglove app opened (deep link)")
     else:
         console.print(
-            "[yellow]Foxglove 앱이 없습니다 — https://foxglove.dev/download 에서 설치 후\n"
-            f"  Open connection → ws://localhost:{cfg.foxglove_port} 로 접속하세요[/]"
+            "[yellow]Foxglove app not found — install from https://foxglove.dev/download,\n"
+            f"  then connect via Open connection → ws://localhost:{cfg.foxglove_port}[/]"
         )
 
 
 @app.command()
 def viz(
-    layout: str | None = typer.Option(
-        None, "--layout", help="프리셋 레이아웃 이름 (panda|diffbot)"
-    ),
+    layout: str | None = typer.Option(None, "--layout", help="Preset layout name (panda|diffbot)"),
 ) -> None:
-    """Foxglove 시각화 연결 (VM foxglove_bridge 기동 + 앱 오픈)."""
+    """Connect Foxglove visualization (start VM foxglove_bridge + open app)."""
     cfg = load()
     if lima.state(cfg.vm.name) is not lima.VmState.RUNNING:
-        raise RosmacError("VM이 실행 중이 아닙니다", hint="rosmac up")
+        raise RosmacError("VM not running", hint="rosmac up")
     if layout:
         # 실측(P2.5): Foxglove 딥링크는 로컬 레이아웃 파일 지정을 지원하지 않음 —
         # 파일을 ~/.rosmac/layouts/에 놓고 Import 안내로 대체 (phase2 2.5 결정)
@@ -211,55 +211,57 @@ def viz(
 
         src = resources.files("rosmac") / "assets" / "layouts" / f"{layout}.json"
         if not src.is_file():
-            raise UsageError(f"레이아웃 '{layout}' 없음 (panda|diffbot)")
+            raise UsageError(f"Layout '{layout}' not found (panda|diffbot)")
         dest = Path.home() / ".rosmac" / "layouts" / f"{layout}.json"
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_text(src.read_text())
         console.print(
-            f"레이아웃 준비됨: {dest}\n"
-            "Foxglove에서 [bold]Layout 메뉴 → Import from file…[/] 로 불러오세요 (최초 1회)"
+            f"Layout ready: {dest}\n"
+            "In Foxglove, load it via [bold]Layout menu → Import from file…[/] (first time only)"
         )
     _start_viz(cfg)
 
 
 @app.command()
-def up(viz: bool = typer.Option(False, "--viz", help="Foxglove 시각화도 함께 연결")) -> None:
-    """VM 기동(정지 시) + 맥 브리지 기동 + 연결 스모크."""
+def up(
+    viz: bool = typer.Option(False, "--viz", help="Also connect Foxglove visualization"),
+) -> None:
+    """Start VM (if stopped) + start Mac bridge + connection smoke test."""
     cfg = load()
     vm_state = lima.state(cfg.vm.name)
     if vm_state is lima.VmState.ABSENT:
-        raise RosmacError("VM이 없습니다", hint="rosmac init")
+        raise RosmacError("VM not found", hint="rosmac init")
     if vm_state is lima.VmState.STOPPED:
-        with console.status("[cyan]VM 기동 중…[/]"):
+        with console.status("[cyan]Starting VM…[/]"):
             lima.start(cfg.vm.name, None, timeout=300)
-        console.print("✓ VM 기동")
+        console.print("✓ VM started")
     else:
-        console.print("✓ VM 이미 실행 중")
+        console.print("✓ VM already running")
 
     vm_bridge = lima.shell(cfg.vm.name, "systemctl is-active zenoh-bridge || true").strip()
     if vm_bridge != "active":
-        console.print(f"[yellow]⚠ VM 브리지 상태: {vm_bridge} — rosmac doctor로 진단하세요[/]")
+        console.print(f"[yellow]⚠ VM bridge state: {vm_bridge} — run rosmac doctor[/]")
     else:
-        console.print("✓ VM 브리지 active (systemd)")
+        console.print("✓ VM bridge active (systemd)")
 
     if not bridge.is_running() and vm_bridge == "active":
         # 맥 브리지가 죽어 있었다면(정상 down 포함) VM 브리지의 이전 세션 라우트가
         # 남아 있을 수 있음 (KI-17: SIGKILL 잔재 → 토픽 2배 수신). 재시작으로 초기화.
         lima.shell(cfg.vm.name, "sudo systemctl restart zenoh-bridge", timeout=30)
-        console.print("✓ VM 브리지 세션 초기화 (KI-17 예방)")
+        console.print("✓ VM bridge session reset (KI-17 prevention)")
 
     if bridge.start(cfg):
-        console.print("✓ 맥 브리지 기동")
+        console.print("✓ Mac bridge started")
     else:
-        console.print("✓ 맥 브리지 이미 실행 중 (pidfile)")
+        console.print("✓ Mac bridge already running (pidfile)")
 
     # 연결 스모크: 브리지 로그에 원격 브리지 감지가 찍히는지 몇 초 대기
     time.sleep(3)
     log = bridge.LOG_PATH.read_text() if bridge.LOG_PATH.exists() else ""
     if "New ROS 2 bridge detected" in log or "Remote bridge" in log:
-        console.print("✓ 브리지 상호 감지 확인")
+        console.print("✓ bridges see each other")
     else:
-        console.print("[yellow]⚠ 브리지 상호 감지 로그 미확인 — rosmac doctor 권장[/]")
+        console.print("[yellow]⚠ no mutual bridge detection in logs — rosmac doctor recommended[/]")
 
     if viz:
         _start_viz(cfg)
@@ -267,29 +269,29 @@ def up(viz: bool = typer.Option(False, "--viz", help="Foxglove 시각화도 함�
 
 @app.command()
 def down(
-    keep_vm: bool = typer.Option(False, "--keep-vm", help="브리지만 내리고 VM은 유지"),
+    keep_vm: bool = typer.Option(False, "--keep-vm", help="Stop only the bridge, keep the VM"),
 ) -> None:
-    """맥 브리지 종료(SIGTERM) 후 VM 정지."""
+    """Stop the Mac bridge (SIGTERM), then stop the VM."""
     cfg = load()
     if bridge.stop():
-        console.print("✓ 맥 브리지 종료")
+        console.print("✓ Mac bridge stopped")
     else:
-        console.print("- 맥 브리지 실행 중 아님")
+        console.print("- Mac bridge not running")
     if keep_vm:
         return
     if lima.state(cfg.vm.name) is lima.VmState.RUNNING:
-        with console.status("[cyan]VM 정지 중…[/]"):
+        with console.status("[cyan]Stopping VM…[/]"):
             lima.stop(cfg.vm.name)
-        console.print("✓ VM 정지")
+        console.print("✓ VM stopped")
     else:
-        console.print("- VM 실행 중 아님")
+        console.print("- VM not running")
 
 
 @app.command()
 def doctor(
-    json_out: bool = typer.Option(False, "--json", help="JSON으로 출력 (자동화용)"),
+    json_out: bool = typer.Option(False, "--json", help="Output JSON (for automation)"),
 ) -> None:
-    """C1~C14 진단. FAIL이 하나라도 있으면 exit 1."""
+    """Run C1~C14 checks. Exit 1 if any check FAILs."""
     from rosmac import doctor as doctor_mod
 
     cfg = load()
@@ -300,10 +302,10 @@ def doctor(
         print(json_lib.dumps([r._asdict() for r in results], ensure_ascii=False, indent=2))
     else:
         table = Table(title="rosmac doctor")
-        table.add_column("검사")
-        table.add_column("판정")
-        table.add_column("상세")
-        table.add_column("처방")
+        table.add_column("Check")
+        table.add_column("Status")
+        table.add_column("Detail")
+        table.add_column("Fix")
         style = {"PASS": "green", "WARN": "yellow", "FAIL": "red"}
         for r in results:
             table.add_row(r.name, f"[{style[r.status]}]{r.status}[/]", r.detail, r.remedy or "")
@@ -314,10 +316,12 @@ def doctor(
 
 @app.command()
 def shell(
-    vm: bool = typer.Option(False, "--vm", help="맥 대신 VM 셸로 진입"),
-    command: str | None = typer.Option(None, "-c", help="셸 대신 단일 명령 실행 (E2E용)"),
+    vm: bool = typer.Option(False, "--vm", help="Enter the VM shell instead of the Mac"),
+    command: str | None = typer.Option(
+        None, "-c", help="Run a single command instead of a shell (for E2E)"
+    ),
 ) -> None:
-    """ROS env가 주입된 서브셸을 연다 (micromamba activate + ROS_* env)."""
+    """Open a subshell with the ROS env injected (micromamba activate + ROS_* env)."""
     import os
     import subprocess
     import tempfile
@@ -367,36 +371,37 @@ def shell(
 
 @app.command()
 def push(
-    ws: str = typer.Argument(".", help="colcon 워크스페이스 루트 (src/ 포함 디렉토리)"),
+    ws: str = typer.Argument(".", help="colcon workspace root (directory containing src/)"),
     name: str | None = typer.Option(
-        None, "--name", help="VM 쪽 워크스페이스 이름 (기본: 디렉토리명)"
+        None, "--name", help="Workspace name on the VM (default: directory name)"
     ),
-    build: bool = typer.Option(False, "--build", help="전송 후 VM에서 colcon build까지 실행"),
+    build: bool = typer.Option(False, "--build", help="Also run colcon build on the VM after push"),
 ) -> None:
-    """워크스페이스 src/를 VM ~/rosmac-ws/<이름>/으로 복사 (맥에서 안 빌드되는 패키지용, P4.4/D14)."""
+    # P4.4/D14
+    """Copy workspace src/ to VM ~/rosmac-ws/<name>/ (for packages that don't build on the Mac)."""
     import re
     from pathlib import Path
 
     cfg = load()
     root = Path(ws).expanduser().resolve()
     if not (root / "src").is_dir():
-        raise UsageError(f"{root}에 src/가 없음 — colcon 워크스페이스 루트를 지정하세요")
+        raise UsageError(f"No src/ in {root} — point to a colcon workspace root")
     ws_name = name or root.name
     if not re.fullmatch(r"[A-Za-z0-9_-]+", ws_name):
-        raise UsageError(f"워크스페이스 이름이 유효하지 않음: {ws_name!r} (영숫자/_/-만)")
+        raise UsageError(f"Invalid workspace name: {ws_name!r} (alphanumeric/_/- only)")
     if lima.state(cfg.vm.name) is not lima.VmState.RUNNING:
-        raise RosmacError("VM이 실행 중이 아님", hint="rosmac up")
+        raise RosmacError("VM not running", hint="rosmac up")
 
     dest = f"~/rosmac-ws/{ws_name}/src"
-    console.print(f"전송: {root}/src → VM {dest}")
+    console.print(f"Push: {root}/src → VM {dest}")
     try:
         lima.push_tree(cfg.vm.name, str(root / "src"), dest)
     except ValueError as e:
         raise UsageError(str(e)) from None
-    console.print("[green]✓ 전송 완료[/] (재실행 시 VM쪽 src는 통째로 교체됨)")
+    console.print("[green]✓ push complete[/] (re-running replaces the VM-side src entirely)")
 
     if build:
-        console.print("VM에서 colcon build 실행 중…")
+        console.print("Running colcon build on the VM…")
         # KI-19: 비인터랙티브 셸은 ROS 소싱이 안 됨 — 명시적 source 필수
         build_cmd = (
             f"source /opt/ros/{cfg.ros.distro}/setup.bash && "
@@ -406,23 +411,24 @@ def push(
             print(lima.shell(cfg.vm.name, build_cmd, timeout=1800), end="")
         except RuntimeError as e:
             raise RosmacError(
-                f"VM 빌드 실패: {e}",
-                hint="apt 의존성이 필요하면 VM은 표준 Ubuntu이므로 rosdep이 동작합니다:\n"
+                f"VM build failed: {e}",
+                hint="If apt dependencies are needed, the VM is standard Ubuntu so rosdep works:\n"
                 f"  rosmac shell --vm  →  cd ~/rosmac-ws/{ws_name} && "
                 "rosdep install --from-paths src -y",
             ) from None
     console.print(
-        f"실행: [bold]rosmac shell --vm[/] → "
+        f"Run: [bold]rosmac shell --vm[/] → "
         f"source ~/rosmac-ws/{ws_name}/install/setup.bash → ros2 run …\n"
-        "(토픽은 zenoh 브리지로 맥에서도 보임)"
+        "(topics are visible on the Mac via the zenoh bridge)"
     )
 
 
 @app.command()
 def ps(
-    json_out: bool = typer.Option(False, "--json", help="기계 판독용 JSON 출력"),
+    json_out: bool = typer.Option(False, "--json", help="Machine-readable JSON output"),
 ) -> None:
-    """맥+VM의 ROS 프로세스·핵심 토픽 발행자를 한 화면에 (P4.3, 장애 1차 진단용)."""
+    # P4.3
+    """ROS processes and core topic publishers on Mac+VM, one screen (first-line diagnosis)."""
     import json as _json
 
     from rosmac import psview
@@ -433,68 +439,69 @@ def ps(
         print(_json.dumps(report.model_dump(), ensure_ascii=False, indent=2))
         return
 
-    console.print("[bold]── 맥 ──[/]")
+    console.print("[bold]── Mac ──[/]")
     d = report.daemon
     daemon_str = (
-        "미기동"
+        "not started"
         if d.pid is None
         else f"PID {d.pid}  "
-        + (f"응답 ✓ ({d.latency_ms}ms)" if d.responsive else "[red]응답 없음(hang)[/]")
+        + (f"responsive ✓ ({d.latency_ms}ms)" if d.responsive else "[red]no response (hang)[/]")
     )
     console.print(f"  ros2 daemon    {daemon_str}")
     console.print(
         "  zenoh-bridge   "
-        + (f"PID {report.bridge_pid} (pidfile 일치)" if report.bridge_pid else "미기동")
+        + (f"PID {report.bridge_pid} (pidfile match)" if report.bridge_pid else "not started")
     )
     for o in report.orphan_bridges:
-        console.print(f"  [yellow]⚠ 고아 브리지[/] PID {o.pid}")
+        console.print(f"  [yellow]⚠ orphan bridge[/] PID {o.pid}")
     if report.mac_nodes:
-        console.print("  ROS 프로세스:")
+        console.print("  ROS processes:")
         for p in report.mac_nodes:
             console.print(f"    {p.pid:>7}  {p.command}")
     else:
-        console.print("  ROS 프로세스: 없음")
+        console.print("  ROS processes: none")
 
     console.print(f"[bold]── VM ({cfg.vm.name}: {report.vm_state}) ──[/]")
     if report.vm_units:
         units = "   ".join(f"{k} {v}" for k, v in report.vm_units.items())
-        console.print(f"  {units}   sim 세션: {'있음' if report.vm_sim_session else '없음'}")
+        console.print(f"  {units}   sim session: {'yes' if report.vm_sim_session else 'no'}")
     for p in report.vm_ros_procs:
         console.print(f"    {p.pid:>7}  {p.command}")
 
-    console.print("[bold]── 그래프 (핵심 토픽 발행자) ──[/]")
+    console.print("[bold]── Graph (core topic publishers) ──[/]")
     if report.graph_note:
         console.print(f"  {report.graph_note}")
     for t in report.core_topics:
         mark = "[yellow]⚠[/] " if t.warning else ""
         console.print(
-            f"  {mark}{t.topic}  발행자 {len(t.publishers)}: {', '.join(t.publishers) or '-'}"
+            f"  {mark}{t.topic}  publishers {len(t.publishers)}: {', '.join(t.publishers) or '-'}"
         )
 
     if report.warnings:
-        console.print("[bold yellow]── 경고 ──[/]")
+        console.print("[bold yellow]── Warnings ──[/]")
         for w in report.warnings:
             console.print(f"  ⚠ {w}")
 
 
 @app.command()
 def deps(
-    ws: str = typer.Argument(".", help="colcon 워크스페이스 루트 (src/ 포함 디렉토리)"),
-    install: bool = typer.Option(False, "--install", help="missing 버킷을 즉시 설치"),
-    json_out: bool = typer.Option(False, "--json", help="기계 판독용 JSON 출력"),
+    ws: str = typer.Argument(".", help="colcon workspace root (directory containing src/)"),
+    install: bool = typer.Option(False, "--install", help="Install the missing bucket immediately"),
+    json_out: bool = typer.Option(False, "--json", help="Machine-readable JSON output"),
 ) -> None:
-    """package.xml 의존성 → RoboStack conda 패키지 점검 (맥에서 rosdep 대체, P4.2)."""
+    # P4.2
+    """Check package.xml dependencies against RoboStack conda packages (rosdep replacement on the Mac)."""
     import json as _json
     from pathlib import Path
 
     cfg = load()
     root = Path(ws).expanduser().resolve()
     if not (root / "src").is_dir():
-        raise UsageError(f"{root}에 src/가 없음 — colcon 워크스페이스 루트를 지정하세요")
+        raise UsageError(f"No src/ in {root} — point to a colcon workspace root")
     report = depsmod.analyze(cfg, root)
     if install and report.missing:
         if not json_out:  # --json일 땐 stdout을 JSON만으로 유지 (파이프 안전)
-            console.print(f"설치 중: {', '.join(report.missing)}")
+            console.print(f"Installing: {', '.join(report.missing)}")
         depsmod.install_missing(cfg, report.missing)
         report = depsmod.analyze(cfg, root)  # 재분석으로 설치 결과 검증
 
@@ -502,35 +509,35 @@ def deps(
         print(_json.dumps(report.model_dump(), ensure_ascii=False, indent=2))
         return
     table = Table(title=f"rosmac deps — {root}")
-    table.add_column("버킷")
-    table.add_column("패키지")
+    table.add_column("Bucket")
+    table.add_column("Packages")
     table.add_row("installed", ", ".join(report.installed) or "-")
     table.add_row("[yellow]missing[/]", ", ".join(report.missing) or "-")
     table.add_row("[red]unknown[/]", ", ".join(report.unknown) or "-")
     table.add_row("[red]unavailable[/]", ", ".join(report.unavailable) or "-")
-    table.add_row("(ws 내부)", ", ".join(report.skipped_local) or "-")
+    table.add_row("(in workspace)", ", ".join(report.skipped_local) or "-")
     console.print(table)
     if report.missing:
         console.print(
-            f"[yellow]→ rosmac deps {ws} --install[/] 또는:\n"
+            f"[yellow]→ rosmac deps {ws} --install[/] or:\n"
             f"  micromamba install -n {cfg.conda_env} -c conda-forge "
             f"-c {cfg.conda_channel} {' '.join(report.missing)}"
         )
     if report.unknown:
         console.print(
-            "[red]unknown[/]: 매핑 확신 불가 — 시스템 의존성일 수 있음. "
-            "conda-forge에서 이름을 찾아 수동 설치 후, 매핑을 알게 되면 "
-            "deps.py SPECIAL_MAP에 기여해 주세요"
+            "[red]unknown[/]: mapping uncertain — may be a system dependency. "
+            "Find the name on conda-forge and install manually; if you figure out "
+            "the mapping, please contribute it to SPECIAL_MAP in deps.py"
         )
 
 
 @app.command()
 def sim(
-    name: str = typer.Argument(..., help="프리셋 이름, 또는 stop|status|list"),
-    attach: bool = typer.Option(False, "--attach", help="tmux 세션에 붙어 로그 관찰"),
-    no_viz: bool = typer.Option(False, "--no-viz", help="READY 후 Foxglove를 열지 않음"),
+    name: str = typer.Argument(..., help="Preset name, or stop|status|list"),
+    attach: bool = typer.Option(False, "--attach", help="Attach to the tmux session to watch logs"),
+    no_viz: bool = typer.Option(False, "--no-viz", help="Do not open Foxglove after READY"),
 ) -> None:
-    """VM에서 시뮬 프리셋 기동 (tmux) → health 폴링 → READY 시 Foxglove 오픈."""
+    """Start a sim preset on the VM (tmux) → poll health → open Foxglove when READY."""
     import os
 
     from rosmac import doctor as doctor_mod
@@ -539,15 +546,15 @@ def sim(
     cfg = load()
 
     if name == "list":
-        table = Table(title="rosmac sim 프리셋")
-        table.add_column("이름")
-        table.add_column("설명")
+        table = Table(title="rosmac sim presets")
+        table.add_column("Name")
+        table.add_column("Description")
         for n, desc in sorted(sim_mod.list_presets().items()):
             table.add_row(n, desc)
         console.print(table)
         return
     if name == "stop":
-        console.print("✓ sim 세션 종료" if sim_mod.stop(cfg) else "- 실행 중인 sim 세션 없음")
+        console.print("✓ sim session stopped" if sim_mod.stop(cfg) else "- no sim session running")
         return
     if name == "status":
         console.print(sim_mod.status(cfg))
@@ -575,10 +582,10 @@ def sim(
 
     installed = sim_mod.ensure_apt(cfg, preset.vm_apt, progress=lambda m: console.print(f"  {m}"))
     if installed:
-        console.print(f"✓ VM 패키지 설치: {', '.join(installed)}")
+        console.print(f"✓ VM packages installed: {', '.join(installed)}")
     sim_mod.start(cfg, preset)
-    console.print(f"✓ tmux 세션 '{sim_mod.SESSION}' 기동 — 로그: rosmac sim --attach")
-    with console.status("[cyan]health topics 대기 중…[/]"):
+    console.print(f"✓ tmux session '{sim_mod.SESSION}' started — logs: rosmac sim --attach")
+    with console.status("[cyan]waiting for health topics…[/]"):
         try:
             sim_mod.wait_healthy(cfg, preset, progress=lambda m: console.print(f"  {m}"))
         except RuntimeError as e:
@@ -591,11 +598,11 @@ def sim(
 
 @app.command()
 def status() -> None:
-    """VM/브리지/포트/conda env 상태 테이블."""
+    """Status table: VM / bridges / port / conda env."""
     cfg = load()
     table = Table(title="rosmac status")
-    table.add_column("항목")
-    table.add_column("상태")
+    table.add_column("Item")
+    table.add_column("Status")
 
     vm_state = lima.state(cfg.vm.name)
     table.add_row("VM", vm_state.value)
@@ -604,9 +611,9 @@ def status() -> None:
         vm_bridge = lima.shell(cfg.vm.name, "systemctl is-active zenoh-bridge || true").strip()
     else:
         vm_bridge = "-"
-    table.add_row("VM 브리지(systemd)", vm_bridge)
+    table.add_row("VM bridge (systemd)", vm_bridge)
 
-    table.add_row("맥 브리지", "running" if bridge.is_running() else "stopped")
+    table.add_row("Mac bridge", "running" if bridge.is_running() else "stopped")
 
     import socket
 
@@ -615,9 +622,9 @@ def status() -> None:
             port_ok = "open"
     except OSError:
         port_ok = "closed"
-    table.add_row(f"포트 {cfg.bridge.port}", port_ok)
+    table.add_row(f"Port {cfg.bridge.port}", port_ok)
 
-    table.add_row("conda env", cfg.conda_env if conda.env_exists(cfg.conda_env) else "없음")
+    table.add_row("conda env", cfg.conda_env if conda.env_exists(cfg.conda_env) else "none")
     console.print(table)
 
 
@@ -634,12 +641,10 @@ def _kill_ros2_daemon() -> None:
 
 @app.command()
 def uninstall(
-    yes: bool = typer.Option(False, "--yes", help="확인 없이 일괄 제거"),
+    yes: bool = typer.Option(False, "--yes", help="Remove everything without confirmation"),
 ) -> None:
-    """rosmac이 만든 것을 제거: conda env → VM → ~/.rosmac (brew 도구·Foxglove 앱은 안내만).
-
-    절대 규칙 7: 각 대상을 경로/명령과 함께 출력하고 개별 확인 후 제거한다.
-    """
+    # 절대 규칙 7: 각 대상을 경로/명령과 함께 출력하고 개별 확인 후 제거한다.
+    """Remove what rosmac created: conda env → VM → ~/.rosmac (brew tools and Foxglove app: guidance only)."""
     import shutil as shutil_mod
     from collections.abc import Callable
 
@@ -649,7 +654,7 @@ def uninstall(
 
     # 실행 중인 것 먼저 정리 (제거 대상에 pidfile·env 프로세스가 얽혀 있음)
     if bridge.stop():
-        console.print("✓ 맥 브리지 종료")
+        console.print("✓ Mac bridge stopped")
     _kill_ros2_daemon()
 
     targets: list[tuple[str, Callable[[], None]]] = []  # (설명, 제거 액션)
@@ -672,17 +677,17 @@ def uninstall(
         targets.append((f"{rosmac_dir} (rm -rf)", lambda: shutil_mod.rmtree(rosmac_dir)))
 
     if not targets:
-        console.print("- 제거할 것이 없습니다 (이미 깨끗함)")
+        console.print("- nothing to remove (already clean)")
     for label, action in targets:
-        if not yes and not typer.confirm(f"제거: {label}?"):
-            console.print(f"- 건너뜀: {label}")
+        if not yes and not typer.confirm(f"Remove: {label}?"):
+            console.print(f"- skipped: {label}")
             continue
         action()
-        console.print(f"✓ 제거: {label}")
+        console.print(f"✓ removed: {label}")
 
     console.print(
-        "\n남은 것 (rosmac 소유가 아니라 직접 제거):\n"
-        "  brew uninstall lima micromamba   (다른 프로젝트가 쓸 수 있음)\n"
-        "  Foxglove 앱 (/Applications)\n"
-        "  이 리포 clone과 .venv"
+        "\nRemaining (not owned by rosmac — remove yourself):\n"
+        "  brew uninstall lima micromamba   (other projects may use them)\n"
+        "  Foxglove app (/Applications)\n"
+        "  this repo clone and .venv"
     )
