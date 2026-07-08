@@ -1,0 +1,7 @@
+# rosmac이 주입하는 colcon 기본값 (rosmac shell / run_in_env 안에서만 적용)
+# KI-25: 구식 cmake_minimum_required(3.5) 패키지가 conda/macOS에서 CMP0094(OLD)로
+#        파이썬을 못 찾는 문제의 우회. 신식 패키지에는 이미 NEW가 기본이라 부작용 없음.
+# 끄려면 ~/.rosmac/config.yaml 에 build.colcon_defaults: false
+build:
+  cmake-args:
+    - "-DCMAKE_POLICY_DEFAULT_CMP0094=NEW"

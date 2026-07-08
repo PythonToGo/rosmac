@@ -39,10 +39,17 @@ class RosConfig(BaseModel):
     rmw: str = PINNED_RMW
 
 
+class BuildConfig(BaseModel):
+    # KI-25 우회 플래그를 담은 colcon 기본값 주입 (COLCON_DEFAULTS_FILE).
+    # false면 주입하지 않는다 — 자기 defaults.yaml을 쓰는 사용자용 이스케이프 해치.
+    colcon_defaults: bool = True
+
+
 class Config(BaseModel):
     vm: VmConfig = VmConfig()
     bridge: BridgeConfig = BridgeConfig()
     ros: RosConfig = RosConfig()
+    build: BuildConfig = BuildConfig()
     conda_env: str = "ros_env"
     conda_channel: str = PINNED_CHANNEL
     foxglove_port: int = 8765
