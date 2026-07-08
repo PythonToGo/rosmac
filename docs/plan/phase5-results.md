@@ -22,6 +22,29 @@
 | README 지원 매트릭스 표 | ✅ "지원 매트릭스" 절 |
 | CHANGELOG.md 존재 + CONTRIBUTING에서 참조 가능한 형태 | ✅ Keep a Changelog/SemVer 규약을 문서 서두에 명시 (Phase 6에서 링크만 하면 됨) |
 
+## P5.2 — CLI 견고성 (진행 중: ①② 완료 / ③uninstall·④부분초기화는 다음 run)
+
+### 구현 (2026-07-08)
+- `errors.py` 신설: `RosmacError`(exit 1, message+hint) / `UsageError`(exit 2).
+  **RuntimeError 상속** — psview 등의 `except RuntimeError` 방어선 유지가 목적
+- 진입점을 `cli.main()`으로 교체(pyproject scripts): RosmacError → rich 패널
+  (원인 escape + 처방), exit_code 그대로. 예상 밖 예외만 traceback + report 안내
+- 전 모듈 `raise RuntimeError` → `RosmacError` 전환 (bridge/conda/lima/sim/cli),
+  `ConfigError`는 `UsageError`(exit 2)로 재부모화
+- cli 핸들러의 red-print+Exit 패턴 정리. **exit code 변경점**: viz 잘못된 레이아웃
+  1→2 (사용법 오류로 재분류)
+- README에 exit code 표(0/1/2) + 규약 설명 추가
+
+### AC 실측
+| AC | 결과 |
+|---|---|
+| exit code 표 문서화 + 시나리오 3개 실측 일치 | ✅ 잘못된 프리셋 `sim no-such-preset`→**2**(패널+`sim list` 처방) / env 없음(HOME 격리)→**1** / 정지된 VM `shell --vm`→**1**(limactl 원인 그대로 패널) |
+| `rosmac status \| cat` · `TERM=dumb rosmac doctor` | ✅ rich 자동 폴백, 둘 다 exit 0 (doctor C1~C11 전 PASS 상태에서) |
+| (유닛) | ✅ test_errors.py 6건 — 계층·main() exit code·CLI UsageError 2종. 총 37 passed, ruff/mypy clean |
+
+- 미진한 점 (Run B로): env 없음 패널이 libmamba 원문 그대로 — ④부분 초기화 방어에서
+  "rosmac init 먼저" 한 줄 안내로 다듬을 것
+
 ### 부수 작업 — 개발 도구 드리프트 정리
 `.venv` 재생성(KI-28 조사 중 소실 발견)으로 dev 도구가 최신(ruff 0.15.20,
 mypy 2.2.0)으로 올라오면서 기존 코드가 걸림 — P5.4(CI)에서 어차피 터질 것을 선정리:

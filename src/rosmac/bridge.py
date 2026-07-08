@@ -14,6 +14,7 @@ import zipfile
 from pathlib import Path
 
 from rosmac.config import Config
+from rosmac.errors import RosmacError
 
 ROSMAC_HOME = Path.home() / ".rosmac"
 BIN_PATH = ROSMAC_HOME / "bin" / "zenoh-bridge-ros2dds"
@@ -38,7 +39,7 @@ def ensure_binary(cfg: Config) -> bool:
     digest = hashlib.sha256(zip_path.read_bytes()).hexdigest()
     if digest != cfg.bridge.sha256_darwin:
         zip_path.unlink()
-        raise RuntimeError(
+        raise RosmacError(
             f"zenoh-bridge 다운로드 sha256 불일치: 기대 {cfg.bridge.sha256_darwin}, 실제 {digest}"
         )
     with zipfile.ZipFile(zip_path) as z:
@@ -77,7 +78,7 @@ def start(cfg: Config) -> bool:
     if is_running():
         return False
     if not BIN_PATH.exists():
-        raise RuntimeError(f"{BIN_PATH} 없음 — 먼저 `rosmac init`을 실행하세요")
+        raise RosmacError(f"{BIN_PATH} 없음 — 먼저 `rosmac init`을 실행하세요")
     PID_PATH.parent.mkdir(parents=True, exist_ok=True)
     LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
     if LOG_PATH.exists():  # 로그 rotate
@@ -103,7 +104,7 @@ def start(cfg: Config) -> bool:
     time.sleep(1.5)
     if proc.poll() is not None:
         tail = LOG_PATH.read_text()[-500:] if LOG_PATH.exists() else ""
-        raise RuntimeError(
+        raise RosmacError(
             f"맥 브리지가 기동 직후 종료됨 (exit {proc.returncode}). "
             f"고아 브리지 확인: pgrep -f zenoh-bridge-ros2dds\n로그 끝부분:\n{tail}"
         )

@@ -18,7 +18,7 @@ dependencies = [
 dev = ["pytest>=8", "ruff>=0.4", "mypy>=1.10", "types-PyYAML"]
 
 [project.scripts]
-rosmac = "rosmac.cli:app"
+rosmac = "rosmac.cli:main"  # exit code 규약·에러 패널의 단일 지점 (P5.2)
 
 [tool.hatch.version]
 path = "src/rosmac/__init__.py"

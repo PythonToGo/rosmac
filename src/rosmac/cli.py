@@ -9,12 +9,42 @@ import rosmac
 from rosmac import assets, bridge, conda, lima
 from rosmac import deps as depsmod
 from rosmac.config import Config, load
+from rosmac.errors import RosmacError, UsageError
 
 app = typer.Typer(
     no_args_is_help=True,
     help="ROS2 Humble dev environment for Apple Silicon Macs",
 )
 console = Console()
+
+
+def main() -> None:
+    """콘솔 스크립트 진입점 — exit code 규약(0/1/2)과 에러 표출의 단일 지점 (P5.2).
+
+    RosmacError → rich 패널(원인+처방), exit_code 그대로 (1 실행 실패 / 2 사용법·설정).
+    예상 밖 예외만 traceback (+ 이슈 첨부 안내).
+    """
+    import sys
+
+    from rich.markup import escape
+    from rich.panel import Panel
+
+    try:
+        app()
+    except RosmacError as e:
+        # 메시지는 로그 tail 등 [브래킷] 텍스트가 흔해 escape 필수, hint는 rosmac 소유 마크업
+        body = escape(str(e)) + (f"\n\n[bold]처방:[/] {e.hint}" if e.hint else "")
+        console.print(Panel(body, title="rosmac 오류", border_style="red", expand=False))
+        sys.exit(e.exit_code)
+    except Exception:
+        import traceback
+
+        traceback.print_exc()
+        console.print(
+            "[red]예상 밖 오류입니다[/] — `rosmac doctor` 진단 후, "
+            "위 traceback과 `rosmac report` 번들을 첨부해 이슈를 열어주세요"
+        )
+        sys.exit(1)
 
 
 def _print_version(value: bool) -> None:
@@ -46,9 +76,9 @@ def _verify_vm_provisioned(cfg: Config) -> None:
         timeout=30,
     )
     if "setup.bash" not in out or "active" not in out:
-        raise RuntimeError(
-            f"VM 프로비저닝 불완전 (검증 출력: {out!r}). "
-            f"limactl delete -f {cfg.vm.name} 후 rosmac init 재실행을 권장"
+        raise RosmacError(
+            f"VM 프로비저닝 불완전 (검증 출력: {out!r})",
+            hint=f"limactl delete -f {cfg.vm.name} 후 rosmac init 재실행을 권장",
         )
 
 
@@ -77,10 +107,11 @@ def init(
                 subprocess.run(install_hint[tool].split(), check=True)
             steps.append(("의존성", "✓ 자동 설치", time.monotonic() - t0))
         else:
-            console.print("[red]누락된 의존성이 있습니다. 아래를 직접 실행하세요:[/]")
-            for tool in missing:
-                console.print(f"  {install_hint[tool]}")
-            raise typer.Exit(1)
+            raise RosmacError(
+                f"누락된 의존성: {', '.join(missing)}",
+                hint="아래를 직접 실행하거나 `rosmac init --auto`:\n"
+                + "\n".join(f"  {install_hint[tool]}" for tool in missing),
+            )
     else:
         steps.append(("의존성", "✓", time.monotonic() - t0))
 
@@ -171,8 +202,7 @@ def viz(
     """Foxglove 시각화 연결 (VM foxglove_bridge 기동 + 앱 오픈)."""
     cfg = load()
     if lima.state(cfg.vm.name) is not lima.VmState.RUNNING:
-        console.print("[red]VM이 실행 중이 아닙니다 — 먼저 `rosmac up`[/]")
-        raise typer.Exit(1)
+        raise RosmacError("VM이 실행 중이 아닙니다", hint="rosmac up")
     if layout:
         # 실측(P2.5): Foxglove 딥링크는 로컬 레이아웃 파일 지정을 지원하지 않음 —
         # 파일을 ~/.rosmac/layouts/에 놓고 Import 안내로 대체 (phase2 2.5 결정)
@@ -181,8 +211,7 @@ def viz(
 
         src = resources.files("rosmac") / "assets" / "layouts" / f"{layout}.json"
         if not src.is_file():
-            console.print(f"[red]레이아웃 '{layout}' 없음 (panda|diffbot)[/]")
-            raise typer.Exit(1)
+            raise UsageError(f"레이아웃 '{layout}' 없음 (panda|diffbot)")
         dest = Path.home() / ".rosmac" / "layouts" / f"{layout}.json"
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_text(src.read_text())
@@ -199,8 +228,7 @@ def up(viz: bool = typer.Option(False, "--viz", help="Foxglove 시각화도 함�
     cfg = load()
     vm_state = lima.state(cfg.vm.name)
     if vm_state is lima.VmState.ABSENT:
-        console.print("[red]VM이 없습니다 — 먼저 `rosmac init`을 실행하세요[/]")
-        raise typer.Exit(1)
+        raise RosmacError("VM이 없습니다", hint="rosmac init")
     if vm_state is lima.VmState.STOPPED:
         with console.status("[cyan]VM 기동 중…[/]"):
             lima.start(cfg.vm.name, None, timeout=300)
@@ -309,11 +337,7 @@ def shell(
         os.execvp("limactl", ["limactl", "shell", cfg.vm.name])
 
     if command:
-        try:
-            print(conda.run_in_env(cfg, command, timeout=300), end="")
-        except RuntimeError as e:
-            console.print(f"[red]{e}[/]")
-            raise typer.Exit(1) from None
+        print(conda.run_in_env(cfg, command, timeout=300), end="")
         return
 
     # 인터랙티브: 임시 ZDOTDIR의 .zshrc로 env 주입 (부록 C-5)
@@ -356,23 +380,19 @@ def push(
     cfg = load()
     root = Path(ws).expanduser().resolve()
     if not (root / "src").is_dir():
-        console.print(f"[red]{root}에 src/가 없음 — colcon 워크스페이스 루트를 지정하세요[/]")
-        raise typer.Exit(2)
+        raise UsageError(f"{root}에 src/가 없음 — colcon 워크스페이스 루트를 지정하세요")
     ws_name = name or root.name
     if not re.fullmatch(r"[A-Za-z0-9_-]+", ws_name):
-        console.print(f"[red]워크스페이스 이름이 유효하지 않음: {ws_name!r} (영숫자/_/-만)[/]")
-        raise typer.Exit(2)
+        raise UsageError(f"워크스페이스 이름이 유효하지 않음: {ws_name!r} (영숫자/_/-만)")
     if lima.state(cfg.vm.name) is not lima.VmState.RUNNING:
-        console.print("[red]VM이 실행 중이 아님 — rosmac up 먼저[/]")
-        raise typer.Exit(1)
+        raise RosmacError("VM이 실행 중이 아님", hint="rosmac up")
 
     dest = f"~/rosmac-ws/{ws_name}/src"
     console.print(f"전송: {root}/src → VM {dest}")
     try:
         lima.push_tree(cfg.vm.name, str(root / "src"), dest)
-    except (RuntimeError, ValueError) as e:
-        console.print(f"[red]{e}[/]")
-        raise typer.Exit(1) from None
+    except ValueError as e:
+        raise UsageError(str(e)) from None
     console.print("[green]✓ 전송 완료[/] (재실행 시 VM쪽 src는 통째로 교체됨)")
 
     if build:
@@ -385,13 +405,12 @@ def push(
         try:
             print(lima.shell(cfg.vm.name, build_cmd, timeout=1800), end="")
         except RuntimeError as e:
-            console.print(f"[red]VM 빌드 실패[/]: {e}")
-            console.print(
-                "apt 의존성이 필요하면 VM은 표준 Ubuntu이므로 rosdep이 동작합니다:\n"
+            raise RosmacError(
+                f"VM 빌드 실패: {e}",
+                hint="apt 의존성이 필요하면 VM은 표준 Ubuntu이므로 rosdep이 동작합니다:\n"
                 f"  rosmac shell --vm  →  cd ~/rosmac-ws/{ws_name} && "
-                "rosdep install --from-paths src -y"
-            )
-            raise typer.Exit(1) from None
+                "rosdep install --from-paths src -y",
+            ) from None
     console.print(
         f"실행: [bold]rosmac shell --vm[/] → "
         f"source ~/rosmac-ws/{ws_name}/install/setup.bash → ros2 run …\n"
@@ -471,18 +490,13 @@ def deps(
     cfg = load()
     root = Path(ws).expanduser().resolve()
     if not (root / "src").is_dir():
-        console.print(f"[red]{root}에 src/가 없음 — colcon 워크스페이스 루트를 지정하세요[/]")
-        raise typer.Exit(2)
-    try:
-        report = depsmod.analyze(cfg, root)
-        if install and report.missing:
-            if not json_out:  # --json일 땐 stdout을 JSON만으로 유지 (파이프 안전)
-                console.print(f"설치 중: {', '.join(report.missing)}")
-            depsmod.install_missing(cfg, report.missing)
-            report = depsmod.analyze(cfg, root)  # 재분석으로 설치 결과 검증
-    except RuntimeError as e:
-        console.print(f"[red]{e}[/]")
-        raise typer.Exit(1) from None
+        raise UsageError(f"{root}에 src/가 없음 — colcon 워크스페이스 루트를 지정하세요")
+    report = depsmod.analyze(cfg, root)
+    if install and report.missing:
+        if not json_out:  # --json일 땐 stdout을 JSON만으로 유지 (파이프 안전)
+            console.print(f"설치 중: {', '.join(report.missing)}")
+        depsmod.install_missing(cfg, report.missing)
+        report = depsmod.analyze(cfg, root)  # 재분석으로 설치 결과 검증
 
     if json_out:
         print(_json.dumps(report.model_dump(), ensure_ascii=False, indent=2))
@@ -547,36 +561,28 @@ def sim(
     try:
         preset = sim_mod.load_preset(name)
     except KeyError as e:
-        console.print(f"[red]{e.args[0]}[/]")
-        raise typer.Exit(1) from None
+        raise UsageError(e.args[0], hint="rosmac sim list") from None
 
     # 사전 점검 (C2 VM, C5 포트, C6 맥 브리지, C7 VM 브리지 — C8은 느려서 제외)
     pre = [c for c in doctor_mod.CHECKS if c.name.split()[0] in ("C2", "C5", "C6", "C7")]
     failed = [r for r in (c.run(cfg) for c in pre) if r.status == "FAIL"]
     if failed:
-        for r in failed:
-            console.print(f"[red]{r.name}: {r.detail}[/] → {r.remedy}")
-        raise typer.Exit(1)
+        raise RosmacError(
+            "\n".join(f"{r.name}: {r.detail}" for r in failed),
+            hint="\n".join(r.remedy for r in failed if r.remedy),
+        )
 
     installed = sim_mod.ensure_apt(cfg, preset.vm_apt, progress=lambda m: console.print(f"  {m}"))
     if installed:
         console.print(f"✓ VM 패키지 설치: {', '.join(installed)}")
-    try:
-        sim_mod.start(cfg, preset)
-    except RuntimeError as e:
-        console.print(f"[yellow]{e}[/]")
-        raise typer.Exit(1) from None
+    sim_mod.start(cfg, preset)
     console.print(f"✓ tmux 세션 '{sim_mod.SESSION}' 기동 — 로그: rosmac sim --attach")
     with console.status("[cyan]health topics 대기 중…[/]"):
         try:
             sim_mod.wait_healthy(cfg, preset, progress=lambda m: console.print(f"  {m}"))
         except RuntimeError as e:
-            from rich.markup import escape
-
-            # 로그 tail에 [ ... ] 가 흔해 rich 마크업으로 오파싱됨 — escape 필수
-            console.print(f"[red]{escape(str(e))}[/]")
-            sim_mod.stop(cfg)
-            raise typer.Exit(1) from None
+            sim_mod.stop(cfg)  # 실패 시 세션 정리 후 보고 (main이 escape 처리)
+            raise RosmacError(str(e)) from None
     console.print("[green bold]READY[/]")
     if not no_viz:
         _start_viz(cfg)

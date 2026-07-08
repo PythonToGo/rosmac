@@ -13,6 +13,7 @@ from pydantic import BaseModel
 
 from rosmac import conda, lima
 from rosmac.config import Config
+from rosmac.errors import RosmacError
 
 SESSION = "rosmac-sim"
 SIM_LOG = "/tmp/rosmac-sim.log"
@@ -120,7 +121,7 @@ def _push_preset_assets(cfg: Config, preset: Preset) -> None:
 def start(cfg: Config, preset: Preset, progress=None) -> None:
     """tmux 세션으로 launch.cmd 실행. 이미 세션이 있으면 RuntimeError (R6 패턴)."""
     if session_alive(cfg):
-        raise RuntimeError(
+        raise RosmacError(
             f"tmux 세션 '{SESSION}'이 이미 있음 — rosmac sim status/stop 또는 --attach 사용"
         )
     _push_preset_assets(cfg, preset)
@@ -162,7 +163,7 @@ def wait_healthy(cfg: Config, preset: Preset, progress=None) -> None:
                     tail = lima.shell(cfg.vm.name, f"tail -30 {SIM_LOG} 2>/dev/null || true")
                 except RuntimeError:
                     pass
-                raise RuntimeError(
+                raise RosmacError(
                     f"health topic {ht.name}이 {ht.timeout}s 내에 안 보임.\n"
                     f"--- VM sim 로그 (마지막 30줄) ---\n{tail}"
                 )
