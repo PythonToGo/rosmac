@@ -222,6 +222,17 @@ def viz(
     _start_viz(cfg)
 
 
+def _robot_reachable(cfg: Config, timeout: float = 3.0) -> bool:
+    """로봇 브리지 포트 TCP 도달성 (zenoh 세션 검증 아님 — C16에서 확장 예정)."""
+    import socket
+
+    try:
+        with socket.create_connection((cfg.robot.host, cfg.robot.port), timeout=timeout):
+            return True
+    except OSError:
+        return False
+
+
 @app.command()
 def up(
     viz: bool = typer.Option(False, "--viz", help="Also connect Foxglove visualization"),
@@ -254,6 +265,22 @@ def up(
         console.print("✓ Mac bridge started")
     else:
         console.print("✓ Mac bridge already running (pidfile)")
+        # D15: 브리지가 config 변경(robot 추가/제거) 전에 떴다면 엔드포인트가 어긋남
+        cmdline = bridge.running_cmdline() or ""
+        if cfg.robot.host and bridge.robot_endpoint(cfg) not in cmdline:
+            console.print(
+                "[yellow]⚠ running bridge has no robot endpoint — "
+                "restart with: rosmac down --keep-vm && rosmac up[/]"
+            )
+
+    if cfg.robot.host:
+        if _robot_reachable(cfg):
+            console.print(f"✓ robot endpoint reachable ({bridge.robot_endpoint(cfg)})")
+        else:
+            console.print(
+                f"[yellow]⚠ robot endpoint {bridge.robot_endpoint(cfg)} unreachable "
+                "(robot off? firewall?) — bridge will auto-connect when it appears[/]"
+            )
 
     # 연결 스모크: 브리지 로그에 원격 브리지 감지가 찍히는지 몇 초 대기
     time.sleep(3)
@@ -645,6 +672,12 @@ def status() -> None:
     except OSError:
         port_ok = "closed"
     table.add_row(f"Port {cfg.bridge.port}", port_ok)
+
+    if cfg.robot.host:
+        robot_state = "reachable" if _robot_reachable(cfg) else "unreachable"
+        table.add_row(f"Robot ({bridge.robot_endpoint(cfg)})", robot_state)
+    else:
+        table.add_row("Robot", "not configured")
 
     table.add_row("conda env", cfg.conda_env if conda.env_exists(cfg.conda_env) else "none")
     console.print(table)
