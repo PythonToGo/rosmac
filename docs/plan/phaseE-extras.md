@@ -1,4 +1,4 @@
-# E 트랙 — 상품성 점검(2026-07-08) 파생 태스크
+# E 트랙 — 상품성 점검(2026-07-08~09) 파생 태스크
 
 > 출처: Run F(CI) 착수 전 상품성·완비성 점검 (경쟁 조사 결론·수리 내역은
 > [phase5-results.md](phase5-results.md) "부수 작업 — 상품성 점검" 절).
@@ -6,15 +6,16 @@
 > 이미 완료된 수리(LICENSE, pyproject 메타데이터, README 영어 메인+한국어)는
 > 여기 없음 — 커밋 `27d4a21` 참조.
 
-## E.1 docs/workflow.md 영어 메인 + 한국어 병행
+## E.1 docs/workflow.md 영어 메인 + 한국어 병행 — ✅ 완료 (2026-07-09)
 
 - **배경**: README를 영어 메인(README.md)+한국어(README.ko.md)로 개편했는데,
   README가 링크하는 workflow.md(개발 루프·pick_demo 예제)는 아직 한국어뿐 —
   외부 사용자 여정이 Quickstart 다음 단계에서 끊긴다.
 - **작업**: workflow.md를 영어로 전환, 한국어는 workflow.ko.md로 분리, 양쪽
   README에서 각각 링크. 코드 블록·실측 값은 불변.
-- **AC**: [ ] 영어 workflow.md + 한국어 workflow.ko.md 상호 링크
-  [ ] 명령·출력 예시가 현행 CLI(영어 출력)와 일치
+- **AC**: [x] 영어 workflow.md + 한국어 workflow.ko.md 상호 링크 (커밋 c2c179e —
+  코드블록 바이트 동일·다이어그램 정렬 보존 검증)
+  [x] 명령·출력 예시가 현행 CLI(영어 출력)와 일치
 
 ## E.2 리스크 레지스터에 R11(네이티브 macOS ROS 2 성숙) 등록 — ✅ 완료 (2026-07-08)
 
@@ -62,3 +63,113 @@
 - **배경**: LICENSE 신설 시 "Copyright (c) 2026 Taeyoung Kim"으로 기재 —
   표기(실명/핸들/병기)는 사용자 결정 사안.
 - **AC**: [x] 사용자 확인 — "그대로" (2026-07-08, push 전 확정)
+
+---
+
+# 2차 점검 (2026-07-09) 파생 — 기능·구조·OSS 3방향 조사 결과
+
+> 조사 방법: 병렬 감사 3건 (OSS 커뮤니티 인프라 / 기능 갭 — 코드 실측 근거 포함 /
+> 코드 구조 리뷰 — 13모듈 2,457줄 전수). 이미 Phase 5.5/6/7에 계획된 항목은 제외.
+
+## E.7 [배포 전 필수] rosmac 업그레이드 경로 — 핀 마이그레이션
+
+- **배경 (실측)**: config.load()가 첫 실행 때 브리지 버전/sha 전체를
+  `~/.rosmac/config.yaml`에 동결(config.py:64-69)하고 `ensure_binary`는 존재만
+  검사(bridge.py:33-35) → pip 업그레이드해도 구버전 브리지/구 config로 조용히
+  동작. **P5.5 배포 직후 첫 릴리스부터 전 사용자가 밟는 지뢰** — 0.y "minor may
+  break" 선언과 정면 충돌.
+- **작업**: ① config에 사용자 미수정 핀은 코드 기본값을 따르게 (저장 시 핀 제외
+  또는 버전 스탬프+마이그레이션) ② ensure_binary 버전 비교 후 재다운로드
+  ③ (같은 파일) bridge 다운로드 `urlretrieve` → timeout 있는 urlopen 스트리밍
+  (무한 대기 가능한 유일한 네트워크 호출 — 구조 리뷰 B6)
+- **AC**: [ ] 구 config + 신 코드에서 `rosmac up`이 신 핀 사용 실측
+  [ ] 핀 갱신 릴리스 시나리오 유닛 [ ] 다운로드 타임아웃 존재
+- **시점**: **P5.5 착수 전** (게이트급)
+
+## E.8 `rosmac logs` — 로그 열람 커맨드
+
+- **배경**: doctor/에러 메시지 3곳이 이미 로그를 가리키는데(bridge.log, VM
+  journalctl) 열람 커맨드가 없어 사용자가 원시 명령을 쳐야 함. 로그는 3곳 분산.
+- **작업**: `rosmac logs [--vm] [--foxglove] [-f/--follow] [-n N]` — 맥 브리지
+  tail 기본, --vm은 journalctl -u zenoh-bridge 위임.
+- **AC**: [ ] 세 소스 각각 열람 실측 [ ] -f 동작 [ ] doctor remedy 문구를
+  `rosmac logs`로 교체
+- **가치×난이도**: 상×소 (반나절)
+
+## E.9 `init --recreate-env|--recreate-vm` + 디스크 프리플라이트
+
+- **배경**: env/VM 존재 시 무조건 skip(cli.py) → 반쯤 깨진 env의 탈출로가 전체
+  uninstall(40GB 재설치)뿐. 첫 주 최다 빈도 사고. + init에 디스크 여유 사전
+  체크 없음(README 40GB 요구, C11은 사후 WARN만).
+- **작업**: 대상만 삭제 후 재생성하는 플래그 2종(확인 프롬프트, 절대 규칙 7) +
+  init 첫 단계에 디스크 프리플라이트(부족 시 UsageError).
+- **AC**: [ ] env 오염 시나리오에서 --recreate-env만으로 복구 실측
+  [ ] 디스크 부족 모의에서 다운로드 전 차단
+- **가치×난이도**: 상×소
+
+## E.10 doctor C15 — config↔실환경 드리프트 감지
+
+- **배경**: VM 리소스(cpus/memory)·domain_id는 생성 시 베이크되는데 config.yaml
+  수정이 조용히 무시됨. domain_id는 맥(매 실행)/VM(베이크) 불일치 시 무증상
+  디스커버리 단절 — 신뢰 파괴형.
+- **작업**: C15 신설 — config vs `limactl list --json`(리소스)·VM 내
+  /etc/profile.d(domain_id) 비교, 불일치 시 WARN + 처방(limactl edit 또는
+  E.9 --recreate-vm).
+- **AC**: [ ] config 변경 후 C15 WARN 실측 + 처방으로 해소 실측
+- **가치×난이도**: 중×소
+
+## E.11 OSS 미계획 4종 + D11 정합화
+
+- **배경**: Phase 6 계획은 우수(감사 결과) — 계획에 아예 없는 것만:
+- **작업**: ① README 배지 4종(CI·PyPI·license·python — 6.1 AC에 추가)
+  ② CHANGELOG 영어화(+함정 수 28→29 정합) ③ CITATION.cff (JOSS/D13 정합,
+  파일 1개) ④ dependabot.yml (github-actions+pip 월간)
+  ⑤ D11("한국어 병행판 없음")과 README.ko.md 모순 → D11 개정 기록
+  (영어=원본, 한국어 병행 허용 — 사용자 지시 2026-07-08)
+- **AC**: [ ] 4파일 존재+배지 렌더 [ ] D11 개정 행에 사유·날짜
+- **가치×난이도**: 중×소 (전부 합쳐 1시간)
+
+## E.12 구조 부채 1차 — 싸고 지금뿐인 것들
+
+- **배경**: 구조 리뷰 (b) 중 순수 이동·리스크 제로급.
+- **작업**: ① `paths.py` 신설 — ~/.rosmac 레이아웃 지식 5개 모듈 분산 집약(B5)
+  ② VM ROS env 주입 4중 복제 → `lima.vm_ros_env(cfg)` 단일화(B2, KI-19 재발 온상)
+  ③ distro 하드코딩 즉효 3건: cli.py:75 리터럴, ENV_PACKAGES→`env_packages(cfg)`,
+  deps map_dep 기본 인자(B3) ④ 에러 규약 명문화 — 라이브러리 레이어도
+  RosmacError/UsageError 직접, `except RuntimeError`는 관찰 도구 한정 규칙을
+  errors.py에 문서화 + 이중 포장 2곳 정리(B9) ⑤ 프리셋 유래 문자열(vm_apt,
+  preset.name) 검증/quote(B6)
+- **AC**: [ ] 61+ 테스트 green 유지 [ ] grep으로 humble 리터럴이 provision
+  템플릿·프리셋에만 잔존 [ ] private 크로스 접근(conda._check 등) 0
+- **가치×난이도**: 중×소~중 (반나절)
+
+## E.13 구조 부채 2차 — cli.py 오케스트레이션 추출 (중형)
+
+- **배경**: cli.py 729줄에 13개 커맨드 본문 인라인 — 커맨드 본문이 유닛 테스트
+  불가(B1), doctor 사전점검이 표시 문자열 파싱에 결합(B7), 사용자 프리셋이
+  부속 파일을 VM에 못 보냄(B8). "지금이 마지막 싼 시점" 판정.
+- **작업**: ① `ops.py` 레이어 — init/up/down/viz 절차를 순수 함수로, cli는
+  렌더링만 ② Check에 `id` 필드 + `doctor.run_selected(cfg, ids)` ③
+  `_push_preset_assets`가 USER_PRESET_DIR도 보게 + layout 오버레이
+- **AC**: [ ] up/init 절차 유닛 테스트 신설 [ ] sim 사전점검이 id 기반
+  [ ] 사용자 프리셋 디렉토리의 launch 파일이 VM 전송됨 실측
+- **가치×난이도**: 상×중 (1~2일) — Phase 6 전 권장 (기여자가 복제할 패턴 확정)
+
+## E.14 브리지 능력 매트릭스 + rosbag 스토리
+
+- **배경**: topics/actions는 실측 선언돼 있으나 **parameters·rosbag은 동작 여부
+  기술 자체가 없음** (리포 전체 rosbag 언급 0). "VM에서 bag 녹화 → 맥에서 분석"
+  루프의 파일 회수 경로도 없음 (push_tree는 단방향).
+- **작업**: ① 실측: 브리지 경유 parameters/rosbag record·play 각각 동작·대역
+  측정 → README 능력 매트릭스 표 ② 필요 시 `rosmac pull` (VM→맥 파일 회수)
+  검토(D 결정)
+- **AC**: [ ] 능력 매트릭스에 topics/services/actions/parameters/rosbag 5행
+  실측 근거 [ ] bag 회수 절차 문서화(도구든 안내든)
+- **가치×난이도**: 중×중
+
+## 백로그 (미등록 관찰 — 요구 발생 시)
+
+- `shell -c` 타임아웃 300s 하드코딩 → 옵션화 (하×소)
+- 오프라인/에어갭 설치 (하×대, E.5-3 교육 시나리오와 연동)
+- 멀티 프로필/제2 VM (하×중)
+- 주석 언어 정책(한국어 KI 주석 유지 + CONTRIBUTING 명시 — Phase 6.3에서)
