@@ -59,6 +59,31 @@ def _pid_alive(pid: int) -> bool:
     return "zenoh-bridge-ros2dds" in p.stdout
 
 
+def running_cmdline() -> str | None:
+    """pidfile 브리지의 실행 인자 (D15: config↔실행 엔드포인트 드리프트 감지용)."""
+    if not is_running():
+        return None
+    pid = int(PID_PATH.read_text().strip())
+    p = subprocess.run(["ps", "-o", "command=", "-p", str(pid)], capture_output=True, text=True)
+    return p.stdout.strip() or None
+
+
+def build_args(cfg: Config) -> list[str]:
+    """브리지 실행 인자. robot.host 설정 시 로봇 엔드포인트/토픽 필터 추가 (D15)."""
+    args = [str(BIN_PATH), "-e", f"tcp/127.0.0.1:{cfg.bridge.port}"]
+    if cfg.robot.host:
+        args += ["-e", robot_endpoint(cfg)]
+        if cfg.robot.allow:
+            args += ["--allow", cfg.robot.allow]
+        if cfg.robot.deny:
+            args += ["--deny", cfg.robot.deny]
+    return args
+
+
+def robot_endpoint(cfg: Config) -> str:
+    return f"tcp/{cfg.robot.host}:{cfg.robot.port}"
+
+
 def is_running() -> bool:
     if not PID_PATH.exists():
         return False
@@ -94,7 +119,7 @@ def start(cfg: Config) -> bool:
     )
     with LOG_PATH.open("w") as log:
         proc = subprocess.Popen(
-            [str(BIN_PATH), "-e", f"tcp/127.0.0.1:{cfg.bridge.port}"],
+            build_args(cfg),
             stdout=log,
             stderr=subprocess.STDOUT,
             env=env,

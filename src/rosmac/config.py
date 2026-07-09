@@ -4,10 +4,11 @@
 핀 값(버전/sha256/RMW/채널)은 Phase 0 실측 결과다: docs/plan/phase0-results.md.
 """
 
+import re
 from pathlib import Path
 
 import yaml
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, ValidationError, field_validator
 
 from rosmac.errors import UsageError
 
@@ -35,6 +36,30 @@ class BridgeConfig(BaseModel):
     sha256_linux: str = BRIDGE_SHA256_LINUX
 
 
+class RobotConfig(BaseModel):
+    # D15 (E.15): 실로봇 연결 — host가 None이면 전 기능 무효 (기존 사용자 무영향).
+    # allow/deny는 zenoh 브리지 전역 토픽 필터라 VM 경로에도 적용됨에 유의.
+    host: str | None = None
+    port: int = 7447
+    allow: str | None = None
+    deny: str | None = None
+
+    @field_validator("host")
+    @classmethod
+    def _host_shape(cls, v: str | None) -> str | None:
+        # zenoh 엔드포인트 문자열에 그대로 들어가므로 hostname/IP 문자만 허용
+        if v is not None and not re.fullmatch(r"[A-Za-z0-9._-]+", v):
+            raise ValueError(f"robot.host must be a hostname or IP address, got: {v!r}")
+        return v
+
+    @field_validator("port")
+    @classmethod
+    def _port_range(cls, v: int) -> int:
+        if not 1 <= v <= 65535:
+            raise ValueError(f"robot.port must be 1-65535, got: {v}")
+        return v
+
+
 class RosConfig(BaseModel):
     distro: str = "humble"
     domain_id: int = 0
@@ -50,6 +75,7 @@ class BuildConfig(BaseModel):
 class Config(BaseModel):
     vm: VmConfig = VmConfig()
     bridge: BridgeConfig = BridgeConfig()
+    robot: RobotConfig = RobotConfig()
     ros: RosConfig = RosConfig()
     build: BuildConfig = BuildConfig()
     conda_env: str = "ros_env"

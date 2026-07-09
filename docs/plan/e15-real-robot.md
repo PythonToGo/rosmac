@@ -89,20 +89,20 @@
 - **실패 시 대응**: 개통 자체가 안 되면 zenoh 로그 레벨 올려 세션 수립/라우트
   광고 단계 중 어디서 끊기는지 분리. 2회 실패 시 사용자 보고(스파이크 결과와 함께).
 
-### R2 — config + up/down/status 통합 (~1시간)
+### R2 — config + up/down/status 통합 — ✅ 완료 (2026-07-09)
 
-- **작업**:
-  1. config.py: `RobotConfig` 추가 (R0 스키마). 기본 null → 기존 동작 무변화.
-  2. bridge.py `start()`: robot.host 설정 시 `-e tcp/{host}:{port}` 추가,
-     allow/deny 설정 시 `--allow/--deny` 전달. 프리셋 유래 문자열 검증 규칙
-     (E.12-⑤)과 동일하게 host/port 검증(hostname/IP 형식, UsageError).
-  3. `rosmac up`: 로봇 엔드포인트 포함 기동 + 기동 후 로봇 링크 개통 확인
-     1회(실패해도 up은 성공, WARN만 — 로봇이 꺼져 있는 게 정상 상황이므로).
-  4. `rosmac status`: robot 행 추가 (설정 없음/미개통/개통).
-- **AC**: [ ] robot 미설정 시 기존 61+ 테스트 전부 green (무영향 증명)
-  [ ] 대리 로봇으로 up→echo→down 실측 [ ] 잘못된 host 형식이 exit 2
-- **실패 시 대응**: up 후 개통 확인 방법이 마땅치 않으면(zenoh admin API 조사
-  30분 한도) 로그 grep(`tcp/{host}` 세션 수립 라인)으로 갈음하고 한계를 주석에.
+- **구현**: ① config.py `RobotConfig`(host/port/allow/deny, pydantic 검증 —
+  잘못된 host/port는 ConfigError=exit 2) ② bridge.py `build_args(cfg)`로 인자
+  구성 분리(+`robot_endpoint`, `running_cmdline`) ③ up: 로봇 링크 TCP 도달성
+  확인(WARN 전용, up 비차단) + **엔드포인트 드리프트 감지**(브리지가 robot 설정
+  전에 떠 있으면 재시작 안내 — E.10의 선행 구현) ④ status: Robot 행
+  (not configured/reachable/unreachable).
+- **개통 확인 방식**: TCP 도달성 프로브로 확정 (zenoh 세션 검증 아님 — 주석
+  명시, C16에서 확장). 로봇 유래 allow/deny가 브리지 전역 필터임을 config 주석에 명시.
+- **AC**: [x] robot 미설정 시 무영향 — 71 tests green(+10 신설), ruff/mypy clean
+  [x] 대리 로봇 실측: up→"robot endpoint reachable"→echo /robot_chatter 수신,
+  status "reachable", 드리프트 경고·unreachable WARN(exit 0) 실측
+  [x] `host: tcp/bad:host` → exit 2 실측
 
 ### R3 — 관찰 통합: ps + 로봇 설치 가이드 (~45분)
 
