@@ -108,3 +108,22 @@ limactl cp -r rosmac:/tmp/vmbag ~/vmbag
 | 맥↔VM 토픽이 갑자기 안 흐름 | lima UDP 포워딩의 DDS 포트 하이잭(KI-27) 또는 브리지 디스커버리 정지(KI-28) | `rosmac ps`로 발행자 확인 → `lsof -nP -iUDP \| grep limactl` (KI-27) → 브리지 재시작 |
 
 전체 함정 DB: [docs/plan/known-issues.md](plan/known-issues.md)
+
+## 4. 실로봇 연결 (beta)
+
+단일 TCP 모델이 같은 LAN의 로봇으로 그대로 확장된다: 로봇에
+`zenoh-bridge-ros2dds` 리스너 하나, 맥 브리지에 엔드포인트 하나 추가.
+신규 커맨드 없음 — 설정하고 `rosmac up`:
+
+```yaml
+# ~/.rosmac/config.yaml
+robot:
+  host: 192.168.0.42   # 로봇 IP; null(기본)이면 기능 전체 비활성
+  port: 7447
+```
+
+`rosmac status` / `ps`가 링크를 보여주고 `doctor` C16이 진단한다. 로봇이
+꺼져 있어도 OK — 나타나는 순간 맥이 자동 재접속한다. 전체 설치(복붙 스크립트,
+사전조건, 무증상 실패 체크리스트): [robot-setup.ko.md](robot-setup.ko.md).
+신뢰 LAN 전용 — 링크는 평문 TCP. 상태: **beta** — 대리 로봇으로 검증,
+실기/WiFi 검증 대기 (E.15 R5).

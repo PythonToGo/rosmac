@@ -17,6 +17,8 @@ rosmac은 문제와 싸우는 대신 문제를 분할한다:
         ↕  zenoh 브리지 — TCP 포트 하나(7447), 경계에 DDS 멀티캐스트 없음
 무거운 스택은 Tier 1에서 (Lima VM, Ubuntu 22.04 arm64: MoveIt, Gazebo)
         →  시각화는 맥에서 (Foxglove, ws:8765)
+        ⇢  선택: 같은 LAN의 실로봇 — TCP 엔드포인트 하나 추가, 같은 모델
+           (beta, [docs/robot-setup.ko.md](docs/robot-setup.ko.md))
 ```
 
 설치 스크립트 이상인 이유:
@@ -131,6 +133,7 @@ exit code 규약:
 | Actions | ✅ | MoveGroup 플래닝+실행 goal 3/3 SUCCEEDED |
 | Parameters | ⚠️ 부분 | 원시 파라미터 서비스(`get/set_parameters` 등)는 `ros2 service call`로 동작; `ros2 param` CLI는 **불가** — 브리지가 원격 노드를 노드 그래프에 미러링하지 않아 `ros2 node list`에 VM 노드가 안 보임 |
 | rosbag2 | ✅ | 맥에서 VM 토픽 녹화(무손실)·VM 내 녹화·양쪽 어디서 재생해도 반대편 도달. VM bag 회수는 `limactl cp -r rosmac:/path ~/dest` (D16) — [docs/workflow.ko.md](docs/workflow.ko.md) 참조 |
+| Robot link (LAN) | 🧪 beta | `robot:` 설정 → 맥 브리지가 로봇 쪽 브리지로 TCP 엔드포인트 추가 (D15). 대리 로봇(제2 VM) 실측: 토픽/서비스 10 MB/s @ 10Hz 무손실, 서비스 RTT < 1 ms, 로봇 재시작 자동 재접속. **대리 로봇 검증** — 실기/WiFi 수치는 대기 ([E.15 R5](docs/plan/e15-real-robot.md)). 설치: [docs/robot-setup.ko.md](docs/robot-setup.ko.md). **신뢰 LAN 전용** — 평문 TCP, 인증/TLS 없음 |
 
 구조적 한계 (버그가 아니라 설계):
 
