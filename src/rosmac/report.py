@@ -19,6 +19,20 @@ from rosmac.config import CONFIG_PATH, Config
 
 MAX_LOG_BYTES = 256 * 1024  # 로그는 파일당 마지막 256KB만 (번들 비대 방지)
 
+_HOST_MASK = "masked-by-report"
+
+
+def mask_host(text: str, host: str | None) -> str:
+    """수집물에서 robot.host를 마스킹 (E.15-R4 프라이버시: 로봇 주소 평문 금지).
+
+    config.yaml·doctor.json·브리지 로그(cmdline/라우트에 엔드포인트 포함) 전부에
+    나타날 수 있어 파일별 파싱 대신 번들 전체에 일괄 적용한다. host가 로컬 주소
+    (대리 로봇 등)면 무관한 문자열까지 가려질 수 있으나 과마스킹이 안전한 방향.
+    """
+    if not host:
+        return text
+    return text.replace(host, _HOST_MASK)
+
 
 def _cmd(cmd: list[str]) -> str:
     try:
@@ -38,6 +52,8 @@ def version_matrix(cfg: Config) -> str:
         f"zenoh-bridge (pinned): {cfg.bridge.version}",
         f"ros: {cfg.ros.distro} / {cfg.ros.rmw} / domain {cfg.ros.domain_id}",
         f"conda: env '{cfg.conda_env}' / channel {cfg.conda_channel}",
+        # D15: 설정 유무만 — 호스트는 프라이버시 원칙상 기재하지 않는다 (E.15-R4)
+        f"robot: {f'configured (host masked, port {cfg.robot.port})' if cfg.robot.host else 'not configured'}",
     ]
     return "\n".join(lines) + "\n"
 
@@ -62,7 +78,7 @@ def collect(cfg: Config, work: Path, rosmac_dir: Path | None = None) -> list[str
     names: list[str] = []
 
     def put(name: str, content: str) -> None:
-        (work / name).write_text(content)
+        (work / name).write_text(mask_host(content, cfg.robot.host))
         names.append(name)
 
     results = doctor_mod.run_all(cfg)
@@ -80,7 +96,8 @@ def collect(cfg: Config, work: Path, rosmac_dir: Path | None = None) -> list[str
         for f in sorted(log_src.iterdir()):
             if not f.is_file():
                 continue
-            (log_dst / f.name).write_bytes(f.read_bytes()[-MAX_LOG_BYTES:])
+            tail = f.read_bytes()[-MAX_LOG_BYTES:].decode(errors="replace")
+            (log_dst / f.name).write_text(mask_host(tail, cfg.robot.host))
             names.append(f"log/{f.name}")
 
     put("vm-units.txt", _vm_units(cfg))

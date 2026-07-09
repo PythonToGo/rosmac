@@ -128,19 +128,36 @@
 - **메모**: 가이드 검증 절차에 journalctl `Discovered` 확인을 추가한 것이 리스크
   7의 1차 방어선. R4의 C16 WARN 처방 문구에 domain_id + localhost-only 둘 다 포함할 것.
 
-### R4 — doctor C16 + report 반영 (~45분)
+### R4 — doctor C16 + report 반영 — ✅ 완료 (2026-07-09)
 
-- **작업**:
-  1. C16RobotLink: robot 미설정 → SKIP / TCP 도달 불가 → FAIL(처방: 로봇
-     전원·방화벽·가이드 링크) / 세션 수립인데 토픽 0 → WARN(처방: domain_id
-     불일치 — 리스크 2, 또는 ROS_LOCALHOST_ONLY 불일치 — 리스크 7, 가이드
-     2.1절) / 정상 → PASS. R1-5 고장 모드 실측이 판정 근거.
-  2. `rosmac report`: doctor.json에 C16 자동 포함(구조상 무료) + versions.txt에
-     robot 설정 유무(호스트는 **마스킹** — 프라이버시 원칙 유지).
-- **AC**: [ ] 4상태 각각 실측(대리 로봇 켜고/끄고/domain 틀리게) [ ] report
-  번들에 로봇 IP 평문 미포함
-- **실패 시 대응**: "세션은 있는데 토픽 0" 감지가 어려우면 해당 판정만 백로그로
-  내리고 도달성 체크만으로 출시.
+- **작업** (완료):
+  1. C16RobotLink 구현 — 판정 사다리: 미설정 → **SKIP**(CheckResult에 SKIP 상태
+     신설, dim 표시, exit 무영향) / TCP 도달 불가 → **FAIL**(처방: 전원·방화벽
+     7447·가이드 링크) / 도달인데 브리지 인자에 로봇 엔드포인트 없음 → **WARN
+     드리프트**(down --keep-vm && up) / 도달+인자인데 브리지 로그의 zenoh 세션
+     수 < 기대치(VM 가동 시 2) → **WARN 핸드셰이크 누락**(로봇 journalctl·버전
+     핀 처방) / 정상 → **PASS**. 세션 수는 순수 함수 `count_bridge_sessions`
+     (재접속 id 중복 dedup, 유닛 테스트).
+  2. **"세션 수립인데 토픽 0" 판정은 실패 시 대응대로 백로그** — 실측 근거:
+     브리지 로그의 세션 id(`New ROS 2 bridge detected: <id>`)가 엔드포인트에
+     귀속 불가 → idle VM(발행자 0)과 domain 불일치 로봇을 구분할 수 없음.
+     **실측 확인**: 로봇만 ROS_DOMAIN_ID=42로 바꿔도 C16은 PASS (zenoh 세션은
+     domain 무관). 이 고장 모드의 방어선은 가이드의 journalctl `Discovered`
+     검증 절(리스크 2·7 처방 포함).
+  3. report: 번들 **전체**(config.yaml/doctor.json/로그 tail 포함)에
+     `mask_host()` 일괄 적용 — 브리지 로그 cmdline/Config 덤프에도 로봇
+     엔드포인트가 찍히므로 파일별 파싱 대신 전면 치환(과마스킹이 안전한 방향).
+     versions.txt에 `robot: configured (host masked, port N) | not configured` 행.
+- **AC**: [x] 5상태 실측 — SKIP(host null) / PASS(4 세션) / FAIL(스파이크 VM
+  정지, doctor exit 1) / WARN 드리프트(로봇 켠 채 브리지만 robot 없이 재기동) /
+  WARN 핸드셰이크(로봇 포트를 ssh 포트로 지정 — TCP는 열리나 세션 1<2).
+  domain 42 실측은 위 2의 한계 확인. [x] report 번들 추출 후 전 파일 grep —
+  호스트 문자열 0건, config.yaml `host: masked-by-report`. 81 tests green(+9),
+  ruff/mypy clean.
+- **메모**: ① 스파이크 VM 정지 직후 C8이 일과성 FAIL(재실행 PASS) — 브리지
+  세션 정리 중 타이밍으로 추정, 재발 시 조사. ② 로봇 VM 재부팅에서 가이드
+  유닛의 systemd enable 자동 기동 확인(재부팅 시나리오 검증 덤). ③ C15 번호는
+  E.10(config 드리프트)에 예약.
 
 ### R5 — 실기 검증 게이트 (**사용자 하드웨어 확보 시**, ~1시간)
 

@@ -1,6 +1,7 @@
-"""rosmac doctor — C1~C14 진단. 새 체크는 CHECKS에 추가만 하면 된다."""
+"""rosmac doctor — C1~C16 진단. 새 체크는 CHECKS에 추가만 하면 된다."""
 
 import os
+import re
 import shutil
 import signal
 import socket
@@ -18,7 +19,7 @@ from rosmac.config import Config
 
 class CheckResult(NamedTuple):
     name: str
-    status: Literal["PASS", "WARN", "FAIL"]
+    status: Literal["PASS", "WARN", "FAIL", "SKIP"]  # SKIP = 기능 미설정으로 해당 없음
     detail: str
     remedy: str | None = None  # FAIL일 때 사용자에게 보여줄 한 줄 처방
 
@@ -293,6 +294,55 @@ class _C14GraphPollution:
         )
 
 
+def count_bridge_sessions(log_text: str) -> int:
+    """맥 브리지 로그(현 세션분)에서 감지된 원격 브리지 수 — 재접속은 id가 바뀌므로 set."""
+    return len(set(re.findall(r"New ROS 2 bridge detected: (\w+)", log_text)))
+
+
+class _C16RobotLink:
+    name = "C16 robot link"
+
+    # D15/E.15-R4. 판정 단계: 설정 → TCP 도달성 → 브리지 인자 드리프트 → zenoh 세션 수.
+    # "세션은 있는데 토픽 0"(domain_id/ROS_LOCALHOST_ONLY 불일치) 판정은 백로그 —
+    # 로그의 세션 id가 엔드포인트에 귀속 불가(R4 실측)라 idle VM 오탐을 피할 수 없다.
+    # 해당 처방은 robot-setup.md의 journalctl `Discovered` 검증 절이 담당.
+
+    def run(self, cfg: Config) -> CheckResult:
+        if not cfg.robot.host:
+            return CheckResult(self.name, "SKIP", "robot not configured (robot.host: null)")
+        ep = bridge.robot_endpoint(cfg)
+        if not bridge.robot_reachable(cfg):
+            return CheckResult(
+                self.name,
+                "FAIL",
+                f"{ep} unreachable",
+                "robot powered on? firewall allows 7447/tcp? setup guide: docs/robot-setup.md",
+            )
+        cmdline = bridge.running_cmdline()
+        if cmdline is None:
+            return CheckResult(self.name, "WARN", f"{ep} reachable but mac bridge not running", "rosmac up")
+        if ep not in cmdline:
+            return CheckResult(
+                self.name,
+                "WARN",
+                f"{ep} reachable but running bridge has no robot endpoint (config drift)",
+                "rosmac down --keep-vm && rosmac up",
+            )
+        log = bridge.LOG_PATH.read_text() if bridge.LOG_PATH.exists() else ""
+        sessions = count_bridge_sessions(log)
+        expected = 1 + (1 if lima.state(cfg.vm.name) is lima.VmState.RUNNING else 0)
+        if sessions < expected:
+            return CheckResult(
+                self.name,
+                "WARN",
+                f"{ep} TCP reachable but only {sessions} zenoh bridge session(s) since mac "
+                f"bridge start (expected ≥{expected}) — robot bridge handshake missing?",
+                f"on the robot: journalctl -u zenoh-bridge-ros2dds -n 50; "
+                f"bridge version should be {cfg.bridge.version}; see docs/robot-setup.md",
+            )
+        return CheckResult(self.name, "PASS", f"{ep} reachable, {sessions} bridge session(s)")
+
+
 CHECKS: list[Check] = [
     _C1Lima(),
     _C2Vm(),
@@ -308,6 +358,7 @@ CHECKS: list[Check] = [
     _C12DaemonResponsive(),
     _C13Executables(),
     _C14GraphPollution(),
+    _C16RobotLink(),  # C15는 E.10(config 드리프트)에 예약
 ]
 
 
