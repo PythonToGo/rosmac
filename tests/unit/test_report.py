@@ -61,3 +61,35 @@ def test_bundle_members_all_relative(
     assert all(m == root or m.startswith(f"{root}/") for m in members)
     assert not any(m.startswith("/") or ".." in m for m in members)
     assert f"{root}/doctor.json" in members and f"{root}/log/bridge.log" in members
+
+
+# ── 로봇 호스트 마스킹 (E.15-R4: 번들에 로봇 주소 평문 금지) ─────────────
+
+ROBOT_CFG = Config.model_validate({"robot": {"host": "10.0.0.5"}})
+
+
+def test_mask_host() -> None:
+    assert report.mask_host("connect tcp/10.0.0.5:7447 ok", "10.0.0.5") == (
+        f"connect tcp/{report._HOST_MASK}:7447 ok"
+    )
+    assert report.mask_host("nothing here", "10.0.0.5") == "nothing here"
+    assert report.mask_host("tcp/10.0.0.5:7447", None) == "tcp/10.0.0.5:7447"  # 미설정 무변경
+
+
+def test_version_matrix_masks_robot(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(report, "_cmd", lambda cmd: "vX.Y")
+    out = report.version_matrix(ROBOT_CFG)
+    assert "robot: configured" in out and "10.0.0.5" not in out
+    assert "robot: not configured" in report.version_matrix(CFG)
+
+
+def test_collect_bundle_has_no_robot_host(
+    fake_rosmac_dir: Path, quiet_externals: None, tmp_path: Path
+) -> None:
+    (fake_rosmac_dir / "config.yaml").write_text("robot:\n  host: 10.0.0.5\n")
+    (fake_rosmac_dir / "log" / "bridge.log").write_text("endpoints [tcp/10.0.0.5:7447]\n")
+    work = tmp_path / "work2"
+    work.mkdir()
+    names = report.collect(ROBOT_CFG, work, rosmac_dir=fake_rosmac_dir)
+    for n in names:
+        assert "10.0.0.5" not in (work / n).read_text(), n

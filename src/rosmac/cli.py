@@ -312,7 +312,7 @@ def doctor(
         help="Apply safe automatic fixes first (daemon restart, orphan sweep, lima rules)",
     ),
 ) -> None:
-    """Run C1~C14 checks. With --fix, apply safe fixes first. Exit 1 if any check FAILs."""
+    """Run C1~C16 checks. With --fix, apply safe fixes first. Exit 1 if any check FAILs."""
     from rosmac import doctor as doctor_mod
 
     cfg = load()
@@ -344,7 +344,7 @@ def doctor(
         table.add_column("Status")
         table.add_column("Detail")
         table.add_column("Fix")
-        style = {"PASS": "green", "WARN": "yellow", "FAIL": "red"}
+        style = {"PASS": "green", "WARN": "yellow", "FAIL": "red", "SKIP": "dim"}
         for r in results:
             table.add_row(r.name, f"[{style[r.status]}]{r.status}[/]", r.detail, r.remedy or "")
         console.print(table)
