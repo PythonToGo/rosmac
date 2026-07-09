@@ -116,3 +116,23 @@ instead of the bridge link.
 | Mac↔VM topics suddenly stop flowing | lima UDP forwarding hijacking DDS ports (KI-27) or bridge discovery stall (KI-28) | check publishers with `rosmac ps` → `lsof -nP -iUDP \| grep limactl` (KI-27) → restart the bridges |
 
 Full pitfall DB: [docs/plan/known-issues.md](plan/known-issues.md)
+
+## 4. Connecting a real robot (beta)
+
+The same single-TCP model extends to a robot on your LAN: one
+`zenoh-bridge-ros2dds` listener on the robot, one extra endpoint on the Mac
+bridge. No new commands — configure and `rosmac up`:
+
+```yaml
+# ~/.rosmac/config.yaml
+robot:
+  host: 192.168.0.42   # robot's IP; null (default) disables the feature
+  port: 7447
+```
+
+`rosmac status` / `ps` show the link, `doctor` C16 diagnoses it. The robot
+being off is fine — the Mac reconnects automatically when it appears.
+Full setup (copy-paste install script, prerequisites, silent-failure
+checklist): [robot-setup.md](robot-setup.md). Trusted LAN only — the link is
+plaintext TCP. Status: **beta** — verified against a surrogate robot;
+real-hardware/WiFi validation pending (E.15 R5).

@@ -22,6 +22,16 @@
   Lima VM Ubuntu 22.04 arm64(MoveIt·Gazebo) ↔ Foxglove(ws 8765),
   양측 rmw_cyclonedds_cpp 고정 (D9)
 - 함정 DB: 실측 known issues 28건 (`docs/plan/known-issues.md`)
+- 진단·제보: `doctor --fix`(안전 항목 자동 수리), `report`(진단 번들 tar.gz,
+  `~/.rosmac` 밖 수집 금지) (Phase 5)
+- **실로봇 연결 (beta)**: `robot:` config 섹션 — 맥 브리지가 로봇 쪽
+  zenoh 브리지로 TCP 엔드포인트 추가 (D15, 신규 커맨드 없음). up 도달성·
+  드리프트 경고, status/ps robot link 표시, doctor C16 진단, report 로봇
+  호스트 마스킹, 설치 가이드 `docs/robot-setup.md`. 대리 로봇(제2 VM) 실측
+  검증 — 실기/WiFi 검증 전까지 "beta (surrogate-verified)" (E.15 R0~R4·R6)
+- 브리지 능력 매트릭스: topics/services/actions/parameters/rosbag 실측 후
+  README 기재 — parameters는 부분 지원(원시 서비스만, `ros2 param` CLI 불가),
+  VM bag 회수는 `limactl cp` (D16), 구조적 한계 3종 명시 (E.14)
 
 ### 실측 검증 (Phase 0/2/4 게이트)
 - 브리지 대역폭 10.3 MB/s (1MB@10Hz 무손실), MoveGroup 액션 왕복 3연속 SUCCEEDED

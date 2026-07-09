@@ -18,6 +18,8 @@ develop natively on the Mac (RoboStack: rclpy, colcon, ros2 CLI)
         ↕  zenoh bridge — a single TCP port (7447), no DDS multicast at the boundary
 run the heavy stack where it's Tier 1 (Lima VM, Ubuntu 22.04 arm64: MoveIt, Gazebo)
         →  visualize on the Mac (Foxglove, ws:8765)
+        ⇢  optional: a real robot on your LAN — one more TCP endpoint, same model
+           (beta, [docs/robot-setup.md](docs/robot-setup.md))
 ```
 
 What makes it more than an install script:
@@ -133,6 +135,7 @@ What works across the Mac ↔ VM zenoh bridge:
 | Actions | ✅ | MoveGroup plan+execute, 3/3 goals SUCCEEDED |
 | Parameters | ⚠️ partial | raw parameter services (`get/set_parameters`, …) work via `ros2 service call`; the `ros2 param` CLI does **not** — the bridge doesn't mirror remote nodes into the node graph, so `ros2 node list` won't show VM nodes |
 | rosbag2 | ✅ | record on Mac of VM topics (no loss), record in VM, play from either side reaches the other. Retrieve VM bags with `limactl cp -r rosmac:/path ~/dest` (D16) — see [docs/workflow.md](docs/workflow.md) |
+| Robot link (LAN) | 🧪 beta | `robot:` config → Mac bridge adds a TCP endpoint to a robot-side bridge (D15). Topics/services measured against a surrogate robot (2nd VM): 10 MB/s @ 10 Hz no drops, service RTT < 1 ms, auto-reconnect on robot restart. **Surrogate-verified** — real-hardware/WiFi numbers pending ([E.15 R5](docs/plan/e15-real-robot.md)). Setup: [docs/robot-setup.md](docs/robot-setup.md). **Trusted LAN only** — plaintext TCP, no auth/TLS |
 
 Structural limits (by design, not bugs):
 
