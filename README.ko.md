@@ -23,7 +23,7 @@ rosmac은 문제와 싸우는 대신 문제를 분할한다:
 
 설치 스크립트 이상인 이유:
 
-- **`rosmac doctor`** — 알려진 고장 모드 15항 점검, `--fix`로 안전한 항목 자동 수리
+- **`rosmac doctor`** — 알려진 고장 모드 16항 점검, `--fix`로 안전한 항목 자동 수리
   (hung ros2 데몬, 고아 브리지, 깨진 lima 포트 규칙). **실측 함정 29개 DB** 위에서
   만들어졌다.
 - **`rosmac deps`** — 워크스페이스 `package.xml` 의존성을 RoboStack conda 패키지로
@@ -58,7 +58,7 @@ export PATH="$PWD/.venv/bin:$PATH"
 
 rosmac init      # conda env + 브리지 바이너리 + VM 프로비저닝 (전 단계 멱등)
 rosmac up        # VM + 양측 zenoh 브리지 기동
-rosmac doctor    # 15항 진단 — C8이 토픽 왕복까지 자가 검증
+rosmac doctor    # 16항 진단 — C8이 토픽 왕복까지 자가 검증
 ```
 
 동작 확인:
@@ -94,7 +94,7 @@ rosmac push ~/my_ws --build     # 맥에서 안 빌드되는 패키지(libfranka
 |---|---|
 | `rosmac init` | 의존성/conda env/브리지/VM 준비 (멱등, 재실행 시 스킵) |
 | `rosmac up` / `down` / `status` | 스택 기동/정지/상태 (`--keep-vm`, `--viz`) |
-| `rosmac doctor` | 15항 진단 + 처방 (`--json`, `--fix` 안전 항목 자동 수리) |
+| `rosmac doctor` | 16항 진단 + 처방 (`--json`, `--fix` 안전 항목 자동 수리) |
 | `rosmac shell` | ROS env 주입 서브셸 (`--vm`, `-c`) — colcon 기본값 자동 주입 |
 | `rosmac deps <ws>` | package.xml 의존성 점검·설치 (`--install`, `--json`) |
 | `rosmac ps` | 맥+VM ROS 프로세스·핵심 토픽 발행자 관찰 (`--json`) |

@@ -1,4 +1,4 @@
-"""rosmac doctor — C1~C16 진단. 새 체크는 CHECKS에 추가만 하면 된다."""
+"""rosmac doctor — C1~C17 진단. 새 체크는 CHECKS에 추가만 하면 된다."""
 
 import os
 import re
@@ -169,7 +169,13 @@ class _C8RoundTrip:
                     note = " (attempt 2 — daemon was cold)" if attempt == 2 else ""
                     return CheckResult(self.name, "PASS", f"{topic} round-trip received{note}")
                 last = f"receive failed (output: {out[:80]!r})"
-            return CheckResult(self.name, "FAIL", last, f"check bridge log: {bridge.LOG_PATH}")
+            return CheckResult(
+                self.name,
+                "FAIL",
+                last,
+                f"check bridge log: {bridge.LOG_PATH}. If discovery collapsed (KI-28): "
+                "check C17, kill stale ros2 CLI procs + `ros2 daemon stop`, retry",
+            )
         finally:
             if pub is not None:
                 pub.terminate()
@@ -320,7 +326,9 @@ class _C16RobotLink:
             )
         cmdline = bridge.running_cmdline()
         if cmdline is None:
-            return CheckResult(self.name, "WARN", f"{ep} reachable but mac bridge not running", "rosmac up")
+            return CheckResult(
+                self.name, "WARN", f"{ep} reachable but mac bridge not running", "rosmac up"
+            )
         if ep not in cmdline:
             return CheckResult(
                 self.name,
@@ -343,6 +351,69 @@ class _C16RobotLink:
         return CheckResult(self.name, "PASS", f"{ep} reachable, {sessions} bridge session(s)")
 
 
+# ── C17: 외부 lima VM UDP 하이재커 (KI-28 4차 원인 — E.16) ─────────────────
+
+_DDS_UDP_RANGE = (7400, 7440)
+
+
+def parse_udp_hijackers(lsof_text: str) -> list[tuple[str, int, int]]:
+    """`lsof -nP -iUDP` 출력에서 127.0.0.1 **특정주소**로 DDS 포트 대역에 바인드한
+    프로세스를 (command, pid, port)로 추린다.
+
+    KI-28 실측 근거: DDS 참가자는 와일드카드(`*:74xx`)로 바인드하므로, 특정주소
+    바인드는 전부 이물질이다 — XNU가 특정주소 소켓에 유니캐스트를 먼저 배달해
+    디스커버리를 조용히 잠식한다(3차 ⑪ bind 매트릭스, 4차 원인 확정).
+    """
+    found = []
+    for line in lsof_text.splitlines():
+        m = re.search(r"UDP 127\.0\.0\.1:(\d+)$", line.strip())
+        if not m:
+            continue
+        port = int(m.group(1))
+        if not _DDS_UDP_RANGE[0] <= port <= _DDS_UDP_RANGE[1]:
+            continue
+        parts = line.split()
+        try:
+            found.append((parts[0], int(parts[1]), port))
+        except (IndexError, ValueError):
+            continue
+    return found
+
+
+class _C17LimaUdpHijacker:
+    name = "C17 lima UDP hijacker"
+
+    # --fix 비대상: 남의 VM 설정(lima.yaml)을 임의 수정하지 않는다 — 처방 안내만.
+    # rosmac 자체 VM은 규칙 내장(KI-27) + _fix_lima_udp_rules가 보정하므로 여기 안 걸린다.
+
+    def run(self, cfg: Config) -> CheckResult:
+        try:
+            p = subprocess.run(["lsof", "-nP", "-iUDP"], capture_output=True, text=True, timeout=15)
+        except (OSError, subprocess.TimeoutExpired) as e:
+            return CheckResult(self.name, "WARN", f"lsof failed — cannot determine: {e}"[:120])
+        hijackers = parse_udp_hijackers(p.stdout)
+        if not hijackers:
+            return CheckResult(
+                self.name, "PASS", "no specific-address binds on 127.0.0.1:7400-7440"
+            )
+        desc = ", ".join(f"{c}[{pid}]:{port}" for c, pid, port in hijackers[:5])
+        if any("limactl" in c for c, _, _ in hijackers):
+            return CheckResult(
+                self.name,
+                "FAIL",
+                f"lima VM without UDP ignore rules is capturing DDS discovery (KI-28): {desc}",
+                "add UDP ignore rules to that VM's ~/.lima/<name>/lima.yaml and restart it "
+                "(limactl stop <name> && limactl start <name>) — see known-issues KI-28. "
+                "Then clean residue: kill stale ros2 CLI procs + `ros2 daemon stop`, re-run doctor C8",
+            )
+        return CheckResult(
+            self.name,
+            "WARN",
+            f"non-DDS specific-address bind on DDS ports: {desc}",
+            "if Mac↔VM discovery flaps, investigate this process (KI-28 mechanism)",
+        )
+
+
 CHECKS: list[Check] = [
     _C1Lima(),
     _C2Vm(),
@@ -359,6 +430,7 @@ CHECKS: list[Check] = [
     _C13Executables(),
     _C14GraphPollution(),
     _C16RobotLink(),  # C15는 E.10(config 드리프트)에 예약
+    _C17LimaUdpHijacker(),
 ]
 
 

@@ -338,7 +338,8 @@
   UDP ignore 규칙 적용(`doctor.ensure_udp_ignore_rules`) 후 VM 재시작(또는 정지)
   ③ 하이잭 구간에 생긴 hang CLI 프로세스 kill + `ros2 daemon stop` ④ doctor C8 확인.
   rosmac 자체 VM은 KI-27 수정으로 안전 — 위험은 **규칙 없는 외부/구 lima VM**.
-  제품 대응(외부 하이재커 감지 doctor 체크)은 E.16
+  제품 대응 완료(E.16, 2026-07-09): **doctor C17**이 ①을 자동화 — limactl 특정주소 바인드
+  FAIL + 위 처방 안내(--fix 비대상: 외부 VM 설정은 임의 수정하지 않음). C8 처방 문구에 ③ 반영
 - **영향**: 브리지 경유 기능(sim 헬스체크, 맥↔VM 토픽, Foxglove의 맥 노드 데이터)
   간헐 마비. VM 내부 작업·맥 로컬 빌드·`rosmac push`는 무영향
 

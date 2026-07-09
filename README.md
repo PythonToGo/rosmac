@@ -24,7 +24,7 @@ run the heavy stack where it's Tier 1 (Lima VM, Ubuntu 22.04 arm64: MoveIt, Gaze
 
 What makes it more than an install script:
 
-- **`rosmac doctor`** — 15 checks for known failure modes, `--fix` auto-repairs the safe ones
+- **`rosmac doctor`** — 16 checks for known failure modes, `--fix` auto-repairs the safe ones
   (hung ros2 daemon, orphan bridges, broken lima port rules). Built from a database of
   **29 field-measured macOS/ROS pitfalls**, not a wiki of hope.
 - **`rosmac deps`** — maps your workspace's `package.xml` dependencies to RoboStack conda
@@ -60,7 +60,7 @@ export PATH="$PWD/.venv/bin:$PATH"
 
 rosmac init      # conda env + bridge binary + VM provisioning (idempotent)
 rosmac up        # start VM + both zenoh bridges
-rosmac doctor    # 15 checks — C8 self-verifies a full topic round-trip
+rosmac doctor    # 16 checks — C8 self-verifies a full topic round-trip
 ```
 
 Smoke test:
@@ -96,7 +96,7 @@ rosmac push ~/my_ws --build     # Linux-only packages (libfranka, …) build in 
 |---|---|
 | `rosmac init` | deps / conda env / bridge / VM provisioning (idempotent, skips existing) |
 | `rosmac up` / `down` / `status` | start/stop/inspect the stack (`--keep-vm`, `--viz`) |
-| `rosmac doctor` | 15 checks + remedies (`--json`, `--fix` auto-repairs safe items) |
+| `rosmac doctor` | 16 checks + remedies (`--json`, `--fix` auto-repairs safe items) |
 | `rosmac shell` | subshell with the ROS env injected (`--vm`, `-c`) — colcon defaults included |
 | `rosmac deps <ws>` | check/install `package.xml` dependencies (`--install`, `--json`) |
 | `rosmac ps` | Mac+VM ROS processes & core-topic publishers (`--json`) |
