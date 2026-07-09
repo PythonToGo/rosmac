@@ -62,3 +62,14 @@ def test_find_orphan_bridges() -> None:
     assert [o.pid for o in orphans] == [600]
     # pidfile이 없으면(브리지 정상 종료 후 잔재) 둘 다 고아
     assert [o.pid for o in psview.find_orphan_bridges(procs, None)] == [100, 600]
+
+
+def test_robot_link_status_drift() -> None:
+    # E.15-R3: 브리지가 robot 설정 전에 떴으면 엔드포인트 누락 = 드리프트
+    ep = "tcp/192.168.0.10:7447"
+    ok = psview.robot_link_status(ep, f"bridge -e tcp/127.0.0.1:7447 -e {ep}", True)
+    assert ok.in_bridge_args is True and ok.reachable is True
+    drift = psview.robot_link_status(ep, "bridge -e tcp/127.0.0.1:7447", True)
+    assert drift.in_bridge_args is False
+    # 브리지 자체가 안 떠 있으면 판정 불가 (None)
+    assert psview.robot_link_status(ep, None, False).in_bridge_args is None

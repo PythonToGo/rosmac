@@ -47,9 +47,18 @@ class TopicPublishers(BaseModel):
     warning: str | None = None
 
 
+class RobotLink(BaseModel):
+    # D15 (E.15-R3): 로봇 유래 발행자는 zenoh 경유라 맥 그래프에서 구분 불가 —
+    # 대신 링크 자체(설정·도달성·브리지 인자 반영 여부)를 관찰한다.
+    endpoint: str  # tcp/<host>:<port>
+    reachable: bool
+    in_bridge_args: bool | None = None  # None = 맥 브리지가 안 떠 있어 판정 불가
+
+
 class PsReport(BaseModel):
     daemon: DaemonStatus = DaemonStatus()
     bridge_pid: int | None = None  # pidfile과 일치하는 살아있는 브리지
+    robot_link: RobotLink | None = None  # None = robot 미설정 (기존 사용자 무영향)
     orphan_bridges: list[ProcInfo] = []
     mac_nodes: list[ProcInfo] = []
     vm_state: str = "unknown"
@@ -128,6 +137,12 @@ def find_orphan_bridges(procs: list[ProcInfo], pidfile_pid: int | None) -> list[
     return [p for p in procs if "zenoh-bridge-ros2dds" in p.command and p.pid != pidfile_pid]
 
 
+def robot_link_status(endpoint: str, bridge_cmdline: str | None, reachable: bool) -> RobotLink:
+    """로봇 링크 판정. 브리지가 robot 설정 전에 떴으면 in_bridge_args=False (드리프트)."""
+    in_args = None if bridge_cmdline is None else endpoint in bridge_cmdline
+    return RobotLink(endpoint=endpoint, reachable=reachable, in_bridge_args=in_args)
+
+
 # ── 수집 (외부 호출 — 전부 타임아웃) ──────────────────────────────────────
 
 
@@ -194,6 +209,19 @@ def collect(cfg: Config) -> PsReport:
             f"{len(r.orphan_bridges)} orphan zenoh-bridge(s) (KI-20) — "
             f"clean up with `rosmac down --keep-vm && rosmac up`"
         )
+
+    # 로봇 링크 (D15) — 설정된 경우에만; 로봇 유래 발행자는 그래프에서 구분 불가하므로
+    # 링크 상태(도달성 + 브리지 인자 드리프트)를 대신 관찰한다.
+    if cfg.robot.host:
+        cmdline = next((p.command for p in procs if p.pid == pidfile_pid), None)
+        r.robot_link = robot_link_status(
+            bridge.robot_endpoint(cfg), cmdline, bridge.robot_reachable(cfg)
+        )
+        if r.robot_link.in_bridge_args is False:
+            r.warnings.append(
+                f"running bridge has no robot endpoint {r.robot_link.endpoint} — "
+                "restart with `rosmac down --keep-vm && rosmac up`"
+            )
 
     daemon_procs = [p for p in procs if "ros2-daemon" in p.command]
     r.mac_nodes = [

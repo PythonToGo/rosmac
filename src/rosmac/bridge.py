@@ -84,6 +84,17 @@ def robot_endpoint(cfg: Config) -> str:
     return f"tcp/{cfg.robot.host}:{cfg.robot.port}"
 
 
+def robot_reachable(cfg: Config, timeout: float = 3.0) -> bool:
+    """로봇 브리지 포트 TCP 도달성 (zenoh 세션 검증 아님 — C16에서 확장 예정)."""
+    import socket
+
+    try:
+        with socket.create_connection((cfg.robot.host, cfg.robot.port), timeout=timeout):
+            return True
+    except OSError:
+        return False
+
+
 def is_running() -> bool:
     if not PID_PATH.exists():
         return False
