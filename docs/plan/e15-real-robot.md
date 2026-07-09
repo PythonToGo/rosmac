@@ -41,6 +41,7 @@
 | 4 | WiFi 대역폭/지연 — 카메라 등 대용량 토픽 | R1에서 ddsperf/이미지 토픽 실측 → 능력 매트릭스에 수치 기재. zenoh `--allow/--deny` 토픽 필터를 config로 노출(R2)해 불필요 토픽 차단 |
 | 5 | 보안 — LAN 평문 TCP | v1은 "신뢰 LAN 전용" 명시(README). TLS(zenoh 지원)는 백로그 |
 | 6 | 로봇 프로비저닝 범위 크리프 | **비목표 선언**: rosmac은 로봇에 아무것도 설치하지 않는다. 설치는 복붙 가능한 가이드 문서(1스크립트)로 제공, 실행은 사용자 |
+| 7 | ROS_LOCALHOST_ONLY 불일치 → 무증상 단절 (R3 실측 발견: 노드=1, 브리지=미설정이면 로컬 디스커버리 자체가 안 됨) | 가이드 사전조건 + journalctl `Discovered` 확인 절차 + 2.1절 복붙 처방(drop-in override). doctor C16 WARN 처방 문구에 domain_id와 함께 포함(R4) |
 
 ## 단계별 계획
 
@@ -104,26 +105,36 @@
   status "reachable", 드리프트 경고·unreachable WARN(exit 0) 실측
   [x] `host: tcp/bad:host` → exit 2 실측
 
-### R3 — 관찰 통합: ps + 로봇 설치 가이드 (~45분)
+### R3 — 관찰 통합: ps + 로봇 설치 가이드 — ✅ 완료 (2026-07-09)
 
-- **작업**:
-  1. `rosmac ps`: 로봇 유래 발행자가 구분돼 보이는지 확인 — zenoh 경유라 맥
-     그래프에는 동일하게 보일 것이므로, "robot link" 섹션(세션 상태 + 설정)을
-     추가하는 수준으로 시작.
-  2. `docs/robot-setup.md` (영어, 한국어 병행): 로봇 쪽 1스크립트 가이드 —
-     zenoh-bridge-ros2dds 다운로드(아키텍처별 URL, sha 확인), systemd 유닛
-     예시(VM 프로비저닝의 유닛 템플릿 재사용), domain_id/배포판 일치 체크리스트,
-     방화벽 7447. **rosmac이 실행하지 않음** — 복붙용.
-- **AC**: [ ] 가이드 스크립트를 대리 로봇에 그대로 복붙해 개통 재현
-  [ ] ps에 robot link 상태 표시
-- **실패 시 대응**: ps 통합이 psview 구조와 안 맞으면 status 확장으로 축소.
+- **작업** (완료):
+  1. `rosmac ps`: 로봇 유래 발행자는 예상대로 그래프에서 구분 불가 → "Robot link"
+     섹션 신설 — 엔드포인트 + TCP 도달성 + **브리지 인자 반영 여부**(드리프트 시
+     경고, 순수 함수 `robot_link_status`로 분리해 유닛 테스트). robot 미설정이면
+     섹션 자체 생략. TCP 프로브는 `bridge.robot_reachable()`로 이동(cli/psview 공용).
+  2. `docs/robot-setup.md` + `robot-setup.ko.md`: 아키텍처별(aarch64/x86_64)
+     다운로드+sha256 검증+systemd 유닛 1스크립트, 사전조건 체크리스트(cyclonedds
+     RMW 필수·domain_id·**ROS_LOCALHOST_ONLY 일치**·방화벽·신뢰 LAN), 운영 노트
+     (SIGTERM 재시작·전역 필터·버전 호환·대역 참고치). x86_64 zip sha256 신규 실측
+     (`91aa0d…`).
+- **AC**: [x] 가이드 스크립트를 마커로 **그대로 추출**해 대리 로봇에서 실행 →
+  sha256 OK, systemd active, 7447 LISTEN. 이때 **리스크 7 실측 발견**(talker=
+  localhost-only, 브리지 유닛=미설정 → 디스커버리 무증상 실패, echo 무수신) →
+  가이드에 2.1절(drop-in override) 추가 후 그 블록도 그대로 실행 → talker
+  Discovered → 맥에서 `ros2 topic echo /robot_chatter --once` 수신(`Hello World:
+  1574`). 맥 브리지는 로봇 브리지 교체(수동→systemd)에 무개입 자동 재접속.
+  [x] ps "Robot link" 섹션 실측: `tcp/127.0.0.1:7457  reachable ✓  in bridge
+  args ✓`. 72 tests green(+1), ruff/mypy clean.
+- **메모**: 가이드 검증 절차에 journalctl `Discovered` 확인을 추가한 것이 리스크
+  7의 1차 방어선. R4의 C16 WARN 처방 문구에 domain_id + localhost-only 둘 다 포함할 것.
 
 ### R4 — doctor C16 + report 반영 (~45분)
 
 - **작업**:
   1. C16RobotLink: robot 미설정 → SKIP / TCP 도달 불가 → FAIL(처방: 로봇
      전원·방화벽·가이드 링크) / 세션 수립인데 토픽 0 → WARN(처방: domain_id
-     불일치 — 리스크 2) / 정상 → PASS. R1-5 고장 모드 실측이 판정 근거.
+     불일치 — 리스크 2, 또는 ROS_LOCALHOST_ONLY 불일치 — 리스크 7, 가이드
+     2.1절) / 정상 → PASS. R1-5 고장 모드 실측이 판정 근거.
   2. `rosmac report`: doctor.json에 C16 자동 포함(구조상 무료) + versions.txt에
      robot 설정 유무(호스트는 **마스킹** — 프라이버시 원칙 유지).
 - **AC**: [ ] 4상태 각각 실측(대리 로봇 켜고/끄고/domain 틀리게) [ ] report

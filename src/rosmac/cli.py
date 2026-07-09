@@ -222,17 +222,6 @@ def viz(
     _start_viz(cfg)
 
 
-def _robot_reachable(cfg: Config, timeout: float = 3.0) -> bool:
-    """로봇 브리지 포트 TCP 도달성 (zenoh 세션 검증 아님 — C16에서 확장 예정)."""
-    import socket
-
-    try:
-        with socket.create_connection((cfg.robot.host, cfg.robot.port), timeout=timeout):
-            return True
-    except OSError:
-        return False
-
-
 @app.command()
 def up(
     viz: bool = typer.Option(False, "--viz", help="Also connect Foxglove visualization"),
@@ -274,7 +263,7 @@ def up(
             )
 
     if cfg.robot.host:
-        if _robot_reachable(cfg):
+        if bridge.robot_reachable(cfg):
             console.print(f"✓ robot endpoint reachable ({bridge.robot_endpoint(cfg)})")
         else:
             console.print(
@@ -510,6 +499,15 @@ def ps(
     else:
         console.print("  ROS processes: none")
 
+    if report.robot_link:  # robot 미설정이면 섹션 자체를 생략 (D15)
+        rl = report.robot_link
+        reach = "reachable ✓" if rl.reachable else "[yellow]unreachable (robot off? firewall?)[/]"
+        in_args = {True: "in bridge args ✓", False: "[yellow]NOT in bridge args[/]", None: ""}[
+            rl.in_bridge_args
+        ]
+        console.print("[bold]── Robot link ──[/]")
+        console.print(f"  {rl.endpoint}   {reach}   {in_args}".rstrip())
+
     console.print(f"[bold]── VM ({cfg.vm.name}: {report.vm_state}) ──[/]")
     if report.vm_units:
         units = "   ".join(f"{k} {v}" for k, v in report.vm_units.items())
@@ -674,7 +672,7 @@ def status() -> None:
     table.add_row(f"Port {cfg.bridge.port}", port_ok)
 
     if cfg.robot.host:
-        robot_state = "reachable" if _robot_reachable(cfg) else "unreachable"
+        robot_state = "reachable" if bridge.robot_reachable(cfg) else "unreachable"
         table.add_row(f"Robot ({bridge.robot_endpoint(cfg)})", robot_state)
     else:
         table.add_row("Robot", "not configured")
