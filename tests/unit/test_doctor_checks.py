@@ -139,9 +139,7 @@ def test_c16_drift_is_warn(monkeypatch: pytest.MonkeyPatch) -> None:
     assert r.remedy is not None and "down --keep-vm" in r.remedy
 
 
-def test_c16_session_missing_is_warn(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
+def test_c16_session_missing_is_warn(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setattr(doctor.bridge, "robot_reachable", lambda cfg, timeout=3.0: True)
     monkeypatch.setattr(doctor.bridge, "running_cmdline", lambda: f"bridge -e {_EP}")
     log = tmp_path / "bridge.log"
@@ -160,4 +158,48 @@ def test_c16_established_is_pass(monkeypatch: pytest.MonkeyPatch, tmp_path: Path
     monkeypatch.setattr(doctor.bridge, "LOG_PATH", log)
     monkeypatch.setattr(doctor.lima, "state", lambda name: doctor.lima.VmState.RUNNING)
     r = doctor._C16RobotLink().run(ROBOT_CFG)
+    assert r.status == "PASS"
+
+
+# ── C17 lima UDP 하이재커 (E.16 / KI-28) ─────────────────────────────────
+
+LSOF_SAMPLE = """\
+COMMAND   PID user   FD  TYPE DEVICE SIZE/OFF NODE NAME
+limactl 40174 usr   14u  IPv4 0x0        0t0  UDP 127.0.0.1:7410
+limactl 40174 usr   15u  IPv4 0x0        0t0  UDP 127.0.0.1:7412
+python3  1234 usr   10u  IPv4 0x0        0t0  UDP *:7400
+mdns      100 usr    5u  IPv4 0x0        0t0  UDP 127.0.0.1:5353
+rogue     555 usr    3u  IPv4 0x0        0t0  UDP 127.0.0.1:7415
+"""
+
+
+def test_parse_udp_hijackers_specific_binds_only() -> None:
+    got = doctor.parse_udp_hijackers(LSOF_SAMPLE)
+    # 와일드카드(*:7400)와 대역 밖(5353)은 제외, 특정주소 74xx만
+    assert got == [("limactl", 40174, 7410), ("limactl", 40174, 7412), ("rogue", 555, 7415)]
+
+
+def _mock_lsof(monkeypatch: pytest.MonkeyPatch, text: str) -> None:
+    class P:
+        stdout = text
+
+    monkeypatch.setattr(doctor.subprocess, "run", lambda *a, **k: P())
+
+
+def test_c17_limactl_bind_is_fail(monkeypatch: pytest.MonkeyPatch) -> None:
+    _mock_lsof(monkeypatch, LSOF_SAMPLE)
+    r = doctor._C17LimaUdpHijacker().run(CFG)
+    assert r.status == "FAIL" and "KI-28" in r.detail
+    assert r.remedy is not None and "lima.yaml" in r.remedy
+
+
+def test_c17_unknown_bind_is_warn(monkeypatch: pytest.MonkeyPatch) -> None:
+    _mock_lsof(monkeypatch, "rogue 555 u 3u IPv4 0x0 0t0 UDP 127.0.0.1:7415\n")
+    r = doctor._C17LimaUdpHijacker().run(CFG)
+    assert r.status == "WARN"
+
+
+def test_c17_clean_is_pass(monkeypatch: pytest.MonkeyPatch) -> None:
+    _mock_lsof(monkeypatch, "python3 1 u 10u IPv4 0x0 0t0 UDP *:7400\n")
+    r = doctor._C17LimaUdpHijacker().run(CFG)
     assert r.status == "PASS"

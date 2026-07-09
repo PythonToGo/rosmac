@@ -312,7 +312,7 @@ def doctor(
         help="Apply safe automatic fixes first (daemon restart, orphan sweep, lima rules)",
     ),
 ) -> None:
-    """Run C1~C16 checks. With --fix, apply safe fixes first. Exit 1 if any check FAILs."""
+    """Run C1~C17 checks. With --fix, apply safe fixes first. Exit 1 if any check FAILs."""
     from rosmac import doctor as doctor_mod
 
     cfg = load()
