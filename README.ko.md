@@ -75,7 +75,7 @@ rosmac sim list / status / stop / --attach
 rosmac viz --layout panda   # Foxglove 연결 (+레이아웃 안내)
 ```
 
-맥 네이티브 개발 루프와 예제(pick_demo)는 [docs/workflow.md](docs/workflow.md) 참조.
+맥 네이티브 개발 루프와 예제(pick_demo)는 [docs/workflow.ko.md](docs/workflow.ko.md) 참조.
 
 ## 내 프로젝트 가져오기
 
