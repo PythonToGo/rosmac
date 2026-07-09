@@ -49,8 +49,12 @@
 - ✅ **E2E-in-CI 불가 확정** (e2e-probe run 28972640343): 러너에 `kern.hv_support`
   oid 부재, `limactl start` 부팅 중 fatal(1분 내 종료) — nested virtualization
   미지원. → `tests/e2e/README.md` 신설: 로컬 전용 절차 + CI가 대신 커버하는 범위
-- [ ] ci red 확인 (의도적 lint 오류 PR) — `ci-red-check` 브랜치 준비됨, push 승인 대기
-- [ ] simulate_failure → 이슈 자동 생성 확인 — 테스트 이슈 1개 생성되므로 승인 대기
+- ✅ ci **red** 확인 (2026-07-09, 사용자 승인 하 실행): 드래프트 PR #1의 의도적
+  F401 → run 28993881564 **failure**, Lint 스텝에서 정확히 감지. PR 닫고 브랜치 삭제
+- ✅ simulate_failure → **이슈 #2 자동 생성** 확인 (run 28993881220 failure →
+  "weekly drift check failed (2026-07-09)"). 검증 후 이슈 닫음
+
+**→ P5.4 AC 전체 충족 (2026-07-09). Phase 5 잔여: 5.5 패키징·배포, 5.6 프레시 머신 게이트**
 
 ## 부수 작업 — 상품성 점검 (2026-07-08, 사용자 요청, Run F 전)
 
