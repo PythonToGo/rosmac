@@ -155,18 +155,25 @@
   [ ] 사용자 프리셋 디렉토리의 launch 파일이 VM 전송됨 실측
 - **가치×난이도**: 상×중 (1~2일) — Phase 6 전 권장 (기여자가 복제할 패턴 확정)
 
-## E.14 브리지 능력 매트릭스 + rosbag 스토리
+## E.14 브리지 능력 매트릭스 + rosbag 스토리 — ✅ 완료 (2026-07-09)
 
 - **배경**: topics/actions는 실측 선언돼 있으나 **parameters·rosbag은 동작 여부
   기술 자체가 없음** (리포 전체 rosbag 언급 0). "VM에서 bag 녹화 → 맥에서 분석"
   루프의 파일 회수 경로도 없음 (push_tree는 단방향).
-- **작업**: ① 실측: 브리지 경유 parameters/rosbag record·play 각각 동작·대역
-  측정 → README 능력 매트릭스 표 ② 필요 시 `rosmac pull` (VM→맥 파일 회수)
-  검토(D 결정)
-- **AC**: [ ] 능력 매트릭스에 topics/services/actions/parameters/rosbag 5행
-  실측 근거 [ ] bag 회수 절차 문서화(도구든 안내든)
-  [ ] 구조적 한계 3종 명시 — 브리지 홉 지연(고주파 루프는 VM 내 완결),
-  KI-28(우회=유니캐스트, 근치 불가), VM 헤드리스(D2, Foxglove가 답)
+- **실측 결과** (2026-07-09, VM talker 대상):
+  - **parameters = ⚠️ 부분**: 파라미터 서비스 6종 전부 브리지 라우팅 —
+    `ros2 service call`로 get(값 수신)·set(successful=True) 실측. 단
+    `ros2 param` CLI는 "Node not found" — 브리지가 원격 노드를 노드 그래프에
+    미러링하지 않음(`ros2 node list`에 VM 노드 부재). 매트릭스에 구분 명기.
+  - **rosbag2 = ✅ 전 방향**: 맥에서 VM 토픽 녹화 20/20 무손실(20s@1Hz, 단
+    신규 토픽 첫 구독은 라우트 생성 수 초 — 첫 8s 실행이 1msg였던 원인),
+    VM 내 녹화 9msg, VM bag 재생→맥 수신, 맥 bag 재생→VM 수신.
+  - **회수 = `limactl cp -r rosmac:/tmp/vmbag ~/dest` 실측 동작 → D16**
+    (`rosmac pull` 도구 보류, PLAN.md 결정 로그 기재).
+- **AC**: [x] README(en/ko) "브리지 능력 매트릭스" 5행 + 실측 근거
+  [x] bag 회수 절차 workflow.md(en/ko) rosbag 절 + D16
+  [x] 구조적 한계 3종 README 명시 — 브리지 홉(고주파 루프 VM 완결),
+  KI-28(타 lima VM 잠식, KI 링크), VM 헤드리스(D2, Foxglove가 답)
 - **가치×난이도**: 중×중
 
 ## E.15 실로봇 연결 — zenoh 아키텍처의 LAN 확장
