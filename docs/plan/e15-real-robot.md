@@ -17,7 +17,7 @@
   (연구실 공용 WiFi에서 DDS 폭풍)를 구조적으로 우회한다. 이건 리눅스 데스크톱
   사용자도 부러워하는 속성 — E.5-2(doctor 탈-맥 확장)와 시너지.
 
-## 목표 토폴로지 (R0에서 D15로 확정할 안)
+## 확정 토폴로지 (D15, R0에서 확정 2026-07-09)
 
 ```
 맥 (RoboStack, ROS_LOCALHOST_ONLY=1)
@@ -44,19 +44,18 @@
 
 ## 단계별 계획
 
-### R0 — 설계 확정 + D15 기록 (~30분, 코드 없음)
+### R0 — 설계 확정 + D15 기록 — ✅ 완료 (2026-07-09)
 
 - **작업**:
   1. 위 토폴로지·비목표(로봇 무설치, 동일 배포판, 신뢰 LAN)를 PLAN.md 결정
-     로그에 **D15**로 기록 (근거: 단일 TCP 경계 모델의 대칭 확장).
-  2. config 스키마 확정: `robot: {host: str|null = null, port: int = 7447,
+     로그에 **D15**로 기록 (근거: 단일 TCP 경계 모델의 대칭 확장). — 완료
+  2. config 스키마 **확정**: `robot: {host: str|null = null, port: int = 7447,
      allow: str|null = null, deny: str|null = null}` — host가 null이면 기능
      전체 무효(기존 사용자 무영향, E.7 핀 마이그레이션과 충돌 없음).
-  3. CLI 표면 확정: 신규 서브커맨드 없이 **기존 커맨드 확장**을 기본안으로 —
-     `rosmac up`이 robot.host 설정 시 엔드포인트 추가, `rosmac status`/`ps`/
-     `doctor`가 로봇 링크 표시. (별도 `rosmac robot …`은 과잉 — 상태가 늘 뿐)
-- **AC**: [ ] PLAN.md에 D15 행 [ ] 이 문서의 "확정" 표시 갱신
-- **실패 시 대응**: 없음(문서 작업). 스키마 이견은 사용자에게 1회 질문.
+  3. CLI 표면 **확정**: 신규 서브커맨드 없음 — `rosmac up`이 robot.host 설정 시
+     엔드포인트 추가, `rosmac status`/`ps`/`doctor`가 로봇 링크 표시.
+     (별도 `rosmac robot …`은 과잉 — 상태가 늘 뿐)
+- **AC**: [x] PLAN.md에 D15 행 [x] 이 문서의 "확정" 표시 갱신
 
 ### R1 — 스파이크: 대리 로봇 실측 (~1시간, `~/rosmac_spike/e15/`)
 
