@@ -22,7 +22,7 @@ run the heavy stack where it's Tier 1 (Lima VM, Ubuntu 22.04 arm64: MoveIt, Gaze
 
 What makes it more than an install script:
 
-- **`rosmac doctor`** — 14 checks for known failure modes, `--fix` auto-repairs the safe ones
+- **`rosmac doctor`** — 15 checks for known failure modes, `--fix` auto-repairs the safe ones
   (hung ros2 daemon, orphan bridges, broken lima port rules). Built from a database of
   **29 field-measured macOS/ROS pitfalls**, not a wiki of hope.
 - **`rosmac deps`** — maps your workspace's `package.xml` dependencies to RoboStack conda
@@ -58,7 +58,7 @@ export PATH="$PWD/.venv/bin:$PATH"
 
 rosmac init      # conda env + bridge binary + VM provisioning (idempotent)
 rosmac up        # start VM + both zenoh bridges
-rosmac doctor    # 14 checks — C8 self-verifies a full topic round-trip
+rosmac doctor    # 15 checks — C8 self-verifies a full topic round-trip
 ```
 
 Smoke test:
@@ -94,7 +94,7 @@ rosmac push ~/my_ws --build     # Linux-only packages (libfranka, …) build in 
 |---|---|
 | `rosmac init` | deps / conda env / bridge / VM provisioning (idempotent, skips existing) |
 | `rosmac up` / `down` / `status` | start/stop/inspect the stack (`--keep-vm`, `--viz`) |
-| `rosmac doctor` | 14 checks + remedies (`--json`, `--fix` auto-repairs safe items) |
+| `rosmac doctor` | 15 checks + remedies (`--json`, `--fix` auto-repairs safe items) |
 | `rosmac shell` | subshell with the ROS env injected (`--vm`, `-c`) — colcon defaults included |
 | `rosmac deps <ws>` | check/install `package.xml` dependencies (`--install`, `--json`) |
 | `rosmac ps` | Mac+VM ROS processes & core-topic publishers (`--json`) |
@@ -121,6 +121,29 @@ Errors are shown as a cause + fix panel; only unexpected errors show a traceback
 - MoveGroup action round-trip: plan+execute, 3 consecutive goals SUCCEEDED
 - Gazebo Fortress headless RTF: physics-only 1.00 / with camera (320×240 @ 15 Hz) 0.99
 - Camera stream: VM 14.4 fps → Mac 14.4 fps (lossless)
+
+## Bridge capability matrix (measured 2026-07)
+
+What works across the Mac ↔ VM zenoh bridge:
+
+| ROS 2 feature | Status | Measured evidence / notes |
+|---|---|---|
+| Topics | ✅ | pub/sub both directions; 10.3 MB/s @ 10 Hz no drops. First subscription to a new topic takes a few seconds (bridge route creation) |
+| Services | ✅ | requires the pinned CycloneDDS RMW — with Fast DDS, discovery looks fine but every call times out (KI-16; why rosmac pins the RMW) |
+| Actions | ✅ | MoveGroup plan+execute, 3/3 goals SUCCEEDED |
+| Parameters | ⚠️ partial | raw parameter services (`get/set_parameters`, …) work via `ros2 service call`; the `ros2 param` CLI does **not** — the bridge doesn't mirror remote nodes into the node graph, so `ros2 node list` won't show VM nodes |
+| rosbag2 | ✅ | record on Mac of VM topics (no loss), record in VM, play from either side reaches the other. Retrieve VM bags with `limactl cp -r rosmac:/path ~/dest` (D16) — see [docs/workflow.md](docs/workflow.md) |
+
+Structural limits (by design, not bugs):
+
+- **Every Mac↔VM message crosses one bridge hop.** Fine for dev, teleop and
+  visualization; high-rate closed control loops belong inside the VM (or on
+  the robot).
+- **macOS-local DDS discovery can be silently degraded by *other* lima VMs**
+  that lack UDP ignore rules (KI-28). rosmac's own VM ships the rules;
+  see [known-issues KI-28](docs/plan/known-issues.md) for the remedy.
+- **The VM is headless (D2)** — no RViz2/GUI inside; Foxglove on the Mac is
+  the visualization path (`rosmac viz`).
 
 ## Architecture & design decisions
 

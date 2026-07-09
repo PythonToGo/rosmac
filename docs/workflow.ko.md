@@ -70,6 +70,28 @@ source ~/rosmac-ws/my_ws/install/setup.bash && ros2 run …
 - 실행한 노드의 토픽은 zenoh 브리지를 타고 맥에서도 보인다.
 - 문제 파악은 언제나 `rosmac ps` — 맥+VM 프로세스와 핵심 토픽 발행자를 한 화면에.
 
+### 기록·재생 (rosbag2) — 2026-07 실측
+
+rosbag2는 브리지 너머 양방향 모두 동작한다:
+
+```bash
+# 맥에서 녹화 (브리지 넘어온 VM 토픽 포함)
+rosmac shell
+ros2 bag record -o mybag /chatter          # 20/20 msg 무손실 (실측)
+ros2 bag play mybag                        # 재생도 VM 구독자까지 도달
+
+# VM 안에서 녹화 (대용량 토픽은 이쪽 권장 — 브리지 홉 회피)
+rosmac shell --vm -c "ros2 bag record -o /tmp/vmbag /chatter"
+
+# VM 쪽 bag을 맥으로 회수 (D16: 전용 도구 없음 — lima 내장으로 충분)
+limactl cp -r rosmac:/tmp/vmbag ~/vmbag
+```
+
+알아둘 것 둘: 새 토픽의 **첫** 구독(`bag record` 포함)은 브리지가 라우트를
+만드는 몇 초가 걸린다 — 너무 짧게 끊지 말 것. 그리고 고주파/대용량 토픽은
+**VM 안에서** 녹화하고 bag만 회수하는 쪽이 브리지 링크가 아닌 실제 발행률을
+기록한다.
+
 ## 3. 흔한 함정 (막히면 `rosmac doctor` 먼저)
 
 | 증상 | 원인 | 도구 |

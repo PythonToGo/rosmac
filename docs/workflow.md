@@ -77,6 +77,29 @@ source ~/rosmac-ws/my_ws/install/setup.bash && ros2 run …
 - To see what is going on, always use `rosmac ps` — Mac+VM processes and key
   topic publishers on one screen.
 
+### Recording and replaying (rosbag2) — measured 2026-07
+
+rosbag2 works through the bridge in both directions:
+
+```bash
+# record on the Mac (bridged VM topics included)
+rosmac shell
+ros2 bag record -o mybag /chatter          # 20/20 msgs, no loss (measured)
+ros2 bag play mybag                        # replay reaches VM subscribers too
+
+# record inside the VM (heavy topics: prefer this — skips the bridge hop)
+rosmac shell --vm -c "ros2 bag record -o /tmp/vmbag /chatter"
+
+# retrieve a VM-side bag to the Mac (D16: no extra tool — lima has this built in)
+limactl cp -r rosmac:/tmp/vmbag ~/vmbag
+```
+
+Two things to know: the **first** subscription to a new topic (including
+`bag record`) takes a few seconds while the bridge creates the route — don't
+cut recordings that short. And for high-rate/large topics, record **inside
+the VM** and copy the bag out afterwards; that measures the true publish rate
+instead of the bridge link.
+
 ## 3. Common pitfalls (when stuck, run `rosmac doctor` first)
 
 | Symptom | Cause | Tool |
