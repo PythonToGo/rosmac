@@ -228,6 +228,19 @@ def up(
 ) -> None:
     """Start VM (if stopped) + start Mac bridge + connection smoke test."""
     cfg = load()
+    # E.7: pip 업그레이드로 핀이 바뀌었으면 up이 바이너리를 갱신 (구버전 조용히 동작 방지)
+    try:
+        if bridge.ensure_binary(cfg):
+            console.print(f"✓ mac bridge binary installed/updated (v{cfg.bridge.version})")
+            if bridge.is_running():
+                console.print(
+                    "[yellow]⚠ running bridge predates the update — "
+                    "restart with: rosmac down --keep-vm && rosmac up[/]"
+                )
+    except OSError as e:  # 오프라인 등 — 설치돼 있으면 기존 바이너리로 계속 (start가 부재를 처리)
+        console.print(
+            f"[yellow]⚠ bridge binary update check failed ({e}) — using installed binary[/]"
+        )
     vm_state = lima.state(cfg.vm.name)
     if vm_state is lima.VmState.ABSENT:
         raise RosmacError("VM not found", hint="rosmac init")
