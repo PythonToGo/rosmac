@@ -57,6 +57,17 @@
 3. **교육/팀 온보딩 모드** — "강의실 M-시리즈 30대를 15분 안에 동일 환경으로"
    + `rosmac report`로 조교 원격 트리아지. The Construct(€40/월)·Codespaces가
    못 하는 로컬 하드웨어 시나리오.
+4. **배포판 전환 스파이크 (Humble → Jazzy/Lyrical)** — 딥리서치 2026-07-10 근거:
+   Humble EOL 2027-05. 후보는 Jazzy(LTS, EOL 2029-05, Ubuntu 24.04) 또는
+   Lyrical Luth(LTS 2026-05 출시, ~2031, Ubuntu 26.04) — 전환 시점이 2027년에
+   가까울수록 Lyrical 직행이 유리. **경로는 존재**: RoboStack이 jazzy/kilted/
+   lyrical 채널을 osx-arm64 포함 운영(kilted 채널 821개 패키지 직접 계수,
+   MoveIt 2.14·Nav2 풀스택·cyclonedds 포함, 2026-07-10). **제약**: 배포판 혼합은
+   공식 미지원 + 실사고(Humble 구독자×Jazzy 발행자 → fastrtps OOM;
+   rmw_zenoh도 Humble↔Jazzy "not planned" 거절) → 맥·VM·로봇 **삼면 동시 전환**
+   필수, VM은 Ubuntu 24.04/26.04 재생성(E.9 `--recreate-vm` 연계). RoboStack
+   Jazzy의 RViz2 osx-arm64 크래시 사례(2025-02) 있으나 rosmac은 Foxglove
+   1급(D4)이라 노출 작음. **권장 시점: 2026 하반기~2027 초** (v0.1 공개 이후).
 
 ## E.6 LICENSE 저작권자 표기 확인 — ✅ 완료 (2026-07-08)
 
@@ -230,6 +241,21 @@
   `parse_udp_hijackers`(특정주소만, 와일드카드·대역 밖 제외 — 유닛 테스트 4종).
   limactl 외 특정 바인드는 WARN(확신 불가). --fix 비대상 유지(외부 VM 설정 불가침).
 - **가치×난이도**: 상×소 (신뢰 파괴형 고장의 유일 감지 수단)
+
+## E.17 Nav2 프리셋 — 이동로봇 내비게이션 지원
+
+- **배경 (딥리서치 2026-07-10)**: ROS 2 4대 프레임워크(Nav2/MoveIt/ros2_control/
+  micro-ROS) 중 rosmac은 이동로봇 내비게이션(Nav2)이 통째로 공백. MoveIt은 팔
+  전용 플랫폼(내비게이션 아님 — 메인테이너 명시, 3-0 검증)이라 대체 불가.
+  Nav2는 Humble에 정식 존재(apt) → **배포판 전환 없이 지금 추가 가능**,
+  기존 선언적 프리셋 패턴 복제라 신규 커맨드·D 결정 불필요.
+- **작업**: **상세 단계별 계획 [e17-nav2.md](e17-nav2.md)** — N0 시뮬 조합
+  결정(diffbot+lidar 1순위) → N1 VM 자가완결 스파이크(goal→SUCCEEDED, RSS 실측)
+  → N2 브리지 경계 실측(맥 goal·transient_local /map·Foxglove·ps 회귀) →
+  N3 프리셋 제품화(nav2-diffbot.yaml + health gate + E2E) → N4 문서/매트릭스.
+- **AC**: 단계별 AC는 계획 문서에. 전체 완료 = `rosmac sim nav2-diffbot` 무인
+  기동 + 맥 goal 3연속 SUCCEEDED + 문서 정합.
+- **가치×난이도**: 상×중 (~5.5시간; 도메인 커버리지 공백 해소 + E.15 실로봇과 시너지)
 
 ## 백로그 (미등록 관찰 — 요구 발생 시)
 
