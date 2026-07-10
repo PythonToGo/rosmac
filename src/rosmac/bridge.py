@@ -6,6 +6,7 @@
 
 import hashlib
 import os
+import re
 import signal
 import subprocess
 import time
@@ -29,23 +30,59 @@ def _download_url(version: str) -> str:
     )
 
 
-def ensure_binary(cfg: Config) -> bool:
-    """바이너리가 없으면 다운로드+검증+설치. 설치했으면 True, 이미 있었으면 False."""
-    if BIN_PATH.exists():
-        return False
+def parse_bridge_version(version_output: str) -> str | None:
+    """`zenoh-bridge-ros2dds --version` 출력에서 버전 추출 (실측: 'zenoh-bridge-ros2dds v1.9.0')."""
+    m = re.search(r"zenoh-bridge-ros2dds v(\S+)", version_output)
+    return m.group(1) if m else None
+
+
+def installed_version() -> str | None:
+    """설치된 바이너리의 버전. 없거나 판독 불가면 None (→ 재다운로드 대상)."""
+    if not BIN_PATH.exists():
+        return None
+    try:
+        p = subprocess.run([str(BIN_PATH), "--version"], capture_output=True, text=True, timeout=10)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return parse_bridge_version(p.stdout + p.stderr)
+
+
+_DOWNLOAD_TIMEOUT = 60  # 초 — 유일하게 무한 대기 가능했던 네트워크 호출 (E.7 ③, 구조 리뷰 B6)
+
+
+def _fetch(cfg: Config) -> None:
+    """핀 버전 다운로드(타임아웃+스트리밍)+sha256 검증+설치."""
     BIN_PATH.parent.mkdir(parents=True, exist_ok=True)
     zip_path = BIN_PATH.parent / "bridge-darwin.zip"
-    urllib.request.urlretrieve(_download_url(cfg.bridge.version), zip_path)
+    with (
+        urllib.request.urlopen(_download_url(cfg.bridge.version), timeout=_DOWNLOAD_TIMEOUT) as r,
+        zip_path.open("wb") as f,
+    ):
+        while chunk := r.read(1 << 20):
+            f.write(chunk)
     digest = hashlib.sha256(zip_path.read_bytes()).hexdigest()
     if digest != cfg.bridge.sha256_darwin:
         zip_path.unlink()
         raise RosmacError(
             f"zenoh-bridge download sha256 mismatch: expected {cfg.bridge.sha256_darwin}, got {digest}"
         )
+    BIN_PATH.unlink(
+        missing_ok=True
+    )  # 구버전 교체 (돌고 있는 프로세스엔 무해 — unlink 후 신규 기록)
     with zipfile.ZipFile(zip_path) as z:
         z.extract("zenoh-bridge-ros2dds", BIN_PATH.parent)
     zip_path.unlink()
     BIN_PATH.chmod(0o755)
+
+
+def ensure_binary(cfg: Config) -> bool:
+    """핀 버전 바이너리를 보장 — 없거나 버전 불일치(업그레이드)면 재설치 (E.7).
+
+    설치/교체했으면 True, 이미 핀 버전이면 False.
+    """
+    if installed_version() == cfg.bridge.version:
+        return False
+    _fetch(cfg)
     return True
 
 

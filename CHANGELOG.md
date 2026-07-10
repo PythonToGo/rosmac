@@ -32,6 +32,9 @@
 - 브리지 능력 매트릭스: topics/services/actions/parameters/rosbag 실측 후
   README 기재 — parameters는 부분 지원(원시 서비스만, `ros2 param` CLI 불가),
   VM bag 회수는 `limactl cp` (D16), 구조적 한계 3종 명시 (E.14)
+- 업그레이드 경로: 버전/sha 핀을 config에 동결하지 않음(커스텀 핀만 보존) +
+  `up`/`init`이 브리지 바이너리 버전을 비교해 자동 갱신 — pip 업그레이드만으로
+  신 핀 반영 (E.7)
 
 ### 실측 검증 (Phase 0/2/4 게이트)
 - 브리지 대역폭 10.3 MB/s (1MB@10Hz 무손실), MoveGroup 액션 왕복 3연속 SUCCEEDED

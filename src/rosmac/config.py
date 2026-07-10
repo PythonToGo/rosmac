@@ -21,6 +21,30 @@ BRIDGE_SHA256_LINUX = "e3eb1fd4459e4b877653419b1c25eaf92418d70fe53ee767eca005f1a
 PINNED_RMW = "rmw_cyclonedds_cpp"  # D9: fastrtps는 브리지 경유 서비스가 깨짐 (KI-16)
 PINNED_CHANNEL = "robostack-humble"
 
+# E.7 업그레이드 경로: 핀 필드는 config.yaml에 **저장하지 않는다** — 파일에 남으면
+# pip 업그레이드 후에도 구버전이 동결된다(E.7 배경 실측). 로드 시에도 "역대 기본값"과
+# 같은 값은 버려서 코드 기본값을 따르게 한다(과거에 동결된 파일의 마이그레이션).
+# 사용자가 명시한 커스텀 핀(역대 기본값이 아닌 값)만 살아남는다.
+# ⚠️ 릴리스 절차: 핀을 올릴 때 **이전 값을 해당 집합에 남겨둘 것** (지우면 마이그레이션 깨짐).
+_PIN_HISTORY: dict[tuple[str, ...], set[str]] = {
+    ("bridge", "version"): {BRIDGE_VERSION},
+    ("bridge", "sha256_darwin"): {BRIDGE_SHA256_DARWIN},
+    ("bridge", "sha256_linux"): {BRIDGE_SHA256_LINUX},
+    ("ros", "rmw"): {PINNED_RMW},
+    ("conda_channel",): {PINNED_CHANNEL},
+}
+
+
+def _strip_pins(raw: dict) -> dict:
+    """raw dict에서 역대 기본값과 일치하는 핀 키를 제거한다 (제자리 수정 후 반환)."""
+    for path, known in _PIN_HISTORY.items():
+        node: object = raw
+        for key in path[:-1]:
+            node = node.get(key) if isinstance(node, dict) else None
+        if isinstance(node, dict) and node.get(path[-1]) in known:
+            del node[path[-1]]
+    return raw
+
 
 class VmConfig(BaseModel):
     name: str = "rosmac"
@@ -100,11 +124,12 @@ def load(path: Path = CONFIG_PATH) -> Config:
     if not isinstance(raw, dict):
         raise ConfigError(f"{path} top level is not a mapping (got: {type(raw).__name__})")
     try:
-        return Config.model_validate(raw)
+        return Config.model_validate(_strip_pins(raw))
     except ValidationError as e:
         raise ConfigError(f"{path} schema validation failed:\n{e}") from e
 
 
 def save(cfg: Config, path: Path = CONFIG_PATH) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(yaml.safe_dump(cfg.model_dump(), sort_keys=False, allow_unicode=True))
+    data = _strip_pins(cfg.model_dump())  # E.7: 기본값 핀은 파일에 동결하지 않는다
+    path.write_text(yaml.safe_dump(data, sort_keys=False, allow_unicode=True))
