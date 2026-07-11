@@ -238,8 +238,8 @@
 - 실로봇 Nav2 배포(로봇 위 Nav2) — E.15 R5(실기) 이후에나 의미
 - 멀티맵/웨이포인트 파이프라인, Nav2 플러그인 커스터마이징 가이드
 - 배포판 전환(Jazzy/Lyrical)과의 결합 — E.5-4에서 별도 추진
-- **맥 env nav2_msgs 자동 설치 (UX 갭)**: `rosmac sim nav2-diffbot`은 VM에 nav2를
-  설치하지만, 맥에서 goal을 보내려면 `ros-humble-nav2-msgs`가 맥 env에도 필요.
-  현재는 문서 안내뿐 — health(/scan)는 통과하는데 goal이 "server not available"로
-  실패하면 사용자가 브리지 문제로 오인하기 쉬움. 프리셋에 맥측 msg 의존 필드
-  (`mac_env_pkgs` 등)를 두고 `sim`이 자동 설치하는 개선 후보. (중×소)
+- **맥 env nav2_msgs 자동 설치 (UX 갭)** → [E.20 S3](e20-scope-generalization.md)로
+  이관. `rosmac sim nav2-diffbot`은 VM에 nav2를 설치하지만 맥에서 goal을 보내려면
+  `ros-humble-nav2-msgs`가 맥 env에도 필요 — health(/scan)는 통과하는데 goal이
+  "server not available"로 조용히 실패하는 함정. 프리셋 `mac_env_pkgs` 필드 +
+  `sim` 자동 설치로 해결(MoveIt msg도 수혜).
