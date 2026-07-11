@@ -36,10 +36,10 @@
   `up`/`init`이 브리지 바이너리 버전을 비교해 자동 갱신 — pip 업그레이드만으로
   신 핀 반영 (E.7)
 - **Nav2 프리셋 (`sim nav2-diffbot`)**: Gazebo diffbot + gpu_lidar + slam_toolbox
-  + Nav2, 맥에서 `/navigate_to_pose` goal 3/3 SUCCEEDED. 프리셋별 브리지 스코핑
-  (`Preset.bridge_allow`) 도입 — 대형 스택(nav2 서비스 174개)이 맥 디스커버리를
-  포화시키는 문제(KI-30)를 `rosmac sim`이 VM 브리지를 필요한 인터페이스로 스코핑해
-  해결(`sim stop` 시 복원). `viz --layout nav2` (E.17)
+  + Nav2(풀스택, 기본 브리지), 맥에서 `/navigate_to_pose` goal 3/3 SUCCEEDED.
+  `rosmac sim`이 시작 시 브리지 세션을 리셋해 이전 스택 라우트 잔재로 인한 액션
+  디스커버리 실패를 방지(KI-17). launch 신뢰성 stagger 타이밍. `viz --layout nav2`.
+  맥측 nav2_msgs는 수동 설치 필요(백로그). (E.17)
 
 ### 실측 검증 (Phase 0/2/4 게이트)
 - 브리지 대역폭 10.3 MB/s (1MB@10Hz 무손실), MoveGroup 액션 왕복 3연속 SUCCEEDED

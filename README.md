@@ -82,8 +82,8 @@ rosmac viz --layout nav2    # Foxglove connection (+ layout import guide)
 
 `nav2-diffbot` runs SLAM + Nav2 on a lidar diffbot in a walled arena; drive it
 with `/cmd_vel` to build the map, then send `/navigate_to_pose` goals from the Mac.
-Large stacks like Nav2 auto-scope the bridge to their own interfaces — see the
-capability matrix below (KI-30).
+The full Nav2 stack works over the default bridge — `rosmac sim` resets the bridge
+session on start so a new stack gets fresh routes (KI-17).
 
 The native dev loop and a worked example (pick_demo) live in [docs/workflow.md](docs/workflow.md).
 
@@ -127,7 +127,7 @@ Errors are shown as a cause + fix panel; only unexpected errors show a traceback
 
 - Bridge throughput: 10.3 MB/s (1 MB @ 10 Hz, no drops)
 - MoveGroup action round-trip: plan+execute, 3 consecutive goals SUCCEEDED
-- Nav2 `/navigate_to_pose` from the Mac: 3 consecutive goals SUCCEEDED (scoped bridge)
+- Nav2 `/navigate_to_pose` from the Mac: 3 consecutive goals SUCCEEDED (default bridge)
 - Gazebo Fortress headless RTF: physics-only 1.00 / with camera (320×240 @ 15 Hz) 0.99
 - Camera stream: VM 14.4 fps → Mac 14.4 fps (lossless)
 
@@ -139,20 +139,18 @@ What works across the Mac ↔ VM zenoh bridge:
 |---|---|---|
 | Topics | ✅ | pub/sub both directions; 10.3 MB/s @ 10 Hz no drops. First subscription to a new topic takes a few seconds (bridge route creation) |
 | Services | ✅ | requires the pinned CycloneDDS RMW — with Fast DDS, discovery looks fine but every call times out (KI-16; why rosmac pins the RMW) |
-| Actions | ✅ | MoveGroup plan+execute, 3/3 goals SUCCEEDED; Nav2 `/navigate_to_pose` 3/3 SUCCEEDED from the Mac (with bridge scoping — see below) |
+| Actions | ✅ | MoveGroup plan+execute, 3/3 goals SUCCEEDED; Nav2 `/navigate_to_pose` 3/3 SUCCEEDED from the Mac (full stack, default bridge) |
 | Parameters | ⚠️ partial | raw parameter services (`get/set_parameters`, …) work via `ros2 service call`; the `ros2 param` CLI does **not** — the bridge doesn't mirror remote nodes into the node graph, so `ros2 node list` won't show VM nodes |
 | rosbag2 | ✅ | record on Mac of VM topics (no loss), record in VM, play from either side reaches the other. Retrieve VM bags with `limactl cp -r rosmac:/path ~/dest` (D16) — see [docs/workflow.md](docs/workflow.md) |
 | Robot link (LAN) | 🧪 beta | `robot:` config → Mac bridge adds a TCP endpoint to a robot-side bridge (D15). Topics/services measured against a surrogate robot (2nd VM): 10 MB/s @ 10 Hz no drops, service RTT < 1 ms, auto-reconnect on robot restart. **Surrogate-verified** — real-hardware/WiFi numbers pending ([E.15 R5](docs/plan/e15-real-robot.md)). Setup: [docs/robot-setup.md](docs/robot-setup.md). **Trusted LAN only** — plaintext TCP, no auth/TLS |
 
 Structural limits (by design, not bugs):
 
-- **Large stacks (Nav2, …) saturate the unscoped bridge (KI-30).** A full Nav2
-  stack exposes ~174 services; bridging all of them floods Mac-side DDS
-  discovery so services/actions stop routing (topics still work). Presets for
-  such stacks declare `bridge_allow` and `rosmac sim` scopes the VM bridge to
-  just those interfaces (restored on `sim stop`) — the Nav2 goal works as a
-  result. While a scoped sim runs, `rosmac doctor`'s C8 round-trip can flap on
-  fresh-topic route latency; run doctor after `sim stop` for a definitive check.
+- **A stale bridge silently breaks a fresh stack (KI-17).** Restarting the VM
+  sim stack while the bridge keeps running leaves stale routes behind, so the new
+  stack's action sub-services fail to discover from the Mac (measured: 0/6, then
+  4/4 after a bridge restart). `rosmac sim` resets the bridge session on start to
+  avoid this — the full Nav2 stack then works over the default bridge, no scoping.
 - **Every Mac↔VM message crosses one bridge hop.** Fine for dev, teleop and
   visualization; high-rate closed control loops belong inside the VM (or on
   the robot).
