@@ -63,11 +63,11 @@ ros2 action send_goal /navigate_to_pose nav2_msgs/action/NavigateToPose \
 ```
 
 goal이 브리지를 넘어 VM의 `/navigate_to_pose`로 가고, 로봇이 플래닝·주행하며
-`/map`·`/plan`·`/scan`이 맥으로 돌아와 Foxglove에 그려진다. Nav2 풀스택은 서비스
-~174개를 노출해 무스코프 브리지엔 과해(맥 디스커버리 포화) 이 프리셋은
-`bridge_allow`를 선언하고 `rosmac sim`이 VM 브리지를 내비게이션 인터페이스로
-스코핑한다(`sim stop` 시 복원, KI-30). 맥에서 goal을 보내려면 맥 env에
-`ros-humble-nav2-msgs`가 필요하다
+`/map`·`/plan`·`/scan`이 맥으로 돌아와 Foxglove에 그려진다. Nav2 풀스택(서비스
+155·액션 12)도 기본 브리지로 동작한다 — 스코핑 불필요. `rosmac sim`이 시작 시
+브리지 세션을 리셋해 새 스택이 신선한 라우트를 받게 하며, 이게 없으면 이전 스택의
+라우트 잔재가 맥 쪽 액션 디스커버리를 조용히 깨뜨린다(KI-17). 맥에서 goal을
+보내려면 맥 env에 `ros-humble-nav2-msgs`가 필요하다
 (`micromamba install -c robostack-humble ros-humble-nav2-msgs`).
 
 `rosmac deps`의 한계: **package.xml에 선언된** 의존성만 본다. 코드가 선언 없이

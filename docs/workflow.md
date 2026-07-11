@@ -65,12 +65,13 @@ ros2 action send_goal /navigate_to_pose nav2_msgs/action/NavigateToPose \
 ```
 
 The goal crosses the bridge to the VM's `/navigate_to_pose`; the robot plans and
-drives, and `/map` · `/plan` · `/scan` stream back to the Mac for Foxglove.
-Nav2's full stack exposes ~174 services — too many for the unscoped bridge, which
-would flood Mac-side discovery — so this preset declares `bridge_allow` and
-`rosmac sim` scopes the VM bridge to just the navigation interfaces, restoring it
-on `sim stop` (KI-30). Sending goals from the Mac needs `ros-humble-nav2-msgs` in
-the Mac env (`micromamba install -c robostack-humble ros-humble-nav2-msgs`).
+drives, and `/map` · `/plan` · `/scan` stream back to the Mac for Foxglove. The
+full Nav2 stack (155 services, 12 actions) works over the default bridge — no
+scoping. `rosmac sim` resets the bridge session on start so the new stack gets
+fresh routes; without that, routes left over from a prior stack silently break
+Mac-side action discovery (KI-17). Sending goals from the Mac needs
+`ros-humble-nav2-msgs` in the Mac env
+(`micromamba install -c robostack-humble ros-humble-nav2-msgs`).
 
 Limits of `rosmac deps`: it only sees dependencies **declared in package.xml**.
 Executables the code uses without declaring them (launch's `FindExecutable`

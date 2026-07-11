@@ -4,31 +4,9 @@ vm_apt:
   - ros-humble-navigation2
   - ros-humble-nav2-bringup
 vm_env: {}
-# VM 브리지 스코핑 (KI-30 — nav2 서비스 174개가 무스코프 시 맥 디스커버리 포화).
-# 항법에 필요한 인터페이스만 화이트리스트. nav2 내부 서비스는 VM 로컬 DDS라 무관.
-bridge_allow:
-  action_servers:
-    - /navigate_to_pose
-  publishers:
-    - /scan
-    - /odom
-    - /map
-    - /map_metadata
-    - /tf
-    - /tf_static
-    - /plan
-    - /global_costmap/costmap
-    - /local_costmap/costmap
-    - /amcl_pose
-    - /clock
-    - /rosout
-  subscribers:
-    - /cmd_vel
-    - /goal_pose
-    - /initialpose
-  service_servers: []
-  service_clients: []
-  action_clients: []
+# 무스코프 — nav2 풀스택도 기본 브리지로 맥에서 정상 동작한다(S0 실측). 이전에
+# 실패로 본 것은 스택 재기동 시 브리지 라우트 잔재(KI-17) 때문이며, `rosmac sim`이
+# 시작 시 브리지 세션을 리셋해 해소한다(스코핑 불필요, KI-30 정정).
 launch:
   cmd: "ros2 launch ~/rosmac-presets/nav2-diffbot/nav2-diffbot.launch.py"
 foxglove_layout: nav2.json

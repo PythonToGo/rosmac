@@ -4,7 +4,6 @@
 tmux인 이유: --attach 로그 관찰, 세션 유지, 이중 실행 감지 (phase2 2.2).
 """
 
-import json
 import time
 from importlib import resources
 from pathlib import Path
@@ -19,23 +18,6 @@ from rosmac.errors import RosmacError
 SESSION = "rosmac-sim"
 SIM_LOG = "/tmp/rosmac-sim.log"
 USER_PRESET_DIR = Path.home() / ".rosmac" / "presets"
-
-# VM 브리지 스코핑 (KI-30) — nav2류 대형 스택은 서비스/액션 엔티티가 맥 디스커버리를
-# 포화시켜 무스코프 브리지로는 라우팅 실패. 프리셋이 bridge_allow를 선언하면
-# systemd 드롭인으로 브리지를 화이트리스트 스코프로 재기동, sim stop 시 복원.
-_SCOPE_CFG_VM = "/etc/rosmac/bridge-scope.json5"
-_SCOPE_DROPIN = "/etc/systemd/system/zenoh-bridge.service.d/rosmac-scope.conf"
-_ALLOW_KEYS = (
-    "publishers",
-    "subscribers",
-    "service_servers",
-    "service_clients",
-    "action_servers",
-    "action_clients",
-)
-# doctor C8 왕복 자가진단 토픽 (doctor.py: /rosmac/doctor/<hex>) — 스코프 중에도
-# 브리지 경계를 넘도록 pub/sub에 상시 주입 (정규식 매칭).
-_DOCTOR_TOPIC = "/rosmac/doctor/.*"
 
 
 class HealthTopic(BaseModel):
@@ -55,10 +37,6 @@ class Preset(BaseModel):
     launch: Launch
     foxglove_layout: str | None = None
     health_topics: list[HealthTopic] = []
-    # 선언 시 VM 브리지를 이 인터페이스만 브리지하도록 스코핑 (KI-30). 키:
-    # publishers/subscribers/service_servers/service_clients/action_servers/action_clients.
-    # 미지정 카테고리는 deny(빈 목록). None이면 무스코프(기존 동작).
-    bridge_allow: dict[str, list[str]] | None = None
 
 
 def _asset_preset_dir():
@@ -140,73 +118,26 @@ def _push_preset_assets(cfg: Config, preset: Preset) -> None:
             )
 
 
-def bridge_scope_config(bridge_allow: dict[str, list[str]]) -> str:
-    """bridge_allow → zenoh-bridge-ros2dds allow config (JSON, JSON5 호환).
-
-    6개 카테고리를 모두 채운다 — 미지정 카테고리는 빈 목록(deny)으로 명시해
-    "전부 허용" 기본값으로 새지 않게 한다 (KI-30 핵심 — 서비스류를 확실히 deny).
-    doctor C8 왕복 토픽(/rosmac/doctor/*)은 스코프 중에도 자가진단이 되도록
-    pub/sub에 항상 주입한다.
-    """
-    allow = {k: list(bridge_allow.get(k, [])) for k in _ALLOW_KEYS}
-    for direction in ("publishers", "subscribers"):
-        if _DOCTOR_TOPIC not in allow[direction]:
-            allow[direction] = [*allow[direction], _DOCTOR_TOPIC]
-    return json.dumps({"plugins": {"ros2dds": {"allow": allow}}}, indent=2)
-
-
-def _apply_bridge_scope(cfg: Config, preset: Preset, progress=None) -> None:
-    """프리셋 bridge_allow로 VM 브리지를 스코핑 재기동 + 맥 브리지 라우트 갱신."""
-    if not preset.bridge_allow:
-        return
-    cfg_text = bridge_scope_config(preset.bridge_allow)
-    dropin = (
-        "[Service]\n"
-        "ExecStart=\n"
-        f"ExecStart=/usr/local/bin/zenoh-bridge-ros2dds -l tcp/0.0.0.0:{cfg.bridge.port}"
-        f" -c {_SCOPE_CFG_VM}\n"
-    )
-    # config·드롭인을 파일로 push(셸 이스케이프 회피) 후 sudo로 배치·브리지 재기동
-    # (KillSignal=SIGTERM → KI-17 안전)
-    lima.push(cfg.vm.name, cfg_text, "~/.rosmac-bridge-scope.json5")
-    lima.push(cfg.vm.name, dropin, "~/.rosmac-bridge-dropin.conf")
-    lima.shell(
-        cfg.vm.name,
-        f"sudo mkdir -p /etc/rosmac $(dirname {_SCOPE_DROPIN}) && "
-        f"sudo cp ~/.rosmac-bridge-scope.json5 {_SCOPE_CFG_VM} && "
-        f"sudo cp ~/.rosmac-bridge-dropin.conf {_SCOPE_DROPIN} && "
-        "sudo systemctl daemon-reload && sudo systemctl restart zenoh-bridge",
-        timeout=60,
-    )
-    if progress:
-        progress("✓ VM bridge scoped to preset interfaces (KI-30)")
-    _reset_mac_bridge(cfg)
-
-
-def _clear_bridge_scope(cfg: Config, progress=None) -> bool:
-    """스코프 드롭인이 있으면 제거하고 무스코프 브리지로 복원. 복원했으면 True."""
-    present = lima.shell(
-        cfg.vm.name, f"test -f {_SCOPE_DROPIN} && echo yes || echo no"
-    ).strip()
-    if present != "yes":
-        return False
-    lima.shell(
-        cfg.vm.name,
-        f"sudo rm -f {_SCOPE_DROPIN} && "
-        "sudo systemctl daemon-reload && sudo systemctl restart zenoh-bridge",
-        timeout=60,
-    )
-    if progress:
-        progress("✓ VM bridge scope cleared (unscoped restored)")
-    _reset_mac_bridge(cfg)
-    return True
-
-
 def _reset_mac_bridge(cfg: Config) -> None:
     """VM 브리지 재기동 후 맥 브리지의 낡은 라우트를 재기동으로 정리 (N2 실측 플로우)."""
     if bridge.is_running():
         bridge.stop()
     bridge.start(cfg)
+
+
+def _reset_bridge_session(cfg: Config, progress=None) -> None:
+    """sim 스택 시작 전에 양측 브리지 세션을 리셋 (KI-17/KI-30 진짜 해법 — S0 실측).
+
+    스택을 재기동해도 VM 브리지는 죽은 스택들의 라우트를 누적해, 새 스택의 액션
+    하위 서비스 디스커버리가 맥에서 오염돼 `wait_for_server`가 실패한다(0/6).
+    브리지를 리셋하면 신선한 라우트로 동일 스택이 4/4 성공. `rosmac up`의 KI-17
+    방지와 동일 패턴. (스코핑은 불필요 — N2/N3에서 통한 건 스코프 적용이 브리지를
+    재시작한 부수효과였음.)
+    """
+    lima.shell(cfg.vm.name, "sudo systemctl restart zenoh-bridge", timeout=30)
+    _reset_mac_bridge(cfg)
+    if progress:
+        progress("✓ bridge session reset (KI-17 — fresh routes for new stack)")
 
 
 def start(cfg: Config, preset: Preset, progress=None) -> None:
@@ -216,8 +147,8 @@ def start(cfg: Config, preset: Preset, progress=None) -> None:
             f"tmux session '{SESSION}' already exists — use rosmac sim status/stop or --attach"
         )
     _push_preset_assets(cfg, preset)
-    # 브리지 스코핑을 launch 전에 적용 — 스택이 뜨는 대로 스코프된 브리지가 라우팅 (KI-30)
-    _apply_bridge_scope(cfg, preset, progress=progress)
+    # 새 스택을 띄우기 전 브리지 세션 리셋 — 이전 스택의 라우트 잔재 제거 (KI-17/KI-30)
+    _reset_bridge_session(cfg, progress=progress)
     env_exports = " ".join(
         f"{k}={v}"
         for k, v in {
@@ -276,8 +207,6 @@ def stop(cfg: Config, progress=None) -> bool:
         'pkill -f "[p]arameter_bridge" 2>/dev/null; true',
         timeout=30,
     )
-    # 스코핑됐던 브리지 복원 (멱등 — 드롭인 없으면 무동작)
-    _clear_bridge_scope(cfg, progress=progress)
     return alive
 
 
