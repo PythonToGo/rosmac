@@ -363,3 +363,28 @@
 - **해결**: foxglove_bridge의 asset 서빙 기능(`/robot_description` + asset fetch) 활성 확인.
   안 되면 해당 메시 패키지를 맥 RoboStack env에도 설치해 Foxglove의
   ROS_PACKAGE_PATH 설정으로 해석시키는 방법을 검증 후 문서화
+
+## KI-30. 대형 스택(nav2 등)의 서비스·액션이 무스코프 브리지에서 라우팅 실패
+- **증상** (2026-07-11 실측, E.17 N2): 맥에서 `/navigate_to_pose` 액션 goal 전송이
+  `wait_for_server`에서 90초에도 `SERVER_NOT_AVAILABLE`. 일반 서비스 호출
+  (`/bt_navigator/get_parameters`)도 무한 대기. 반면 **토픽은 정상**(맥에서
+  `/scan`·`/odom`·`/map` 수신 OK). `ros2 action info`엔 서버가 보이나 액션 하위
+  **서비스**(`/navigate_to_pose/_action/send_goal` 등)가 맥에 프록시 안 생김
+  (하위 토픽 feedback/status는 생김).
+- **원인**: nav2 풀스택 = 서비스 **174개** + 액션 12개. 무스코프
+  zenoh-bridge-ros2dds가 이 전부를 zenoh로 내보내 **맥 쪽 DDS 디스커버리를
+  포화**시킴. 서비스(요청/응답 매칭)가 토픽보다 먼저 무너짐. cyclonedds·RMW·
+  브리지 자체는 정상 — **순수 엔티티 수 문제**. 판별: nav2 전부 내리고 VM에
+  `add_two_ints_server` 단독 기동 시 맥 서비스 호출 `sum=42` **즉시 성공**.
+  (P0.3 단일 talker·P2.3 moveit ~40서비스는 통과 → 임계 ~40~174 사이.)
+- **해결**: VM 브리지를 `-c <config.json5>`로 기동하고 `plugins.ros2dds.allow`에
+  **필요한 인터페이스만 화이트리스트**. nav goal은 `action_servers:
+  ["/navigate_to_pose"]` + 필수 pub/sub 토픽(/scan /odom /map /tf /plan
+  /cmd_vel /goal_pose …) + `service_servers/clients: []`. nav2 노드 간 내부
+  서비스는 VM 로컬 DDS라 스코핑과 무관(항법 정상). 스코핑 후 맥 goal 3/3
+  SUCCEEDED. 브리지 로그에 `Route Action Server (ROS:/navigate_to_pose <->
+  Zenoh:...) created` 확인.
+- **영향/미해결**: rosmac 기본 브리지는 무스코프라 대형 스택 프리셋(nav2)을
+  맥 네이티브 goal로 지원하려면 브리지 스코핑 도입이 전제 — 아키텍처 결정(D3
+  인접) 필요. panda-moveit·gazebo-diffbot 등 기존 소형 프리셋은 무스코프로
+  계속 동작(임계 미만). 스파이크 config: `~/rosmac_spike/nav2/bridge_scoped.json5`.

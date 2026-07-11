@@ -242,20 +242,71 @@
   limactl 외 특정 바인드는 WARN(확신 불가). --fix 비대상 유지(외부 VM 설정 불가침).
 - **가치×난이도**: 상×소 (신뢰 파괴형 고장의 유일 감지 수단)
 
-## E.17 Nav2 프리셋 — 이동로봇 내비게이션 지원
+## E.17 Nav2 프리셋 — 이동로봇 내비게이션 지원 — ✅ N0~N4 완료 (2026-07-11)
 
 - **배경 (딥리서치 2026-07-10)**: ROS 2 4대 프레임워크(Nav2/MoveIt/ros2_control/
   micro-ROS) 중 rosmac은 이동로봇 내비게이션(Nav2)이 통째로 공백. MoveIt은 팔
-  전용 플랫폼(내비게이션 아님 — 메인테이너 명시, 3-0 검증)이라 대체 불가.
-  Nav2는 Humble에 정식 존재(apt) → **배포판 전환 없이 지금 추가 가능**,
-  기존 선언적 프리셋 패턴 복제라 신규 커맨드·D 결정 불필요.
-- **작업**: **상세 단계별 계획 [e17-nav2.md](e17-nav2.md)** — N0 시뮬 조합
-  결정(diffbot+lidar 1순위) → N1 VM 자가완결 스파이크(goal→SUCCEEDED, RSS 실측)
-  → N2 브리지 경계 실측(맥 goal·transient_local /map·Foxglove·ps 회귀) →
-  N3 프리셋 제품화(nav2-diffbot.yaml + health gate + E2E) → N4 문서/매트릭스.
-- **AC**: 단계별 AC는 계획 문서에. 전체 완료 = `rosmac sim nav2-diffbot` 무인
-  기동 + 맥 goal 3연속 SUCCEEDED + 문서 정합.
-- **가치×난이도**: 상×중 (~5.5시간; 도메인 커버리지 공백 해소 + E.15 실로봇과 시너지)
+  전용 플랫폼(내비게이션 아님 — 메인테이너 명시, 6-0 검증)이라 대체 불가.
+  Nav2는 Humble에 정식 존재(apt) → **배포판 전환 없이 추가 가능**.
+- **작업**: **상세 단계별 계획 [e17-nav2.md](e17-nav2.md)** — N0 조합 결정 →
+  N1 VM 자가완결 → N2 브리지 경계 → N3 제품화 → N4 문서.
+- **진행 (2026-07-11 실측)**:
+  - **N0 ✅**: 조합 (a) 확정 — 기존 diffbot + gpu_lidar + slam_toolbox + nav2
+    (Fortress 유지, Gazebo Classic 불필요). apt 핀: navigation2 1.1.20,
+    nav2-bringup 1.1.20, slam-toolbox 2.6.10.
+  - **N1 ✅**: VM 자가완결 goal 2/2 SUCCEEDED, RSS ~604MB(8GiB 여유), ready 17s.
+    벽 아레나 월드 추가(SLAM 특징), health=/scan 확정.
+  - **N2 ⚠️ 조건부 PASS**: 맥 goal 3/3 SUCCEEDED — **단 브리지 스코핑 필수**.
+    무스코프 브리지는 nav2 서비스 174개가 맥 디스커버리를 포화시켜 액션·서비스
+    라우팅 실패([KI-30](known-issues.md)). VM 브리지 `allow` 스코핑 후 정상.
+  - **N3 ✅ (A안 — 프리셋별 스코프, 사용자 승인 2026-07-11)**: `Preset.bridge_allow`
+    필드 + `rosmac sim`이 systemd 드롭인으로 VM 브리지 스코핑/복원. `rosmac sim
+    nav2-diffbot` E2E — health PASS → 맥 goal 3/3 SUCCEEDED → stop 청결. 97 tests,
+    ruff/mypy clean. 프리셋: `assets/presets/nav2-diffbot.yaml`(+ nav2-diffbot/ 자산)
+    + `layouts/nav2.json`.
+  - **N4 ✅ (문서)**: README(en/ko) 프리셋·능력 매트릭스 nav2 행, workflow(en/ko)
+    Nav2 절, CHANGELOG, viz `--layout nav2`, doctor C8-during-scoped-sim 한계 명기.
+    함정 카운트 29→30 정합.
+- **스파이크 자산 (참고)**: `~/rosmac_spike/nav2/` (nav2_world.sdf,
+  nav2-diffbot.launch.py, slam_params.yaml, bridge_scoped.json5, run_spike.sh).
+- **가치×난이도**: 상×중 (도메인 커버리지 공백 해소 + E.15 실로봇 시너지;
+  N2가 드러낸 스코핑은 **모든 대형 스택 프리셋에 재사용될 브리지 기반 개선**).
+
+## E.18 딥리서치 최종 검증 반영 — 문서 정합 (당장 가능, 문서 작업만)
+
+- **배경 (2026-07-10)**: E.5-4/E.17의 근거였던 딥리서치가 네트워크 단절로 중단
+  → 저널 복원 후 완료. 최종 판정 **37개 주장 = 35 확정 / 2 반박 / 0 미검증**
+  (반박 2건은 낡은 배포판 목록이 섞인 부정확 버전 — 결론 영향 없음). 전문은
+  [evidence/deepresearch-2026-07-10-frameworks-eol.md](evidence/deepresearch-2026-07-10-frameworks-eol.md)
+  (등록 시점에 보존 완료 — 원본이 세션 임시 디렉토리라 휘발).
+- **작업**: 확정 사실을 계획 문서에 동기화 — 코드 변경 없음, 30분:
+  ① E.5-4에 "검증 확정(35/2/0)" 상태와 evidence 링크 명기, Kilted EOL 표기
+  불일치(REP-2000 2026-11 vs endoflife.date 2026-12) 각주.
+  ② MoveIt 배포판 트랙 사실 반영 — Humble 2.5 LTS는 'Maintained'(버그 백포트만,
+  문서에 "not being developed further" 배너), 공식 권장은 Jazzy 2.12 LTS.
+  E.5-4 재검토 조건에 "MoveIt Humble 브랜치 실질 방치 징후" 추가.
+  ③ E.17 배경의 "3-0 검증" 문구를 최종 투표(6-0, 5-0)로 갱신 + MoveIt↔Nav2
+  공식 통합 패턴(nav2_simple_commander로 MoveIt 웨이포인트 실행) 근거 링크.
+- **AC**: [x] evidence 파일 존재 [ ] E.5-4·E.17 갱신 [ ] 재검토 조건 반영
+- **가치×난이도**: 중×소 (근거 문서의 신선도·추적성 — JOSS/D13 트랙 자산)
+
+## E.19 RoboStack jazzy/lyrical osx-arm64 커버리지 실측 (E.5-4 스파이크 선행 조사)
+
+- **배경 (딥리서치 2026-07-10, caveat 5)**: E.5-4에서 kilted 채널은 821개 패키지
+  직접 계수(MoveIt 2.14·Nav2 풀스택 포함)했지만, 실제 전환 후보인 **jazzy/lyrical
+  채널의 osx-arm64 커버리지는 미계수**. RoboStack 커버리지는 배포판별로 불완전할
+  수 있어(검증 소스: Jazzy RViz2 osx-arm64 크래시 사례 2025-02) 전환 스파이크
+  착수 전 확인 필요. **배포판 전환·VM 재생성 없이 지금 가능** — conda 채널
+  조회만으로 끝나는 순수 조사.
+- **작업**: `mamba search -c robostack-jazzy`(및 lyrical)로 rosmac 의존 핵심
+  패키지의 osx-arm64 존재·버전 계수 — ros-*-desktop, MoveIt 2, Nav2 스택,
+  rmw-cyclonedds-cpp, foxglove-bridge, ros-gz(짝 Gazebo 버전 확인 포함).
+  산출: 배포판×패키지 커버리지 표 → E.5-4 스파이크의 go/no-go 입력.
+  lyrical 채널이 아직 얇으면(출시 2026-05 직후) 그 사실 자체가 "Jazzy 경유 vs
+  Lyrical 직행" 판단 근거.
+- **AC**: [ ] 커버리지 표(jazzy·lyrical × 핵심 패키지, osx-arm64 기준)를
+  evidence/에 기록 [ ] E.5-4 본문에 결과 1줄 반영 (경로 유효/보강 필요)
+- **가치×난이도**: 중×소 (~1시간, 네트워크만 필요)
 
 ## 백로그 (미등록 관찰 — 요구 발생 시)
 
@@ -263,3 +314,6 @@
 - 오프라인/에어갭 설치 (하×대, E.5-3 교육 시나리오와 연동)
 - 멀티 프로필/제2 VM (하×중)
 - 주석 언어 정책(한국어 KI 주석 유지 + CONTRIBUTING 명시 — Phase 6.3에서)
+- 모바일 매니퓰레이션 프리셋 — MoveIt 베이스 웨이포인트를 nav2_simple_commander로
+  Nav2에 실행시키는 공식 통합 패턴(딥리서치 2026-07-10, 6-0 검증). E.17 완료 후
+  두 프리셋의 자연 결합 후보 (중×중)
