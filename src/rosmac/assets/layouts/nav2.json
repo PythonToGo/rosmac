@@ -1,0 +1,39 @@
+{
+  "configById": {
+    "3D!nav2": {
+      "cameraState": {
+        "distance": 20,
+        "phi": 55,
+        "thetaOffset": 90
+      },
+      "followTf": "map",
+      "scene": {},
+      "topics": {
+        "/map": { "visible": true },
+        "/scan": { "visible": true, "colorField": "intensity", "colorMode": "colormap", "colorMap": "turbo" },
+        "/plan": { "visible": true },
+        "/global_costmap/costmap": { "visible": false }
+      },
+      "layers": {
+        "grid": { "layerId": "foxglove.Grid", "visible": true }
+      }
+    },
+    "Plot!vel": {
+      "paths": [
+        { "value": "/odom.twist.twist.linear.x", "enabled": true, "timestampMethod": "receiveTime" },
+        { "value": "/odom.twist.twist.angular.z", "enabled": true, "timestampMethod": "receiveTime" }
+      ],
+      "minYValue": -1,
+      "maxYValue": 1
+    }
+  },
+  "globalVariables": {},
+  "userNodes": {},
+  "playbackConfig": { "speed": 1 },
+  "layout": {
+    "first": "3D!nav2",
+    "second": "Plot!vel",
+    "direction": "row",
+    "splitPercentage": 70
+  }
+}

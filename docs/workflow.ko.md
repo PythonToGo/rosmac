@@ -50,6 +50,26 @@ feedback/result가 되돌아온다. Foxglove 3D 패널에서 팔이 움직이는
 `python -m pdb $(which pick_demo)` 또는 IDE 인터프리터를
 `~/micromamba/envs/ros_env/bin/python`으로 지정.
 
+### 이동로봇 내비게이션 (`rosmac sim nav2-diffbot`)
+
+```bash
+rosmac sim nav2-diffbot         # Gazebo diffbot + 라이다 + SLAM + Nav2, READY까지 대기
+rosmac viz --layout nav2        # Foxglove: 지도 + 레이저 스캔 + 계획 경로
+
+rosmac shell                    # 맥에서:
+# /cmd_vel로 한 바퀴 돌려 SLAM이 지도를 만들게 한 뒤:
+ros2 action send_goal /navigate_to_pose nav2_msgs/action/NavigateToPose \
+  "{pose: {header: {frame_id: map}, pose: {position: {x: 1.5, y: 1.0}, orientation: {w: 1.0}}}}"
+```
+
+goal이 브리지를 넘어 VM의 `/navigate_to_pose`로 가고, 로봇이 플래닝·주행하며
+`/map`·`/plan`·`/scan`이 맥으로 돌아와 Foxglove에 그려진다. Nav2 풀스택은 서비스
+~174개를 노출해 무스코프 브리지엔 과해(맥 디스커버리 포화) 이 프리셋은
+`bridge_allow`를 선언하고 `rosmac sim`이 VM 브리지를 내비게이션 인터페이스로
+스코핑한다(`sim stop` 시 복원, KI-30). 맥에서 goal을 보내려면 맥 env에
+`ros-humble-nav2-msgs`가 필요하다
+(`micromamba install -c robostack-humble ros-humble-nav2-msgs`).
+
 `rosmac deps`의 한계: **package.xml에 선언된** 의존성만 본다. 코드가 선언 없이
 쓰는 실행 파일(launch의 `FindExecutable` 등, KI-26 사례)은 못 잡는다 —
 그런 유형은 함정표와 doctor의 영역이다.

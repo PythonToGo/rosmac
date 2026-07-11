@@ -21,7 +21,7 @@
 - 아키텍처: 맥 네이티브 개발(RoboStack) ↔ zenoh 브리지(TCP 7447) ↔
   Lima VM Ubuntu 22.04 arm64(MoveIt·Gazebo) ↔ Foxglove(ws 8765),
   양측 rmw_cyclonedds_cpp 고정 (D9)
-- 함정 DB: 실측 known issues 28건 (`docs/plan/known-issues.md`)
+- 함정 DB: 실측 known issues 30건 (`docs/plan/known-issues.md`)
 - 진단·제보: `doctor --fix`(안전 항목 자동 수리), `report`(진단 번들 tar.gz,
   `~/.rosmac` 밖 수집 금지) (Phase 5)
 - **실로봇 연결 (beta)**: `robot:` config 섹션 — 맥 브리지가 로봇 쪽
@@ -35,6 +35,11 @@
 - 업그레이드 경로: 버전/sha 핀을 config에 동결하지 않음(커스텀 핀만 보존) +
   `up`/`init`이 브리지 바이너리 버전을 비교해 자동 갱신 — pip 업그레이드만으로
   신 핀 반영 (E.7)
+- **Nav2 프리셋 (`sim nav2-diffbot`)**: Gazebo diffbot + gpu_lidar + slam_toolbox
+  + Nav2, 맥에서 `/navigate_to_pose` goal 3/3 SUCCEEDED. 프리셋별 브리지 스코핑
+  (`Preset.bridge_allow`) 도입 — 대형 스택(nav2 서비스 174개)이 맥 디스커버리를
+  포화시키는 문제(KI-30)를 `rosmac sim`이 VM 브리지를 필요한 인터페이스로 스코핑해
+  해결(`sim stop` 시 복원). `viz --layout nav2` (E.17)
 
 ### 실측 검증 (Phase 0/2/4 게이트)
 - 브리지 대역폭 10.3 MB/s (1MB@10Hz 무손실), MoveGroup 액션 왕복 3연속 SUCCEEDED
