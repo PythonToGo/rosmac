@@ -92,8 +92,10 @@ def generate_launch_description():
             gz_sim,
             bridge,
             static_tf,
-            # /clock·/scan이 흐른 뒤 SLAM, map→odom tf가 선 뒤 Nav2 (run_spike.sh 순서)
-            TimerAction(period=5.0, actions=[slam]),
-            TimerAction(period=10.0, actions=[nav2]),
+            # 신뢰성 우선 stagger (S0 실측: 촘촘하면 nav2 lifecycle 활성화가 간헐 실패).
+            # gz가 벽 아레나 월드 로드 + /clock·/scan 발행을 마칠 시간(~10s) 뒤 SLAM,
+            # SLAM이 map→odom tf를 세운 뒤(~8s) Nav2 — run_spike.sh 검증 타이밍 + 여유.
+            TimerAction(period=10.0, actions=[slam]),
+            TimerAction(period=18.0, actions=[nav2]),
         ]
     )
