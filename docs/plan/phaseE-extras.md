@@ -242,7 +242,13 @@
   limactl 외 특정 바인드는 WARN(확신 불가). --fix 비대상 유지(외부 VM 설정 불가침).
 - **가치×난이도**: 상×소 (신뢰 파괴형 고장의 유일 감지 수단)
 
-## E.17 Nav2 프리셋 — 이동로봇 내비게이션 지원 — ✅ N0~N4 완료 (2026-07-11)
+## E.17 Nav2 프리셋 — 이동로봇 내비게이션 지원 — ✅ 완료 (S0 정정 반영 2026-07-12)
+
+> **S0 정정**: N2/N3의 "스코핑 필수" 결론은 오진이었다. 무스코프 브리지가 nav2
+> 풀스택을 정상 라우팅(맥 goal 3/3). 진짜 원인은 스택 재기동 시 브리지 라우트
+> 잔재(KI-17). **`rosmac sim`이 시작 시 브리지 세션 리셋**으로 해결, 스코핑 제거.
+> + launch 신뢰성 stagger 타이밍 수정. 상세: [KI-30](known-issues.md) 재작성,
+> [e17-nav2.md](e17-nav2.md) S0 정정.
 
 - **배경 (딥리서치 2026-07-10)**: ROS 2 4대 프레임워크(Nav2/MoveIt/ros2_control/
   micro-ROS) 중 rosmac은 이동로봇 내비게이션(Nav2)이 통째로 공백. MoveIt은 팔
@@ -256,21 +262,16 @@
     nav2-bringup 1.1.20, slam-toolbox 2.6.10.
   - **N1 ✅**: VM 자가완결 goal 2/2 SUCCEEDED, RSS ~604MB(8GiB 여유), ready 17s.
     벽 아레나 월드 추가(SLAM 특징), health=/scan 확정.
-  - **N2 ⚠️ 조건부 PASS**: 맥 goal 3/3 SUCCEEDED — **단 브리지 스코핑 필수**.
-    무스코프 브리지는 nav2 서비스 174개가 맥 디스커버리를 포화시켜 액션·서비스
-    라우팅 실패([KI-30](known-issues.md)). VM 브리지 `allow` 스코핑 후 정상.
-  - **N3 ✅ (A안 — 프리셋별 스코프, 사용자 승인 2026-07-11)**: `Preset.bridge_allow`
-    필드 + `rosmac sim`이 systemd 드롭인으로 VM 브리지 스코핑/복원. `rosmac sim
-    nav2-diffbot` E2E — health PASS → 맥 goal 3/3 SUCCEEDED → stop 청결. 97 tests,
-    ruff/mypy clean. 프리셋: `assets/presets/nav2-diffbot.yaml`(+ nav2-diffbot/ 자산)
-    + `layouts/nav2.json`.
-  - **N4 ✅ (문서)**: README(en/ko) 프리셋·능력 매트릭스 nav2 행, workflow(en/ko)
-    Nav2 절, CHANGELOG, viz `--layout nav2`, doctor C8-during-scoped-sim 한계 명기.
-    함정 카운트 29→30 정합.
-- **스파이크 자산 (참고)**: `~/rosmac_spike/nav2/` (nav2_world.sdf,
-  nav2-diffbot.launch.py, slam_params.yaml, bridge_scoped.json5, run_spike.sh).
-- **가치×난이도**: 상×중 (도메인 커버리지 공백 해소 + E.15 실로봇 시너지;
-  N2가 드러낸 스코핑은 **모든 대형 스택 프리셋에 재사용될 브리지 기반 개선**).
+  - **N2/N3 (정정)**: 맥 goal 3/3 SUCCEEDED — **기본 브리지로 동작**(스코핑 불필요).
+    `rosmac sim`이 시작 시 브리지 세션 리셋(sim.py `_reset_bridge_session`, KI-17).
+    `rosmac sim nav2-diffbot` E2E: fresh 3/3, churn 후에도 goal 성공. 프리셋:
+    `assets/presets/nav2-diffbot.yaml`(무스코프) + nav2-diffbot/ 자산 + `layouts/nav2.json`.
+  - **launch 신뢰성 ✅**: TimerAction 촘촘 → nav2 lifecycle 간헐 미활성(~25-30%)을
+    stagger(slam@10, nav2@18)로 수정 — 연속 7회 건강. 94 tests, ruff/mypy clean.
+  - **N4 ✅ (문서)**: README(en/ko)·workflow(en/ko)·CHANGELOG — "기본 브리지 +
+    sim 브리지 리셋" 정정 반영. viz `--layout nav2`. 함정 30개.
+- **스파이크 자산 (참고)**: `~/rosmac_spike/nav2/`.
+- **가치×난이도**: 상×중 (도메인 커버리지 공백 해소 + E.15 실로봇 시너지).
 
 ## E.18 딥리서치 최종 검증 반영 — 문서 정합 (당장 가능, 문서 작업만)
 
@@ -308,25 +309,17 @@
   evidence/에 기록 [ ] E.5-4 본문에 결과 1줄 반영 (경로 유효/보강 필요)
 - **가치×난이도**: 중×소 (~1시간, 네트워크만 필요)
 
-## E.20 대형 스택 1급화 — 브리지 스코프 일반화 (E.17 파생)
+## E.20 대형 스택 1급화 — ✅ S0에서 전제 붕괴, 대부분 폐기 (2026-07-12)
 
-- **배경 (E.17 N2/N3 판단 2026-07-11)**: E.17로 `rosmac sim nav2-diffbot` 데모는
-  panda-moveit와 대등해졌으나, **1급 확장성은 아직 없다**. MoveIt은 무스코프
-  브리지가 통신을 감당해 임의의 사용자 워크스페이스가 동작하지만, Nav2는 프리셋이
-  손으로 큐레이션한 화이트리스트로만 되고 그마저 **액션 12개 중 1개 + 서비스
-  0개**만 노출한다(KI-30 스케일 제약). 즉 "이 데모의 단일 goal 경로"만 열린 상태.
-- **작업**: **상세 단계별 계획 [e20-scope-generalization.md](e20-scope-generalization.md)**
-  — S0 스코프 모델 설계 + 포화 상한 스파이크(게이트) → S1 재사용 스코프 번들+리졸버
-  → S2 Nav2 항법 표면 확장(waypoint) → S3 맥측 msg 의존 자동 설치 → S4 자기 대형
-  스택 가져오기(1급 판정 E2E) → S5 문서/매트릭스/결정 로그.
-- **1급 판정 기준**: 사용자가 자기 Nav2를 프리셋 포크 없이 맥에서 구동 + 단일
-  goal 넘는 표면 + goal 무침묵실패(맥 msg 자동) + 포화 재유발 없음.
-- **AC**: 단계별 AC는 계획 문서에. 전체 완료 = 다른 Nav2 설정이 오버레이 선언만으로
-  맥 goal SUCCEEDED(코드 포크 없음) + 문서/결정 로그 정합.
-- **선행/근거**: E.17(스코핑 인프라), [KI-30](known-issues.md)(포화). S3은 MoveIt
-  (moveit_msgs)도 수혜. S0은 **제안 D-결정**(브리지 스코프 모델 — D3 인접) 산출.
-- **가치×난이도**: 상×중~대 (~9.5시간; "Nav2 1급" 주장의 전제, 향후 모든 대형
-  스택 프리셋의 기반)
+- **S0 게이트 결과**: "대형 스택은 스코핑이 전제"라는 전제가 **실측으로 반증됨**.
+  무스코프 브리지가 nav2 풀스택을 정상 라우팅(맥 goal 3/3). N2의 실패는 엔티티
+  포화가 아니라 스택 재기동 시 브리지 라우트 잔재(KI-17) — `rosmac sim`의 브리지
+  세션 리셋으로 해결(E.17에 반영). **S1~S5(스코프 번들·BYO 등) 불필요.**
+  상세: [e20-scope-generalization.md](e20-scope-generalization.md) S0 결과.
+- **결론**: Nav2는 이미 기본 브리지로 MoveIt과 동등하게 1급. 스코핑 일반화 무의미.
+- **잔여 (유일 항목)**: **맥측 msg 자동 설치** — 프리셋 `mac_env_pkgs` + `rosmac
+  sim`이 맥 env에 nav2_msgs 등 보장(멱등). goal "server not available" 침묵 실패
+  제거, MoveIt(moveit_msgs)도 수혜. (중×소, ~1.5시간)
 
 ## 백로그 (미등록 관찰 — 요구 발생 시)
 
