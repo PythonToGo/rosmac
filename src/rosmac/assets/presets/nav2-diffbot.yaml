@@ -1,0 +1,38 @@
+name: nav2-diffbot
+description: "Nav2 이동로봇 내비게이션 (Gazebo diffbot + gpu_lidar + SLAM, 맥에서 /navigate_to_pose)"
+vm_apt:
+  - ros-humble-navigation2
+  - ros-humble-nav2-bringup
+vm_env: {}
+# VM 브리지 스코핑 (KI-30 — nav2 서비스 174개가 무스코프 시 맥 디스커버리 포화).
+# 항법에 필요한 인터페이스만 화이트리스트. nav2 내부 서비스는 VM 로컬 DDS라 무관.
+bridge_allow:
+  action_servers:
+    - /navigate_to_pose
+  publishers:
+    - /scan
+    - /odom
+    - /map
+    - /map_metadata
+    - /tf
+    - /tf_static
+    - /plan
+    - /global_costmap/costmap
+    - /local_costmap/costmap
+    - /amcl_pose
+    - /clock
+    - /rosout
+  subscribers:
+    - /cmd_vel
+    - /goal_pose
+    - /initialpose
+  service_servers: []
+  service_clients: []
+  action_clients: []
+launch:
+  cmd: "ros2 launch ~/rosmac-presets/nav2-diffbot/nav2-diffbot.launch.py"
+foxglove_layout: nav2.json
+# health=/scan (N1: SLAM /map은 0.2m 이동 전 0×0 latch라 부적합). timeout은
+# N1 ready 17s + nav2 staggered 기동(+10s) 여유 → 넉넉히 60s.
+health_topics:
+  - { name: /scan, timeout: 60 }

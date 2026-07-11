@@ -197,7 +197,7 @@ def _start_viz(cfg: Config) -> None:
 
 @app.command()
 def viz(
-    layout: str | None = typer.Option(None, "--layout", help="Preset layout name (panda|diffbot)"),
+    layout: str | None = typer.Option(None, "--layout", help="Preset layout name (panda|diffbot|nav2)"),
 ) -> None:
     """Connect Foxglove visualization (start VM foxglove_bridge + open app)."""
     cfg = load()
@@ -211,7 +211,7 @@ def viz(
 
         src = resources.files("rosmac") / "assets" / "layouts" / f"{layout}.json"
         if not src.is_file():
-            raise UsageError(f"Layout '{layout}' not found (panda|diffbot)")
+            raise UsageError(f"Layout '{layout}' not found (panda|diffbot|nav2)")
         dest = Path.home() / ".rosmac" / "layouts" / f"{layout}.json"
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_text(src.read_text())
