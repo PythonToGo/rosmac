@@ -22,10 +22,15 @@
 Nav2는 이미 기본 브리지로 MoveIt과 동등하게 동작한다. 유일하게 남는 1급화 갭은
 **맥측 msg 자동 설치(구 S3)** 하나이며, 아래 잔여 항목으로 축소한다.
 
-### 잔여 (E.20에서 살아남은 유일 항목)
+### 잔여 (E.20에서 살아남은 유일 항목) — ✅ 완료 (2026-07-12)
 - **맥측 msg 의존 자동 설치**: 프리셋 `mac_env_pkgs` 필드 + `rosmac sim`이 맥
-  conda env에 nav2_msgs 등 보장(`ensure_apt`의 맥판, 멱등). goal "server not
-  available" 침묵 실패 제거. MoveIt(moveit_msgs)도 수혜. (중×소, ~1.5시간)
+  conda env에 nav2_msgs 등 보장(멱등). goal "server not available" 침묵 실패 제거.
+  MoveIt(moveit_msgs)도 동일 필드로 커버 가능.
+- **구현**: `deps.ensure_installed(cfg, pkgs)`(기존 installed_packages/install_missing
+  재사용), cli sim에서 호출. nav2-diffbot.yaml `mac_env_pkgs=[ros-humble-nav2-msgs]`.
+  유닛 2개(설치·멱등). **E2E**: nav2-msgs 제거 → `rosmac sim nav2-diffbot`이
+  자동 설치("✓ Mac env packages installed") → READY. 96 tests, ruff/mypy clean.
+- **이로써 E.20 종료** — 1급화 갭 전부 해소(스코핑은 애초에 불필요, S0 참조).
 
 ---
 

@@ -309,7 +309,7 @@
   evidence/에 기록 [ ] E.5-4 본문에 결과 1줄 반영 (경로 유효/보강 필요)
 - **가치×난이도**: 중×소 (~1시간, 네트워크만 필요)
 
-## E.20 대형 스택 1급화 — ✅ S0에서 전제 붕괴, 대부분 폐기 (2026-07-12)
+## E.20 대형 스택 1급화 — ✅ 완료 (S0에서 전제 붕괴 + 잔여 msg 자동설치, 2026-07-12)
 
 - **S0 게이트 결과**: "대형 스택은 스코핑이 전제"라는 전제가 **실측으로 반증됨**.
   무스코프 브리지가 nav2 풀스택을 정상 라우팅(맥 goal 3/3). N2의 실패는 엔티티
@@ -317,9 +317,10 @@
   세션 리셋으로 해결(E.17에 반영). **S1~S5(스코프 번들·BYO 등) 불필요.**
   상세: [e20-scope-generalization.md](e20-scope-generalization.md) S0 결과.
 - **결론**: Nav2는 이미 기본 브리지로 MoveIt과 동등하게 1급. 스코핑 일반화 무의미.
-- **잔여 (유일 항목)**: **맥측 msg 자동 설치** — 프리셋 `mac_env_pkgs` + `rosmac
-  sim`이 맥 env에 nav2_msgs 등 보장(멱등). goal "server not available" 침묵 실패
-  제거, MoveIt(moveit_msgs)도 수혜. (중×소, ~1.5시간)
+- **맥측 msg 자동 설치 ✅**: 프리셋 `mac_env_pkgs` + `rosmac sim`이 맥 env에
+  nav2_msgs 등 보장(멱등, `deps.ensure_installed`). goal "server not available"
+  침묵 실패 제거, MoveIt(moveit_msgs)도 커버. E2E: 제거 후 sim 자동 설치→READY.
+- **E.20 종료** — Nav2 1급화 갭 전부 해소.
 
 ## 백로그 (미등록 관찰 — 요구 발생 시)
 
