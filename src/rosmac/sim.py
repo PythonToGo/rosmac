@@ -11,7 +11,7 @@ from pathlib import Path
 import yaml
 from pydantic import BaseModel
 
-from rosmac import conda, lima
+from rosmac import bridge, conda, lima
 from rosmac.config import Config
 from rosmac.errors import RosmacError
 
@@ -33,6 +33,9 @@ class Preset(BaseModel):
     name: str
     description: str = ""
     vm_apt: list[str] = []
+    # 맥 conda env에 보장할 패키지 (msg 등) — 맥에서 액션 goal을 보내는 데 필요.
+    # vm_apt의 맥판. 없으면 goal이 조용히 "server not available"로 실패 (E.20).
+    mac_env_pkgs: list[str] = []
     vm_env: dict[str, str] = {}
     launch: Launch
     foxglove_layout: str | None = None
@@ -118,6 +121,28 @@ def _push_preset_assets(cfg: Config, preset: Preset) -> None:
             )
 
 
+def _reset_mac_bridge(cfg: Config) -> None:
+    """VM 브리지 재기동 후 맥 브리지의 낡은 라우트를 재기동으로 정리 (N2 실측 플로우)."""
+    if bridge.is_running():
+        bridge.stop()
+    bridge.start(cfg)
+
+
+def _reset_bridge_session(cfg: Config, progress=None) -> None:
+    """sim 스택 시작 전에 양측 브리지 세션을 리셋 (KI-17/KI-30 진짜 해법 — S0 실측).
+
+    스택을 재기동해도 VM 브리지는 죽은 스택들의 라우트를 누적해, 새 스택의 액션
+    하위 서비스 디스커버리가 맥에서 오염돼 `wait_for_server`가 실패한다(0/6).
+    브리지를 리셋하면 신선한 라우트로 동일 스택이 4/4 성공. `rosmac up`의 KI-17
+    방지와 동일 패턴. (스코핑은 불필요 — N2/N3에서 통한 건 스코프 적용이 브리지를
+    재시작한 부수효과였음.)
+    """
+    lima.shell(cfg.vm.name, "sudo systemctl restart zenoh-bridge", timeout=30)
+    _reset_mac_bridge(cfg)
+    if progress:
+        progress("✓ bridge session reset (KI-17 — fresh routes for new stack)")
+
+
 def start(cfg: Config, preset: Preset, progress=None) -> None:
     """tmux 세션으로 launch.cmd 실행. 이미 세션이 있으면 RuntimeError (R6 패턴)."""
     if session_alive(cfg):
@@ -125,6 +150,8 @@ def start(cfg: Config, preset: Preset, progress=None) -> None:
             f"tmux session '{SESSION}' already exists — use rosmac sim status/stop or --attach"
         )
     _push_preset_assets(cfg, preset)
+    # 새 스택을 띄우기 전 브리지 세션 리셋 — 이전 스택의 라우트 잔재 제거 (KI-17/KI-30)
+    _reset_bridge_session(cfg, progress=progress)
     env_exports = " ".join(
         f"{k}={v}"
         for k, v in {
@@ -170,7 +197,7 @@ def wait_healthy(cfg: Config, preset: Preset, progress=None) -> None:
             time.sleep(2)
 
 
-def stop(cfg: Config) -> bool:
+def stop(cfg: Config, progress=None) -> bool:
     alive = session_alive(cfg)
     if alive:
         lima.shell(cfg.vm.name, f"tmux kill-session -t {SESSION}", timeout=30)

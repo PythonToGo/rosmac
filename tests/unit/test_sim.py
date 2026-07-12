@@ -24,3 +24,14 @@ def test_user_preset_overrides(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) 
     (tmp_path / "panda-moveit.yaml").write_text("name: panda-moveit\nlaunch: {cmd: echo custom}\n")
     p = sim.load_preset("panda-moveit")
     assert p.launch.cmd == "echo custom"
+
+
+def test_nav2_preset_loads_unscoped() -> None:
+    # nav2-diffbot은 무스코프 — 브리지 리셋(KI-17/KI-30 정정, sim 시작 시)이 진짜 해법
+    p = sim.load_preset("nav2-diffbot")
+    assert p.name == "nav2-diffbot"
+    assert "ros-humble-navigation2" in p.vm_apt
+    assert not hasattr(p, "bridge_allow")  # 스코핑 메커니즘 제거됨
+    assert p.health_topics[0].name == "/scan"
+    # 맥에서 goal 보내는 데 필요한 msg — sim이 맥 env에 자동 설치 (E.20)
+    assert "ros-humble-nav2-msgs" in p.mac_env_pkgs

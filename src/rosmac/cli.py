@@ -197,7 +197,7 @@ def _start_viz(cfg: Config) -> None:
 
 @app.command()
 def viz(
-    layout: str | None = typer.Option(None, "--layout", help="Preset layout name (panda|diffbot)"),
+    layout: str | None = typer.Option(None, "--layout", help="Preset layout name (panda|diffbot|nav2)"),
 ) -> None:
     """Connect Foxglove visualization (start VM foxglove_bridge + open app)."""
     cfg = load()
@@ -211,7 +211,7 @@ def viz(
 
         src = resources.files("rosmac") / "assets" / "layouts" / f"{layout}.json"
         if not src.is_file():
-            raise UsageError(f"Layout '{layout}' not found (panda|diffbot)")
+            raise UsageError(f"Layout '{layout}' not found (panda|diffbot|nav2)")
         dest = Path.home() / ".rosmac" / "layouts" / f"{layout}.json"
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_text(src.read_text())
@@ -643,6 +643,12 @@ def sim(
     installed = sim_mod.ensure_apt(cfg, preset.vm_apt, progress=lambda m: console.print(f"  {m}"))
     if installed:
         console.print(f"✓ VM packages installed: {', '.join(installed)}")
+    # 맥 env msg 의존 (맥에서 액션 goal 보내는 데 필요 — 없으면 goal 침묵 실패, E.20)
+    mac_pkgs = depsmod.ensure_installed(
+        cfg, preset.mac_env_pkgs, progress=lambda m: console.print(f"  {m}")
+    )
+    if mac_pkgs:
+        console.print(f"✓ Mac env packages installed: {', '.join(mac_pkgs)}")
     sim_mod.start(cfg, preset)
     console.print(f"✓ tmux session '{sim_mod.SESSION}' started — logs: rosmac sim --attach")
     with console.status("[cyan]waiting for health topics…[/]"):

@@ -24,7 +24,7 @@ rosmac은 문제와 싸우는 대신 문제를 분할한다:
 설치 스크립트 이상인 이유:
 
 - **`rosmac doctor`** — 알려진 고장 모드 16항 점검, `--fix`로 안전한 항목 자동 수리
-  (hung ros2 데몬, 고아 브리지, 깨진 lima 포트 규칙). **실측 함정 29개 DB** 위에서
+  (hung ros2 데몬, 고아 브리지, 깨진 lima 포트 규칙). **실측 함정 30개 DB** 위에서
   만들어졌다.
 - **`rosmac deps`** — 워크스페이스 `package.xml` 의존성을 RoboStack conda 패키지로
   매핑 (conda를 아는 rosdep 대체).
@@ -73,9 +73,15 @@ rosmac shell -c 'ros2 topic echo /chatter --once'   # 맥에서 VM 토픽 수신
 ```bash
 rosmac sim panda-moveit     # MoveIt(Panda 팔) — 맥에서 /move_action 사용 가능
 rosmac sim gazebo-diffbot   # Gazebo Fortress headless + 전방 카메라
+rosmac sim nav2-diffbot     # Nav2 이동로봇 내비게이션 — 맥에서 /navigate_to_pose
 rosmac sim list / status / stop / --attach
-rosmac viz --layout panda   # Foxglove 연결 (+레이아웃 안내)
+rosmac viz --layout nav2    # Foxglove 연결 (+레이아웃 안내)
 ```
+
+`nav2-diffbot`은 벽 아레나에서 라이다 diffbot에 SLAM+Nav2를 돌린다. `/cmd_vel`로
+주행해 지도를 만든 뒤 맥에서 `/navigate_to_pose` goal을 보낸다. Nav2 풀스택도
+기본 브리지로 동작한다 — `rosmac sim`이 시작 시 브리지 세션을 리셋해 새 스택이
+신선한 라우트를 받게 한다(KI-17).
 
 맥 네이티브 개발 루프와 예제(pick_demo)는 [docs/workflow.ko.md](docs/workflow.ko.md) 참조.
 
@@ -119,6 +125,7 @@ exit code 규약:
 
 - 브리지 대역폭: 10.3 MB/s (1MB@10Hz 드랍 없음)
 - MoveGroup 액션 왕복: 플래닝+실행 goal 3연속 SUCCEEDED
+- 맥에서 Nav2 `/navigate_to_pose`: goal 3연속 SUCCEEDED (기본 브리지)
 - Gazebo Fortress headless RTF: 물리만 1.00 / 카메라(320x240@15Hz) 0.99
 - 카메라 스트림: VM 14.4fps → 맥 14.4fps (무손실)
 
@@ -130,13 +137,17 @@ exit code 규약:
 |---|---|---|
 | Topics | ✅ | 양방향 pub/sub; 10.3 MB/s @ 10Hz 무손실. 새 토픽의 첫 구독은 라우트 생성에 몇 초 소요 |
 | Services | ✅ | 핀된 CycloneDDS RMW 필수 — Fast DDS는 디스커버리는 되는데 모든 호출이 타임아웃 (KI-16; RMW를 핀한 이유) |
-| Actions | ✅ | MoveGroup 플래닝+실행 goal 3/3 SUCCEEDED |
+| Actions | ✅ | MoveGroup 플래닝+실행 goal 3/3 SUCCEEDED; 맥에서 Nav2 `/navigate_to_pose` 3/3 SUCCEEDED (풀스택, 기본 브리지) |
 | Parameters | ⚠️ 부분 | 원시 파라미터 서비스(`get/set_parameters` 등)는 `ros2 service call`로 동작; `ros2 param` CLI는 **불가** — 브리지가 원격 노드를 노드 그래프에 미러링하지 않아 `ros2 node list`에 VM 노드가 안 보임 |
 | rosbag2 | ✅ | 맥에서 VM 토픽 녹화(무손실)·VM 내 녹화·양쪽 어디서 재생해도 반대편 도달. VM bag 회수는 `limactl cp -r rosmac:/path ~/dest` (D16) — [docs/workflow.ko.md](docs/workflow.ko.md) 참조 |
 | Robot link (LAN) | 🧪 beta | `robot:` 설정 → 맥 브리지가 로봇 쪽 브리지로 TCP 엔드포인트 추가 (D15). 대리 로봇(제2 VM) 실측: 토픽/서비스 10 MB/s @ 10Hz 무손실, 서비스 RTT < 1 ms, 로봇 재시작 자동 재접속. **대리 로봇 검증** — 실기/WiFi 수치는 대기 ([E.15 R5](docs/plan/e15-real-robot.md)). 설치: [docs/robot-setup.ko.md](docs/robot-setup.ko.md). **신뢰 LAN 전용** — 평문 TCP, 인증/TLS 없음 |
 
 구조적 한계 (버그가 아니라 설계):
 
+- **낡은 브리지가 새 스택을 조용히 깨뜨린다 (KI-17).** 브리지를 켜둔 채 VM 시뮬
+  스택을 재기동하면 죽은 스택의 라우트가 남아, 새 스택의 액션 하위 서비스가 맥에서
+  디스커버리 안 된다(실측: 0/6 → 브리지 재시작 후 4/4). `rosmac sim`은 시작 시
+  브리지 세션을 리셋해 이를 방지 — Nav2 풀스택도 기본 브리지로 동작한다(스코핑 불필요).
 - **맥↔VM 모든 메시지가 브리지 홉 하나를 건넌다.** 개발·teleop·시각화엔 충분;
   고주파 폐루프 제어는 VM 안(또는 로봇 위)에서 완결할 것.
 - **UDP ignore 규칙이 없는 *다른* lima VM이 맥 로컬 DDS 디스커버리를 조용히
@@ -149,7 +160,7 @@ exit code 규약:
 
 결정 로그와 리스크 레지스터: [PLAN.md](PLAN.md).
 막히면 [docs/plan/known-issues.md](docs/plan/known-issues.md) — 이 도구의 토대인
-실측 함정 29개 DB.
+실측 함정 30개 DB.
 
 ## 라이선스
 

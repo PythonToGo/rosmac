@@ -52,6 +52,27 @@ The debugger attaches like plain Python: inside `rosmac shell`, run
 `python -m pdb $(which pick_demo)`, or point your IDE interpreter at
 `~/micromamba/envs/ros_env/bin/python`.
 
+### Mobile navigation (`rosmac sim nav2-diffbot`)
+
+```bash
+rosmac sim nav2-diffbot         # Gazebo diffbot + lidar + SLAM + Nav2, wait until READY
+rosmac viz --layout nav2        # Foxglove: map + laser scan + planned path
+
+rosmac shell                    # from the Mac:
+# drive a lap with /cmd_vel to let SLAM build the map, then:
+ros2 action send_goal /navigate_to_pose nav2_msgs/action/NavigateToPose \
+  "{pose: {header: {frame_id: map}, pose: {position: {x: 1.5, y: 1.0}, orientation: {w: 1.0}}}}"
+```
+
+The goal crosses the bridge to the VM's `/navigate_to_pose`; the robot plans and
+drives, and `/map` · `/plan` · `/scan` stream back to the Mac for Foxglove. The
+full Nav2 stack (155 services, 12 actions) works over the default bridge — no
+scoping. `rosmac sim` resets the bridge session on start so the new stack gets
+fresh routes; without that, routes left over from a prior stack silently break
+Mac-side action discovery (KI-17). Sending goals from the Mac needs
+`ros-humble-nav2-msgs` in the Mac env — `rosmac sim` installs it automatically
+(the preset's `mac_env_pkgs`), so no manual step.
+
 Limits of `rosmac deps`: it only sees dependencies **declared in package.xml**.
 Executables the code uses without declaring them (launch's `FindExecutable`
 etc., the KI-26 case) slip through — that class of problem belongs to the
