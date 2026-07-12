@@ -33,3 +33,5 @@ def test_nav2_preset_loads_unscoped() -> None:
     assert "ros-humble-navigation2" in p.vm_apt
     assert not hasattr(p, "bridge_allow")  # 스코핑 메커니즘 제거됨
     assert p.health_topics[0].name == "/scan"
+    # 맥에서 goal 보내는 데 필요한 msg — sim이 맥 env에 자동 설치 (E.20)
+    assert "ros-humble-nav2-msgs" in p.mac_env_pkgs
