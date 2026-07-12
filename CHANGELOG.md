@@ -39,7 +39,10 @@
   + Nav2(풀스택, 기본 브리지), 맥에서 `/navigate_to_pose` goal 3/3 SUCCEEDED.
   `rosmac sim`이 시작 시 브리지 세션을 리셋해 이전 스택 라우트 잔재로 인한 액션
   디스커버리 실패를 방지(KI-17). launch 신뢰성 stagger 타이밍. `viz --layout nav2`.
-  맥측 nav2_msgs는 수동 설치 필요(백로그). (E.17)
+- **프리셋 `mac_env_pkgs`**: 맥에서 액션 goal을 보내는 데 필요한 msg 패키지를
+  `rosmac sim`이 맥 conda env에 자동 설치(멱등, `deps.ensure_installed`). nav2는
+  nav2_msgs — 없으면 goal이 "server not available"로 조용히 실패하던 함정 제거.
+  (E.17/E.20)
 
 ### 실측 검증 (Phase 0/2/4 게이트)
 - 브리지 대역폭 10.3 MB/s (1MB@10Hz 무손실), MoveGroup 액션 왕복 3연속 SUCCEEDED

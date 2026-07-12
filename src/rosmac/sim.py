@@ -33,6 +33,9 @@ class Preset(BaseModel):
     name: str
     description: str = ""
     vm_apt: list[str] = []
+    # 맥 conda env에 보장할 패키지 (msg 등) — 맥에서 액션 goal을 보내는 데 필요.
+    # vm_apt의 맥판. 없으면 goal이 조용히 "server not available"로 실패 (E.20).
+    mac_env_pkgs: list[str] = []
     vm_env: dict[str, str] = {}
     launch: Launch
     foxglove_layout: str | None = None

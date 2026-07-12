@@ -70,8 +70,8 @@ full Nav2 stack (155 services, 12 actions) works over the default bridge — no
 scoping. `rosmac sim` resets the bridge session on start so the new stack gets
 fresh routes; without that, routes left over from a prior stack silently break
 Mac-side action discovery (KI-17). Sending goals from the Mac needs
-`ros-humble-nav2-msgs` in the Mac env
-(`micromamba install -c robostack-humble ros-humble-nav2-msgs`).
+`ros-humble-nav2-msgs` in the Mac env — `rosmac sim` installs it automatically
+(the preset's `mac_env_pkgs`), so no manual step.
 
 Limits of `rosmac deps`: it only sees dependencies **declared in package.xml**.
 Executables the code uses without declaring them (launch's `FindExecutable`

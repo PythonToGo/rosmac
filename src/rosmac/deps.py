@@ -162,3 +162,21 @@ def install_missing(cfg: Config, pkgs: list[str], timeout: int = 1800) -> None:
         ],
         timeout=timeout,
     )
+
+
+def ensure_installed(cfg: Config, pkgs: list[str], progress=None) -> list[str]:
+    """맥 env에 미설치 패키지만 설치, 설치한 목록 반환 (멱등 — vm_apt의 맥판).
+
+    프리셋 mac_env_pkgs용: 맥에서 액션 goal을 보내려면 msg 패키지(nav2_msgs 등)가
+    맥 env에도 필요한데, 없으면 goal이 조용히 "server not available"로 실패한다
+    (E.20 — health/scan은 통과하는데 goal만 실패해 브리지 문제로 오인하기 쉬움).
+    """
+    if not pkgs:
+        return []
+    missing = [p for p in pkgs if p not in installed_packages(cfg)]
+    if not missing:
+        return []
+    if progress:
+        progress(f"conda install (mac env): {', '.join(missing)}")
+    install_missing(cfg, missing, timeout=600)
+    return missing

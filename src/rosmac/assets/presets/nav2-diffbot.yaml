@@ -3,6 +3,10 @@ description: "Nav2 이동로봇 내비게이션 (Gazebo diffbot + gpu_lidar + SL
 vm_apt:
   - ros-humble-navigation2
   - ros-humble-nav2-bringup
+# 맥에서 /navigate_to_pose goal을 보내려면 맥 conda env에도 msg 패키지가 필요
+# (없으면 goal이 "server not available"로 조용히 실패 — E.20).
+mac_env_pkgs:
+  - ros-humble-nav2-msgs
 vm_env: {}
 # 무스코프 — nav2 풀스택도 기본 브리지로 맥에서 정상 동작한다(S0 실측). 이전에
 # 실패로 본 것은 스택 재기동 시 브리지 라우트 잔재(KI-17) 때문이며, `rosmac sim`이
