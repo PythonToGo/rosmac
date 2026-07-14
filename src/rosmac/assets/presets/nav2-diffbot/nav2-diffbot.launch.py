@@ -32,9 +32,7 @@ def generate_launch_description():
     pkg_nav2 = get_package_share_directory("nav2_bringup")
 
     gz_sim = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(pkg_ros_gz_sim, "launch", "gz_sim.launch.py")
-        ),
+        PythonLaunchDescriptionSource(os.path.join(pkg_ros_gz_sim, "launch", "gz_sim.launch.py")),
         launch_arguments={"gz_args": f"-s --headless-rendering -r {WORLD}"}.items(),
     )
 
@@ -54,9 +52,7 @@ def generate_launch_description():
             ("/model/vehicle_blue/odometry", "/odom"),
             ("/model/vehicle_blue/tf", "/tf"),
         ],
-        parameters=[
-            {"qos_overrides./model/vehicle_blue.subscriber.reliability": "reliable"}
-        ],
+        parameters=[{"qos_overrides./model/vehicle_blue.subscriber.reliability": "reliable"}],
         output="screen",
     )
 
@@ -64,16 +60,20 @@ def generate_launch_description():
         package="tf2_ros",
         executable="static_transform_publisher",
         arguments=[
-            "--x", "0.648573", "--z", "0.675",
-            "--frame-id", "base_link", "--child-frame-id", "lidar_link",
+            "--x",
+            "0.648573",
+            "--z",
+            "0.675",
+            "--frame-id",
+            "base_link",
+            "--child-frame-id",
+            "lidar_link",
         ],
         parameters=[{"use_sim_time": True}],
     )
 
     slam = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(pkg_slam, "launch", "online_async_launch.py")
-        ),
+        PythonLaunchDescriptionSource(os.path.join(pkg_slam, "launch", "online_async_launch.py")),
         launch_arguments={
             "use_sim_time": "true",
             "slam_params_file": SLAM_PARAMS,
@@ -81,9 +81,7 @@ def generate_launch_description():
     )
 
     nav2 = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(pkg_nav2, "launch", "navigation_launch.py")
-        ),
+        PythonLaunchDescriptionSource(os.path.join(pkg_nav2, "launch", "navigation_launch.py")),
         launch_arguments={"use_sim_time": "true"}.items(),
     )
 
