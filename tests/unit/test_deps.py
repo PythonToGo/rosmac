@@ -27,7 +27,9 @@ def test_ensure_installed_only_missing(monkeypatch) -> None:
     cfg = Config()
     monkeypatch.setattr(deps, "installed_packages", lambda _cfg: {"ros-humble-nav2-msgs"})
     called: list[list[str]] = []
-    monkeypatch.setattr(deps, "install_missing", lambda _cfg, pkgs, timeout=1800: called.append(pkgs))
+    monkeypatch.setattr(
+        deps, "install_missing", lambda _cfg, pkgs, timeout=1800: called.append(pkgs)
+    )
     # 이미 있는 것 + 없는 것 → 없는 것만 설치, 반환
     out = deps.ensure_installed(cfg, ["ros-humble-nav2-msgs", "ros-humble-moveit-msgs"])
     assert out == ["ros-humble-moveit-msgs"]
@@ -38,7 +40,9 @@ def test_ensure_installed_noop_when_all_present(monkeypatch) -> None:
     cfg = Config()
     monkeypatch.setattr(deps, "installed_packages", lambda _cfg: {"ros-humble-nav2-msgs"})
     called: list[list[str]] = []
-    monkeypatch.setattr(deps, "install_missing", lambda _cfg, pkgs, timeout=1800: called.append(pkgs))
+    monkeypatch.setattr(
+        deps, "install_missing", lambda _cfg, pkgs, timeout=1800: called.append(pkgs)
+    )
     assert deps.ensure_installed(cfg, ["ros-humble-nav2-msgs"]) == []
     assert deps.ensure_installed(cfg, []) == []
     assert called == []  # 전부 있으면 micromamba install 호출 안 함 (멱등)

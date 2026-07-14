@@ -197,7 +197,9 @@ def _start_viz(cfg: Config) -> None:
 
 @app.command()
 def viz(
-    layout: str | None = typer.Option(None, "--layout", help="Preset layout name (panda|diffbot|nav2)"),
+    layout: str | None = typer.Option(
+        None, "--layout", help="Preset layout name (panda|diffbot|nav2)"
+    ),
 ) -> None:
     """Connect Foxglove visualization (start VM foxglove_bridge + open app)."""
     cfg = load()
