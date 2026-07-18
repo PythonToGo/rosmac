@@ -68,8 +68,13 @@
    Jazzy 2.12 LTS('Latest Stable - Recommended', moveit.ai 2026-07 확인).
    **경로는 존재**: RoboStack이 jazzy/kilted/
    lyrical 채널을 osx-arm64 포함 운영(kilted 채널 821개 패키지 직접 계수,
-   MoveIt 2.14·Nav2 풀스택·cyclonedds 포함, 2026-07-10 — 단 실제 전환 후보인
-   jazzy/lyrical 채널의 osx-arm64 커버리지는 미계수, E.19에서 실측). **제약**:
+   MoveIt 2.14·Nav2 풀스택·cyclonedds 포함, 2026-07-10). **E.19 실측
+   (2026-07-18, [evidence](evidence/e19-robostack-jazzy-lyrical-osx-arm64-2026-07-18.md))**:
+   jazzy osx-arm64 853pkg — 핵심 전부 존재(MoveIt 2.12.4, Nav2 1.3.12 풀스택
+   35개, slam-toolbox, cyclonedds, foxglove-bridge, ros-gz@Harmonic) →
+   **경로 유효**. lyrical 728pkg — MoveIt 2.14.1 등 코어는 있으나 **Nav2 스택
+   채널 전체 부재**(osx·linux 공통) → **직행은 현재 불가**, Nav2 유입 시 재평가.
+   lyrical 채널은 prefix.dev 전용(anaconda.org 403). **제약**:
    배포판 혼합은
    공식 미지원 + 실사고(Humble 구독자×Jazzy 발행자 → fastrtps OOM;
    rmw_zenoh도 Humble↔Jazzy "not planned" 거절) → 맥·VM·로봇 **삼면 동시 전환**
@@ -308,7 +313,13 @@
   (E.5-4 "재검토 트리거: MoveIt Humble 브랜치 실질 방치 징후")
 - **가치×난이도**: 중×소 (근거 문서의 신선도·추적성 — JOSS/D13 트랙 자산)
 
-## E.19 RoboStack jazzy/lyrical osx-arm64 커버리지 실측 (E.5-4 스파이크 선행 조사)
+## E.19 RoboStack jazzy/lyrical osx-arm64 커버리지 실측 — ✅ 완료 (2026-07-18)
+
+> **결과 요약**: jazzy 853pkg 핵심 전부 존재 → 경로 유효. lyrical 728pkg —
+> Nav2 스택 채널 전체 부재(osx·linux 공통) → 직행 현재 불가. 상세:
+> [evidence/e19-robostack-jazzy-lyrical-osx-arm64-2026-07-18.md](evidence/e19-robostack-jazzy-lyrical-osx-arm64-2026-07-18.md).
+> 방법 변경: `mamba search` 대신 repodata.json 직접 계수(환경 생성 불필요,
+> 재현 커맨드는 evidence에 — 규칙 8에 따라 절차 문서 정정 대신 사유 기록).
 
 - **배경 (딥리서치 2026-07-10, caveat 5)**: E.5-4에서 kilted 채널은 821개 패키지
   직접 계수(MoveIt 2.14·Nav2 풀스택 포함)했지만, 실제 전환 후보인 **jazzy/lyrical
@@ -322,8 +333,9 @@
   산출: 배포판×패키지 커버리지 표 → E.5-4 스파이크의 go/no-go 입력.
   lyrical 채널이 아직 얇으면(출시 2026-05 직후) 그 사실 자체가 "Jazzy 경유 vs
   Lyrical 직행" 판단 근거.
-- **AC**: [ ] 커버리지 표(jazzy·lyrical × 핵심 패키지, osx-arm64 기준)를
-  evidence/에 기록 [ ] E.5-4 본문에 결과 1줄 반영 (경로 유효/보강 필요)
+- **AC**: [x] 커버리지 표(jazzy·lyrical × 핵심 패키지, osx-arm64 기준)를
+  evidence/에 기록 (2026-07-18) [x] E.5-4 본문에 결과 반영
+  (jazzy 경로 유효 / lyrical 직행 불가 — Nav2 부재)
 - **가치×난이도**: 중×소 (~1시간, 네트워크만 필요)
 
 ## E.20 대형 스택 1급화 — ✅ 완료 (S0에서 전제 붕괴 + 잔여 msg 자동설치, 2026-07-12)
