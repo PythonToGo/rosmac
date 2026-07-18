@@ -57,17 +57,30 @@
 3. **교육/팀 온보딩 모드** — "강의실 M-시리즈 30대를 15분 안에 동일 환경으로"
    + `rosmac report`로 조교 원격 트리아지. The Construct(€40/월)·Codespaces가
    못 하는 로컬 하드웨어 시나리오.
-4. **배포판 전환 스파이크 (Humble → Jazzy/Lyrical)** — 딥리서치 2026-07-10 근거:
+4. **배포판 전환 스파이크 (Humble → Jazzy/Lyrical)** — 딥리서치 2026-07-10 근거,
+   **검증 확정(37개 주장 = 35 확정 / 2 반박 / 0 미검증)** — 전문:
+   [evidence/deepresearch-2026-07-10-frameworks-eol.md](evidence/deepresearch-2026-07-10-frameworks-eol.md).
    Humble EOL 2027-05. 후보는 Jazzy(LTS, EOL 2029-05, Ubuntu 24.04) 또는
    Lyrical Luth(LTS 2026-05 출시, ~2031, Ubuntu 26.04) — 전환 시점이 2027년에
-   가까울수록 Lyrical 직행이 유리. **경로는 존재**: RoboStack이 jazzy/kilted/
+   가까울수록 Lyrical 직행이 유리. Kilted는 non-LTS(EOL 2026-11¹)라 후보 아님.
+   **MoveIt 배포판 트랙**: Humble 2.5 LTS는 'Maintained'(버그 백포트만 —
+   문서에 "not being developed further" 배너), 공식 권장 마이그레이션 대상은
+   Jazzy 2.12 LTS('Latest Stable - Recommended', moveit.ai 2026-07 확인).
+   **경로는 존재**: RoboStack이 jazzy/kilted/
    lyrical 채널을 osx-arm64 포함 운영(kilted 채널 821개 패키지 직접 계수,
-   MoveIt 2.14·Nav2 풀스택·cyclonedds 포함, 2026-07-10). **제약**: 배포판 혼합은
+   MoveIt 2.14·Nav2 풀스택·cyclonedds 포함, 2026-07-10 — 단 실제 전환 후보인
+   jazzy/lyrical 채널의 osx-arm64 커버리지는 미계수, E.19에서 실측). **제약**:
+   배포판 혼합은
    공식 미지원 + 실사고(Humble 구독자×Jazzy 발행자 → fastrtps OOM;
    rmw_zenoh도 Humble↔Jazzy "not planned" 거절) → 맥·VM·로봇 **삼면 동시 전환**
    필수, VM은 Ubuntu 24.04/26.04 재생성(E.9 `--recreate-vm` 연계). RoboStack
    Jazzy의 RViz2 osx-arm64 크래시 사례(2025-02) 있으나 rosmac은 Foxglove
    1급(D4)이라 노출 작음. **권장 시점: 2026 하반기~2027 초** (v0.1 공개 이후).
+   **재검토 트리거(시점 앞당김)**: MoveIt Humble 브랜치의 실질 방치 징후
+   (버그 백포트 중단, 크리티컬 이슈 방치) 관찰 시.
+
+   ¹ Kilted EOL 표기 불일치: REP-2000은 2026-11, endoflife.date는 2026-12
+   (1개월 차 — evidence 문서 caveat (3)).
 
 ## E.6 LICENSE 저작권자 표기 확인 — ✅ 완료 (2026-07-08)
 
@@ -252,7 +265,8 @@
 
 - **배경 (딥리서치 2026-07-10)**: ROS 2 4대 프레임워크(Nav2/MoveIt/ros2_control/
   micro-ROS) 중 rosmac은 이동로봇 내비게이션(Nav2)이 통째로 공백. MoveIt은 팔
-  전용 플랫폼(내비게이션 아님 — 메인테이너 명시, 6-0 검증)이라 대체 불가.
+  전용 플랫폼(내비게이션 아님 — 메인테이너 명시, 최종 투표 6-0·5-0 검증,
+  [evidence F4](evidence/deepresearch-2026-07-10-frameworks-eol.md))이라 대체 불가.
   Nav2는 Humble에 정식 존재(apt) → **배포판 전환 없이 추가 가능**.
 - **작업**: **상세 단계별 계획 [e17-nav2.md](e17-nav2.md)** — N0 조합 결정 →
   N1 VM 자가완결 → N2 브리지 경계 → N3 제품화 → N4 문서.
@@ -273,7 +287,7 @@
 - **스파이크 자산 (참고)**: `~/rosmac_spike/nav2/`.
 - **가치×난이도**: 상×중 (도메인 커버리지 공백 해소 + E.15 실로봇 시너지).
 
-## E.18 딥리서치 최종 검증 반영 — 문서 정합 (당장 가능, 문서 작업만)
+## E.18 딥리서치 최종 검증 반영 — 문서 정합 — ✅ 완료 (2026-07-18)
 
 - **배경 (2026-07-10)**: E.5-4/E.17의 근거였던 딥리서치가 네트워크 단절로 중단
   → 저널 복원 후 완료. 최종 판정 **37개 주장 = 35 확정 / 2 반박 / 0 미검증**
@@ -288,7 +302,10 @@
   E.5-4 재검토 조건에 "MoveIt Humble 브랜치 실질 방치 징후" 추가.
   ③ E.17 배경의 "3-0 검증" 문구를 최종 투표(6-0, 5-0)로 갱신 + MoveIt↔Nav2
   공식 통합 패턴(nav2_simple_commander로 MoveIt 웨이포인트 실행) 근거 링크.
-- **AC**: [x] evidence 파일 존재 [ ] E.5-4·E.17 갱신 [ ] 재검토 조건 반영
+- **AC**: [x] evidence 파일 존재 [x] E.5-4·E.17 갱신 (E.5-4 검증 확정 35/2/0
+  + evidence 링크 + Kilted EOL 각주 + MoveIt 트랙; e17-nav2.md 6-0·5-0 +
+  nav2_simple_commander 통합 패턴, 2026-07-18) [x] 재검토 조건 반영
+  (E.5-4 "재검토 트리거: MoveIt Humble 브랜치 실질 방치 징후")
 - **가치×난이도**: 중×소 (근거 문서의 신선도·추적성 — JOSS/D13 트랙 자산)
 
 ## E.19 RoboStack jazzy/lyrical osx-arm64 커버리지 실측 (E.5-4 스파이크 선행 조사)

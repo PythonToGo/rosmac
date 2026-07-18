@@ -9,8 +9,13 @@
 - rosmac의 시뮬 프리셋 2종(panda-moveit, gazebo-diffbot)은 전부 **매니퓰레이션·
   원시 주행** 계열 — ROS 2 4대 프레임워크(Nav2/MoveIt/ros2_control/micro-ROS,
   공식 Related Projects) 중 **이동로봇 내비게이션(Nav2)이 통째로 비어 있다**.
-  MoveIt은 팔 전용 플랫폼이고 내비게이션 대체물이 아님(메인테이너 명시,
-  딥리서치 3-0 검증) — 바퀴 로봇 사용자는 현재 rosmac에서 갈 곳이 없다.
+  MoveIt은 팔 전용 플랫폼이고 내비게이션 대체물이 아님(메인테이너 명시:
+  "not meant to be a replacement for navigation2" — 딥리서치 최종 투표 6-0·5-0,
+  [evidence](evidence/deepresearch-2026-07-10-frameworks-eol.md) F4) —
+  바퀴 로봇 사용자는 현재 rosmac에서 갈 곳이 없다. 두 프레임워크는 경쟁이 아닌
+  상호보완: MoveIt이 생성한 베이스 웨이포인트를 `nav2_simple_commander` API로
+  Nav2에 넘겨 실행하는 공식 통합 패턴이 제시됨(같은 evidence F4 — 모바일
+  매니퓰레이션 확장의 근거).
 - 기술적으로는 **기존 프리셋 패턴의 복제**다: 선언적 YAML(vm_apt 주문형 설치 +
   launch + health_topics + foxglove_layout)이라 신규 커맨드·프로비저닝 변경 없이
   `rosmac sim nav2-diffbot` 하나가 추가되는 형태. D 결정 불필요.
