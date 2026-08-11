@@ -41,7 +41,7 @@ rosmac은 문제와 싸우는 대신 문제를 분할한다:
 | ROS 2 | Humble (양측 rmw_cyclonedds_cpp 고정) | VM: Ubuntu 22.04 arm64 |
 
 버전 정책: [SemVer](https://semver.org/lang/ko/). **0.y.z 동안은 마이너 버전이
-breaking change를 포함할 수 있다.** 변경 이력은 [CHANGELOG.md](CHANGELOG.md).
+breaking change를 포함할 수 있다.** 변경 이력은 [CHANGELOG.ko.md](CHANGELOG.ko.md).
 
 ## 요구 사항
 
