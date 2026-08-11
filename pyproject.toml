@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "rosmac"
-dynamic = ["version"]  # 단일 소스: src/rosmac/__init__.py __version__ (P5.1, D12)
+dynamic = ["version"]  # single source: src/rosmac/__init__.py __version__ (P5.1, D12)
 description = "One-command ROS2 Humble dev environment for Apple Silicon Macs"
 readme = "README.md"
 license = { text = "MIT" }
@@ -36,12 +36,12 @@ Issues = "https://github.com/PythonToGo/rosmac/issues"
 Changelog = "https://github.com/PythonToGo/rosmac/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
-# ruff/mypy는 정확 핀 — 도구 메이저 업이 lint/format/type 기준을 조용히 바꿔
-# CI·로컬이 어긋나는 드리프트 방지 (P5.1 실측 후 P5.4에서 고정 결정)
+# ruff/mypy pinned exactly — a tool major bump silently shifts the lint/format/type
+# baseline and drifts CI apart from local (measured in P5.1, pinned in P5.4)
 dev = ["pytest>=8", "ruff==0.15.20", "mypy==2.2.0", "types-PyYAML"]
 
 [project.scripts]
-rosmac = "rosmac.cli:main"  # exit code 규약·에러 패널의 단일 지점 (P5.2)
+rosmac = "rosmac.cli:main"  # single point for the exit-code contract and error panels (P5.2)
 
 [tool.hatch.version]
 path = "src/rosmac/__init__.py"
@@ -54,7 +54,7 @@ line-length = 100
 src = ["src", "tests"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests/unit"]   # e2e는 명시 실행: pytest tests/e2e -m e2e
+testpaths = ["tests/unit"]   # e2e runs only explicitly: pytest tests/e2e -m e2e
 markers = ["e2e: requires real VM"]
 
 [tool.mypy]

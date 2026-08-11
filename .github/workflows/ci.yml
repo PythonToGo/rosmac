@@ -1,5 +1,5 @@
-# PR/push마다: lint + format + type + unit + 설치 스모크 (P5.4)
-# E2E(VM 필요)는 여기 없음 — e2e-probe.yml 실측 결과에 따라 로컬 전용일 수 있음
+# On every PR/push: lint + format + type + unit + install smoke (P5.4)
+# E2E (needs a VM) is not here — depending on e2e-probe.yml findings it may stay local-only
 name: ci
 on:
   push:
@@ -12,9 +12,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { os: ubuntu-latest, python: "3.11" } # 지원 하한
+          - { os: ubuntu-latest, python: "3.11" } # supported floor
           - { os: ubuntu-latest, python: "3.12" }
-          - { os: macos-14, python: "3.12" } # 실제 타깃 (arm64)
+          - { os: macos-14, python: "3.12" } # the actual target (arm64)
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     steps:

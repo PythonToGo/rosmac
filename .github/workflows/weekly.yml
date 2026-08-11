@@ -1,9 +1,9 @@
-# 주간 드리프트 감시 (R7): 신규 설치가 업스트림 변화(RoboStack 채널, zenoh 릴리스)로
-# 깨지는 걸 사용자보다 먼저 발견한다. 실패 시 이슈 자동 생성 (P5.4)
+# Weekly drift watch (R7): catch fresh installs breaking from upstream changes
+# (RoboStack channel, zenoh releases) before users do. Auto-files an issue on failure (P5.4)
 name: weekly-drift
 on:
   schedule:
-    - cron: "0 3 * * 1" # 매주 월 03:00 UTC
+    - cron: "0 3 * * 1" # Mondays 03:00 UTC
   workflow_dispatch:
     inputs:
       simulate_failure:
@@ -17,8 +17,9 @@ permissions:
 
 jobs:
   robostack-drift:
-    # conda.py ENV_PACKAGES와 동일 목록을 실제 생성 — 솔버 충돌/패키지 소실/다운로드
-    # 깨짐 감지. rclpy import와 xacro 존재(KI-26)는 런타임 드리프트(R2) 신호
+    # Actually creates the same package list as conda.py ENV_PACKAGES — detects
+    # solver conflicts, vanished packages, and broken downloads. rclpy import and
+    # xacro presence (KI-26) are runtime-drift signals (R2)
     runs-on: macos-14
     timeout-minutes: 60
     env:
@@ -38,7 +39,8 @@ jobs:
           micromamba run -n drift-check bash -c "command -v xacro && command -v colcon && command -v ros2"
 
   bridge-artifacts:
-    # config.py에 핀된 버전/sha로 실제 릴리스 자산 다운로드 + 무결성 검증 (양측 타깃)
+    # Downloads the real release assets at the version/sha pinned in config.py
+    # and verifies integrity (both targets)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
