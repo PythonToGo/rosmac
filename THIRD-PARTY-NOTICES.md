@@ -5,9 +5,16 @@ third-party material that is **redistributed in this repository** (and in the
 published wheel), plus components that rosmac downloads or expects the user to
 install at runtime.
 
-> Status: **draft** (Phase 6.3 review, 2026-08-31). Upstream commit pins and full
-> license texts under `LICENSES/` still need to be added before public release —
-> Apache-2.0 §4 requires shipping a copy of the license with a derivative work.
+Full license texts are in [`LICENSES/`](LICENSES/) and ship in the sdist and
+wheel. Apache-2.0 §4(a) requires distributing a copy of the license with a
+derivative work; BSD-3-Clause requires retaining the copyright notice and
+disclaimer.
+
+The upstream files were adapted in July 2026 (rosmac Phase 0–2) from the
+**Humble** release lines of each project, as installed by these packages:
+`ros-humble-ros-gz` / `ros-humble-ros-gz-sim-demos` (Ignition Fortress, gz 6.18.0),
+`ros-humble-moveit` (2.5.x) with `ros-humble-moveit-resources-panda-moveit-config`.
+Where a specific branch is the better reference it is named below.
 
 ---
 
@@ -20,21 +27,21 @@ an attribution header; the summary is here.
 
 | File | Upstream | License | Modification |
 |---|---|---|---|
-| `diffbot.launch.py` | `ros_gz_sim_demos` — [gazebosim/ros_gz](https://github.com/gazebosim/ros_gz) (`diff_drive.launch.py`) | Apache-2.0 | Removed RViz; headless Gazebo server (`-s --headless-rendering`); bundled world; `/cmd_vel`·`/odom`·`/camera` remaps |
-| `diffbot_camera.sdf` | Gazebo Sim `diff_drive.sdf` example — [gazebosim/gz-sim](https://github.com/gazebosim/gz-sim) | Apache-2.0 | Added `ogre2` sensors system + a 320×240@15 Hz front camera on `vehicle_blue` |
+| `diffbot.launch.py` | `ros_gz_sim_demos/launch/diff_drive.launch.py` — [gazebosim/ros_gz](https://github.com/gazebosim/ros_gz), `humble` branch | Apache-2.0 | Removed RViz; headless Gazebo server (`-s --headless-rendering`); bundled world; `/cmd_vel`·`/odom`·`/camera` remaps |
+| `diffbot_camera.sdf` | `examples/worlds/diff_drive.sdf` — [gazebosim/gz-sim](https://github.com/gazebosim/gz-sim), `ign-gazebo6` branch (Fortress) | Apache-2.0 | Added `ogre2` sensors system + a 320×240@15 Hz front camera on `vehicle_blue` |
 
 ### `src/rosmac/assets/presets/nav2-diffbot/`
 
 | File | Upstream | License | Modification |
 |---|---|---|---|
-| `nav2-diffbot.launch.py` | composed from `ros_gz`, `slam_toolbox`, `nav2_bringup` launch APIs | Apache-2.0 | Original composition; calls into the above projects' launch files |
-| `nav2_world.sdf` | Gazebo Sim `diff_drive.sdf` example — [gazebosim/gz-sim](https://github.com/gazebosim/gz-sim) | Apache-2.0 | Walled arena; `gpu_lidar` sensor added; single robot |
+| `nav2-diffbot.launch.py` | composed from `ros_gz` (`humble`), `slam_toolbox` (`humble`), `nav2_bringup` (`humble`) launch APIs | Apache-2.0 | Original composition; calls into the above projects' launch files |
+| `nav2_world.sdf` | `examples/worlds/diff_drive.sdf` — [gazebosim/gz-sim](https://github.com/gazebosim/gz-sim), `ign-gazebo6` branch (Fortress) | Apache-2.0 | Walled arena; `gpu_lidar` sensor added; single robot |
 
 ### `src/rosmac/assets/presets/panda-moveit/`
 
 | File | Upstream | License | Modification |
 |---|---|---|---|
-| `demo_headless.launch.py` | `moveit_resources_panda_moveit_config` `demo.launch.py` + `moveit_configs_utils` — [moveit/moveit_resources](https://github.com/moveit/moveit_resources), [moveit/moveit2](https://github.com/moveit/moveit2) | BSD-3-Clause | Removed the `rviz2` and warehouse (MongoDB) nodes for headless operation; parameters unchanged |
+| `demo_headless.launch.py` | `panda_moveit_config/launch/demo.launch.py` — [moveit/moveit_resources](https://github.com/moveit/moveit_resources), `humble` branch; uses `moveit_configs_utils` from [moveit/moveit2](https://github.com/moveit/moveit2), `humble` branch | BSD-3-Clause | Removed the `rviz2` and warehouse (MongoDB) nodes for headless operation; parameters unchanged |
 
 ### `examples/pick_demo/`
 
@@ -74,10 +81,14 @@ rosmac fetches or expects these; none of their code lives in this repo.
 
 ---
 
-## Remaining before public release
+## Status
 
-- [ ] Add `LICENSES/Apache-2.0.txt` and `LICENSES/BSD-3-Clause.txt` (full texts)
-- [ ] Pin the upstream commit/tag each derived file was adapted from
-- [ ] Include this file in the wheel (`pyproject.toml` — hatch force-include)
-- [ ] Confirm `ros_gz` / `gz-sim` example licenses against the exact files used
-      (spot-checked as Apache-2.0)
+- [x] `LICENSES/Apache-2.0.txt` and `LICENSES/BSD-3-Clause.txt` vendored (verbatim
+      from apache.org and the SPDX license list)
+- [x] Upstream reference pinned to the `humble` / `ign-gazebo6` branch lines and
+      the package versions measured in Phase 0–2 (exact commit SHAs not recorded
+      at adaptation time; branch + version is the reference)
+- [x] This file and `LICENSES/` ship in the sdist and wheel (`pyproject.toml`
+      `license-files`)
+- [x] `ros_gz`, `gz-sim` examples confirmed Apache-2.0; `moveit_resources`,
+      `moveit2` confirmed BSD-3-Clause (upstream `LICENSE` files, 2026-08)

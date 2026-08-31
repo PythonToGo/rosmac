@@ -8,6 +8,9 @@ dynamic = ["version"]  # single source: src/rosmac/__init__.py __version__ (P5.1
 description = "One-command ROS2 Humble dev environment for Apple Silicon Macs"
 readme = "README.md"
 license = { text = "MIT" }
+# MIT for rosmac itself; bundled sim presets are Apache-2.0 / BSD-3-Clause
+# derivatives (see THIRD-PARTY-NOTICES.md) — ship all of it in dist-info/licenses/
+license-files = ["LICENSE", "LICENSES/*.txt", "THIRD-PARTY-NOTICES.md"]
 authors = [{ name = "Taeyoung Kim" }]
 keywords = ["ros2", "robotics", "macos", "apple-silicon", "robostack", "zenoh", "lima"]
 classifiers = [

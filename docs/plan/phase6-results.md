@@ -62,11 +62,16 @@ README.md 갱신: Architecture 절에 why-rosmac·troubleshooting 링크, Contri
   | `presets/panda-moveit/demo_headless.launch.py` | moveit_resources `demo.launch.py` | BSD-3-Clause |
   | `examples/pick_demo/pick_demo.py` | (원작) panda.srdf group_state 수치만 인용 | BSD-3-Clause |
 - **조치 완료**: 위 6개 파일에 SPDX + "adapted from ... , 변경점" attribution 헤더 추가.
-- **남은 의무 (public 전)**:
-  - [ ] `LICENSES/Apache-2.0.txt`·`LICENSES/BSD-3-Clause.txt` 전문 벤더링
-        (Apache-2.0 §4(a) — 파생물 배포 시 라이선스 사본 동봉 필수)
-  - [ ] 각 파일이 파생된 상류 커밋/태그 핀
-  - [ ] `THIRD-PARTY-NOTICES.md`를 wheel에 포함 (`pyproject.toml` force-include)
+- **라이선스 의무 완료 (2026-08-31)**:
+  - [x] `LICENSES/Apache-2.0.txt`(apache.org 원문 11358B)·`LICENSES/BSD-3-Clause.txt`
+        (SPDX 원문 1460B) 벤더링
+  - [x] 상류 참조를 `humble` / `ign-gazebo6`(Fortress) 브랜치 + Phase 0–2 실측
+        패키지 버전(ros-gz ign 6.18.0, moveit 2.5.x)으로 핀. 적응 시점에 커밋 SHA를
+        기록 안 해서 정확한 SHA는 불가 — 브랜치+버전이 레퍼런스
+  - [x] `pyproject.toml` `license-files = ["LICENSE", "LICENSES/*.txt",
+        "THIRD-PARTY-NOTICES.md"]` → sdist·wheel 모두 `dist-info/licenses/`에 포함.
+        `python -m build` + `twine check` + wheel 설치 스모크 통과, METADATA에
+        `License-File:` 4항목 확인
 
 ## P6.5-1 git 이력 민감정보 스캔 — 완료 (2026-08-31), 결정 반영됨
 
