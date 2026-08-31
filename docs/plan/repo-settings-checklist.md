@@ -1,8 +1,26 @@
 # GitHub repo 설정 체크리스트 (Phase 6.3-5 / 6.5)
 
 > rosmac를 공개로 전환하기 전/시/후에 GitHub 웹 UI에서 해야 하는 설정.
-> 코드/파일로 할 수 없는 것만 모았다. 에이전트 실행 불가 — 전부 사용자 직접.
-> 순서: **A. 공개 전 (private 상태에서 미리)** → **B. 공개 전환** → **C. 공개 직후 확인**.
+> 순서: **A. 공개 전** → **B. 공개 전환** → **C. 공개 직후 확인**.
+
+## 진행 상태 (2026-08-31)
+
+- **repo 공개 완료.** `gh api`로 실측 검증:
+  - A1 Actions: allow all / workflow 권한 read-only / PR 자동승인 off ✅
+  - A2 `pypi` env: 존재, deployment policy `v*` **branch + tag 둘 다** ✅ (tag 규칙
+    누락은 릴리스 blocker였는데 추가됨)
+  - A3 Ruleset `main-protection` (active): restrict deletions / block force-push /
+    require PR(0 approval)+conversation resolution / required status checks 3개
+    (`checks (ubuntu-latest, 3.11)`·`(ubuntu-latest, 3.12)`·`(macos-14, 3.12)`)
+    +strict / bypass = 메인테이너 계정 "always" ✅
+  - A4: private vulnerability reporting ✅, Dependabot alerts+security updates ✅,
+    secret scanning + push protection ✅ (공개 후 활성화)
+  - A5: **PyPI** pending trusted publisher 등록 완료 (rosmac / release.yml / env pypi).
+    **TestPyPI는 미등록** — 리허설 하려면 필요
+  - A6: Discussions ✅ / Wiki off ✅ / squash-only ✅ / description+topics 설정 ✅
+- **미완**: `delete_branch_on_merge`는 off (사소). TestPyPI trusted publisher.
+- **건너뜀**: Phase 5.6 프레시 머신 게이트, TestPyPI 리허설 — 공개를 먼저 함
+  (사용자 결정). v0.1.0 태깅 전에 최소 리허설 권장.
 
 ---
 
@@ -18,45 +36,48 @@
 - [ ] "Allow GitHub Actions to create and approve pull requests" — **끔** (불필요)
 
 ### A2. `pypi` Environment (Settings → Environments)
-- [ ] `pypi` 이름으로 Environment 생성 (`release.yml`의 publish job이 참조)
-- [ ] Deployment branches and tags: "Selected" → `v*` 태그만 허용 (권장)
+- [x] `pypi` 이름으로 Environment 생성 (`release.yml`의 publish job이 참조)
+- [x] Deployment branches and tags → "Selected": `v*` 를 **branch 와 tag 둘 다** 추가
+      ⚠️ **tag 규칙이 핵심** — `release.yml`은 `refs/tags/vX.Y.Z`에서 도는데
+      tag 패턴이 없으면 publish job이 environment 정책에 막힌다
 - [ ] (선택) Required reviewers: 본인 추가 — publish 전 수동 승인 게이트
-- [ ] Secrets/vars 추가 **안 함** — Trusted Publishing이라 토큰 불필요
+- [x] Secrets/vars 추가 **안 함** — Trusted Publishing이라 토큰 불필요
 
-### A3. Branch protection — `main` (Settings → Branches → Add rule, 또는 Rulesets)
-- [ ] Require a pull request before merging
-      - 단독 메인테이너라 "Require approvals"는 0 또는 1(본인 승인 불가 주의) —
-        0으로 두고 아래 status check로 게이트
-- [ ] Require status checks to pass before merging:
-      - `ci.yml`의 job 이름은 **`checks`** → 매트릭스 3개
-        (`checks (ubuntu-latest, 3.11)`, `(ubuntu-latest, 3.12)`, `(macos-14, 3.12)`)
-      - [ ] "Require branches to be up to date before merging"
-- [ ] Require conversation resolution before merging
-- [ ] (선택) Require linear history
-- [ ] Do not allow bypassing the above settings — **끔** (본인이 hotfix 가능하게)
-- [ ] Rules applied to: Include administrators — 취향. 끄면 긴급 시 직접 push 가능
+### A3. Ruleset — `main` (Settings → Rules → Rulesets → New branch ruleset)
+새 Rulesets UI 기준. 클래식 "Branch protection"이면 항목명이 다르지만 대응됨.
 
-### A4. Security (Settings → Security / Code security)
-- [ ] **Private vulnerability reporting** — 켬 (`SECURITY.md`·이슈 config가 이 경로를 안내)
-- [ ] Dependabot alerts — 켬
-- [ ] Dependabot security updates — 켬 (dep 표면 작아 부담 없음)
-- [ ] Secret scanning + Push protection — 켬 (public 리포는 무료)
+- [x] Name 임의, **Enforcement status: Active**, Target: `main` (Include by pattern
+      또는 Include default branch)
+- [x] **Bypass list**: 메인테이너 계정 추가, mode "Always" — 직접 push 유지
+      (Ruleset은 사고 방지 + 외부 기여자 게이트로 작동)
+- [x] Restrict deletions ☑ / Block force pushes ☑
+- [x] Require a pull request before merging ☑ — Required approvals **0**
+      (셀프 머지 즉시 가능), Require conversation resolution ☑
+- [x] Require status checks to pass ☑ + Require branches to be up to date ☑
+      → **+ Add checks** 로 3개 등록 (source: GitHub Actions):
+      `checks (ubuntu-latest, 3.11)` · `checks (ubuntu-latest, 3.12)` · `checks (macos-14, 3.12)`
+      ⚠️ `ci.yml` 매트릭스를 바꾸면 이 이름도 바뀜 → Ruleset도 갱신할 것
+- [ ] Require linear history — 끔 (이력에 merge 커밋 있음)
+- [ ] Require signed commits — 끔
+
+### A4. Security (Settings → Code security)
+- [x] **Private vulnerability reporting** — 켬 (`SECURITY.md`·이슈 config가 이 경로를 안내)
+- [x] Dependabot alerts — 켬
+- [x] Dependabot security updates — 켬
+- [x] Secret scanning + Push protection — 켬 (public 리포는 무료)
 - [ ] Code scanning (CodeQL) — v0.1은 **생략** (규모 대비 가치 낮음, v0.2 재검토)
 
-### A5. PyPI / TestPyPI Trusted Publisher (pypi.org / test.pypi.org 웹)
-- [ ] **TestPyPI** (test.pypi.org → Your projects → Publishing, 또는 "pending publisher"):
-      - PyPI Project Name: `rosmac`
-      - Owner: `PythonToGo` / Repository: `rosmac`
-      - Workflow name: `release.yml`
-      - Environment name: `pypi`
-- [ ] **PyPI** (pypi.org) — 동일 값으로 pending publisher 등록
-- [ ] `rosmac` 이름이 아직 비어 있는지 재확인 (2026-07 기준 404 = 미점유)
+### A5. Trusted Publisher
+- [x] **PyPI** (pypi.org → account → Publishing): pending publisher —
+      project `rosmac` / GitHub / `PythonToGo/rosmac` / `release.yml` / env `pypi`
+- [ ] **TestPyPI** (test.pypi.org, 별도 계정) — 동일 값. 리허설 하려면 필요
 
 ### A6. General (Settings → General)
-- [ ] Features: Wikis **끔**, Discussions **켬**, Issues **켬**, Projects 취향
-- [ ] Pull Requests: "Allow squash merging"만 켬 (merge commit/rebase 끔 — 이력 깔끔)
-      - [ ] "Automatically delete head branches" 켬
-- [ ] Pages — **끔** (v0.1은 GitHub 마크다운으로 충분)
+- [x] Features: Wikis **끔**, Discussions **켬**, Issues **켬**
+- [x] Pull Requests: squash-only
+      - [ ] "Automatically delete head branches" 켜기 (아직 off)
+- [x] Pages — 끔
+- [x] Description + Topics (`ros2 ros macos apple-silicon robotics robostack zenoh lima moveit nav2`)
 
 ---
 

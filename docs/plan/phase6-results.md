@@ -75,6 +75,15 @@ README.md 갱신: Architecture 절에 why-rosmac·troubleshooting 링크, Contri
         `python -m build` + `twine check` + wheel 설치 스모크 통과, METADATA에
         `License-File:` 4항목 확인
 
+## P6.3-5 repo 설정 적용 — 완료 (2026-08-31)
+
+`gh api` 실측: repo public / Ruleset `main-protection` active (bypass=메인테이너) /
+`pypi` env `v*` branch+tag / Actions read-only / secret scanning+push protection /
+private vuln reporting / Discussions on / description+topics. 상세는
+`docs/plan/repo-settings-checklist.md` 진행 상태 절.
+미완: TestPyPI trusted publisher, delete-branch-on-merge(사소).
+건너뜀: Phase 5.6 게이트·TestPyPI 리허설 (공개 선행, 사용자 결정).
+
 ## P6.5-1 git 이력 민감정보 스캔 — 완료 (2026-08-31), 결정 반영됨
 
 전체 74커밋 + 전 blob 스캔:
