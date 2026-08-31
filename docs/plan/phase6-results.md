@@ -68,7 +68,7 @@ README.md 갱신: Architecture 절에 why-rosmac·troubleshooting 링크, Contri
   - [ ] 각 파일이 파생된 상류 커밋/태그 핀
   - [ ] `THIRD-PARTY-NOTICES.md`를 wheel에 포함 (`pyproject.toml` force-include)
 
-## P6.5-1 git 이력 민감정보 스캔 — 완료 (2026-08-31), 조치 대기
+## P6.5-1 git 이력 민감정보 스캔 — 완료 (2026-08-31), 결정 반영됨
 
 전체 74커밋 + 전 blob 스캔:
 
@@ -80,19 +80,19 @@ README.md 갱신: Architecture 절에 why-rosmac·troubleshooting 링크, Contri
 | 대용량 blob | 최대 503KB (evidence PNG 스크린샷). 정상 |
 | PNG 메타데이터 | `kMDItemWhereFroms` null, GPS/EXIF 노출 없음 (exiftool 미설치 — 육안 확인 권장) |
 
-**⚠️ 발견 1 — Co-Authored-By 트레일러 (R10, memory `no-coauthored-by` 위반)**:
-E.17/E.20 범위 **8커밋**에 `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`
-+ `Claude-Session: https://claude.ai/code/session_01Usk65wXFwXBq6UgRxGn7Yi` 트레일러.
-해당 커밋: `cafe196 0eee3af 4ce8420 53c1d65 53612b3 5956f74 90afdcf 5fe365a`.
-세션 ID URL은 계정 소유자만 접근 가능하나 공개 이력에 남을 불필요한 메타데이터.
-→ **조치는 사용자 결정** (R10): (a) 그대로 두기, 또는 (b) public 전 `git filter-repo`
-  / rebase로 트레일러 제거 후 force-push (private repo라 blast radius 작음).
+**발견 1 — Co-Authored-By 트레일러 (8커밋, E.17/E.20 범위)**: `Co-Authored-By:`
++ `Claude-Session:` 트레일러가 8개 커밋 메시지에 존재.
+→ **사용자 결정 (2026-08-31): 그대로 둔다.** 세션 ID URL은 계정 소유자만 접근
+  가능하고 하드 시크릿이 아님. 이력 재작성 대상에서 제외.
 
-**⚠️ 발견 2 — 개인/소속 정보**: `PLAN.md` D6에 "`~/workspace/macros`는 사적 소속 문구"
-— public 시 사적 소속 노출. 경미하나 "대체 표현"
-정도로 순화 검토 가능 (사용자 결정).
+**발견 2 — 개인/소속 정보**: `PLAN.md` D6 등 3개 문서에 사용자의 사적 소속을
+암시하는 문구가 있었음.
+→ **사용자 결정 (2026-08-31): 완전 제거.** ① HEAD 순화 (PLAN.md D6, AGENTS.md
+  2줄 — "무관한 별도 리포"로 교체) ② `git filter-repo --replace-text`로 전 이력
+  blob에서 동일 치환 (커밋 메시지·트레일러 불변). 커밋 SHA는 4df7294 이후 전부
+  변경됨 → 사용자가 `git push --force` 필요 (규칙 9, 에이전트 미실행).
 
-**결론**: 하드 시크릿 0. public 차단 사유 없음. 발견 1·2는 사용자 판단 항목.
+**결론**: 하드 시크릿 0. 발견 2는 이력 재작성으로 제거, 발견 1은 유지 결정.
 
 ## 다음 작업 인계 메모
 - 초안은 전부 `main`에 커밋됨. 문구 리뷰 후 확정.
