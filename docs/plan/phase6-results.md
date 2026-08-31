@@ -42,8 +42,10 @@ README.md 갱신: Architecture 절에 why-rosmac·troubleshooting 링크, Contri
 
 ### 남은 P6.3 항목
 - [x] CoC 연락처 확정 → `pythontogoplease@gmail.com` (사용자 결정 2026-08-31)
-- [ ] GitHub repo 설정 체크리스트 문서 (About/topics, Discussions on/off, branch protection)
-- [ ] 이슈 템플릿 2종 fork 실측 (렌더링 확인) — repo public 후 또는 테스트 repo에서
+- [x] GitHub repo 설정 체크리스트 문서 → `docs/plan/repo-settings-checklist.md`
+      (공개 전 A1~A6 / 공개 시 B / 공개 후 C 확인). Actions 권한·`pypi` env·
+      branch protection·Private vulnerability reporting·Trusted Publisher 등록 포함
+- [ ] 이슈 템플릿 2종 fork 실측 (렌더링 확인) — repo public 후 확인 (체크리스트 C)
 
 ## P6.3-1 서드파티 고지 검토 — PARTIAL (2026-08-31)
 
