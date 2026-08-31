@@ -3,6 +3,13 @@
 apt 배포본 moveit_resources_panda_moveit_config의 demo.launch.py에서
 rviz / warehouse-db 노드만 제거한 것 (헤드리스 원칙 — 시각화는 맥 Foxglove).
 구성·파라미터는 상류와 동일하게 유지한다 (phase2 부록 C).
+
+Attribution: adapted from `demo.launch.py` in moveit_resources
+(https://github.com/moveit/moveit_resources) and moveit_configs_utils
+(https://github.com/moveit/moveit2), BSD-3-Clause. Modified: removed the rviz2
+and warehouse (MongoDB) nodes for headless operation. See THIRD-PARTY-NOTICES.md.
+
+SPDX-License-Identifier: BSD-3-Clause
 """
 
 import os

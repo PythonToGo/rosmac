@@ -11,6 +11,12 @@ N1 실측 확정:
 - /clock 브리지 + 전 노드 use_sim_time
 - nav2 기본 파라미터로 충분(base_link/odom/scan 기본값이 프레임 설계와 일치)
 - 기동 타이밍: gz+bridge 먼저 → slam(+5s) → nav2(+10s) (run_spike.sh 순서)
+
+Attribution: original composition that invokes launch files from ros_gz
+(https://github.com/gazebosim/ros_gz), slam_toolbox, and nav2_bringup — all
+Apache-2.0. Bundled world is nav2_world.sdf (see its header). THIRD-PARTY-NOTICES.md.
+
+SPDX-License-Identifier: Apache-2.0
 """
 
 import os

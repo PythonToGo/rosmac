@@ -41,10 +41,58 @@ README.md 갱신: Architecture 절에 why-rosmac·troubleshooting 링크, Contri
 - README.ko.md는 미갱신 — D11상 폐지 예정이라 신규 링크 반영 보류 (6.1에서 처리).
 
 ### 남은 P6.3 항목
-- [ ] CoC 연락처 확정 (개인 Gmail vs 프로젝트 alias — 사용자 결정)
-- [ ] 서드파티 고지 검토 결과를 이 문서에 기록 (zenoh-bridge / RoboStack / Lima)
+- [x] CoC 연락처 확정 → `pythontogoplease@gmail.com` (사용자 결정 2026-08-31)
 - [ ] GitHub repo 설정 체크리스트 문서 (About/topics, Discussions on/off, branch protection)
 - [ ] 이슈 템플릿 2종 fork 실측 (렌더링 확인) — repo public 후 또는 테스트 repo에서
+
+## P6.3-1 서드파티 고지 검토 — PARTIAL (2026-08-31)
+
+`THIRD-PARTY-NOTICES.md` 신설. 검토 결과:
+
+- **바이너리는 재배포 아님** (예상대로): zenoh-bridge는 `rosmac init`이 버전+sha256
+  핀으로 다운로드·검증, RoboStack/Lima/micromamba/Foxglove는 사용자 설치. 리포에
+  코드 없음.
+- **⚠️ 발견: 리포가 상류 예제 코드의 파생물을 재배포 중** — 고지 의무 있음:
+  | 파일 | 상류 | 라이선스 |
+  |---|---|---|
+  | `presets/gazebo-diffbot/diffbot.launch.py` | gazebosim/ros_gz `diff_drive.launch.py` | Apache-2.0 |
+  | `presets/gazebo-diffbot/diffbot_camera.sdf` | gazebosim/gz-sim `diff_drive.sdf` | Apache-2.0 |
+  | `presets/nav2-diffbot/nav2_world.sdf` | gazebosim/gz-sim `diff_drive.sdf` | Apache-2.0 |
+  | `presets/nav2-diffbot/nav2-diffbot.launch.py` | ros_gz/slam_toolbox/nav2 launch API 조합 | Apache-2.0 |
+  | `presets/panda-moveit/demo_headless.launch.py` | moveit_resources `demo.launch.py` | BSD-3-Clause |
+  | `examples/pick_demo/pick_demo.py` | (원작) panda.srdf group_state 수치만 인용 | BSD-3-Clause |
+- **조치 완료**: 위 6개 파일에 SPDX + "adapted from ... , 변경점" attribution 헤더 추가.
+- **남은 의무 (public 전)**:
+  - [ ] `LICENSES/Apache-2.0.txt`·`LICENSES/BSD-3-Clause.txt` 전문 벤더링
+        (Apache-2.0 §4(a) — 파생물 배포 시 라이선스 사본 동봉 필수)
+  - [ ] 각 파일이 파생된 상류 커밋/태그 핀
+  - [ ] `THIRD-PARTY-NOTICES.md`를 wheel에 포함 (`pyproject.toml` force-include)
+
+## P6.5-1 git 이력 민감정보 스캔 — 완료 (2026-08-31), 조치 대기
+
+전체 74커밋 + 전 blob 스캔:
+
+| 항목 | 결과 |
+|---|---|
+| 토큰/API키/비밀번호/.pem/.env | **없음** (패턴 스캔 clean) |
+| 커밋터/작성자 이메일 | `pythontogoplease@gmail.com` 단일 (사용자 본인, 공개 OK). 작성자명 `PythonToGo` + `Taey`(1커밋) 혼용 |
+| 절대경로 | `tests/unit/test_psview.py`의 `/Users/u/...`(익명 `u`), `weekly.yml`의 `/Users/runner/...`(GH 러너 표준) — 문제 없음 |
+| 대용량 blob | 최대 503KB (evidence PNG 스크린샷). 정상 |
+| PNG 메타데이터 | `kMDItemWhereFroms` null, GPS/EXIF 노출 없음 (exiftool 미설치 — 육안 확인 권장) |
+
+**⚠️ 발견 1 — Co-Authored-By 트레일러 (R10, memory `no-coauthored-by` 위반)**:
+E.17/E.20 범위 **8커밋**에 `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`
++ `Claude-Session: https://claude.ai/code/session_01Usk65wXFwXBq6UgRxGn7Yi` 트레일러.
+해당 커밋: `cafe196 0eee3af 4ce8420 53c1d65 53612b3 5956f74 90afdcf 5fe365a`.
+세션 ID URL은 계정 소유자만 접근 가능하나 공개 이력에 남을 불필요한 메타데이터.
+→ **조치는 사용자 결정** (R10): (a) 그대로 두기, 또는 (b) public 전 `git filter-repo`
+  / rebase로 트레일러 제거 후 force-push (private repo라 blast radius 작음).
+
+**⚠️ 발견 2 — 개인/소속 정보**: `PLAN.md` D6에 "`~/workspace/macros`는 사적 소속 문구"
+— public 시 사적 소속 노출. 경미하나 "대체 표현"
+정도로 순화 검토 가능 (사용자 결정).
+
+**결론**: 하드 시크릿 0. public 차단 사유 없음. 발견 1·2는 사용자 판단 항목.
 
 ## 다음 작업 인계 메모
 - 초안은 전부 `main`에 커밋됨. 문구 리뷰 후 확정.

@@ -1,5 +1,11 @@
 <?xml version="1.0" ?>
 <!--
+  SPDX-License-Identifier: Apache-2.0
+  Adapted from the `diff_drive.sdf` example in Gazebo Sim
+  (https://github.com/gazebosim/gz-sim), Apache-2.0.
+  Modified for the rosmac gazebo-diffbot preset: ogre2 sensors system and a
+  320x240@15Hz front camera on vehicle_blue. See THIRD-PARTY-NOTICES.md.
+
   Ignition Gazebo differential drive plugin demo
 
   Try sending commands:

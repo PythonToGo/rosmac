@@ -175,4 +175,5 @@ within scope are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) and the
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE). Bundled simulation presets are adapted from Apache-2.0 / BSD-3-Clause
+upstream ROS and Gazebo examples — see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).

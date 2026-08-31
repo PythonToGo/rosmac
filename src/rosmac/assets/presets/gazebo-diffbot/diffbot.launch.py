@@ -5,6 +5,12 @@ ros_gz_sim_demos의 diff_drive.launch.py 기반, 실측으로 확정한 변경 (
 - 동봉 월드 diffbot_camera.sdf 사용: diff_drive.sdf + sensors 시스템(ogre2) +
   vehicle_blue 전방 카메라 320x240@15Hz (기본 ogre 엔진은 X11 필요라 헤드리스 크래시)
 - vehicle_blue를 /cmd_vel·/odom으로 리매핑, /camera 브리지 추가
+
+Attribution: adapted from `diff_drive.launch.py` in ros_gz_sim_demos
+(https://github.com/gazebosim/ros_gz), Apache-2.0. Modifications listed above.
+See THIRD-PARTY-NOTICES.md.
+
+SPDX-License-Identifier: Apache-2.0
 """
 
 import os

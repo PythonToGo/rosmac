@@ -3,6 +3,10 @@
 named target(ready → extended → ready)을 JointConstraint로 순회 (phase2 부록 A 방식).
 관절값은 moveit_resources_panda_moveit_config의 panda.srdf group_state 실측값 (P2.3).
 판정: 각 goal의 result error_code.val == 1 (moveit_msgs SUCCESS).
+
+관절 목표값(ready/extended)은 moveit_resources의 panda.srdf group_state에서
+가져온 수치 데이터 (https://github.com/moveit/moveit_resources, BSD-3-Clause).
+자세한 고지는 THIRD-PARTY-NOTICES.md.
 """
 
 import sys
