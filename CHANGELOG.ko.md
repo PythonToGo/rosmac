@@ -7,13 +7,13 @@
 
 [English (main)](CHANGELOG.md)
 
-## [0.1.0] - Unreleased
+## [0.1.0] - 2026-08-31
 
-첫 공개 준비 버전 — Phase 0~4의 소급 요약.
+첫 공개 버전 — Phase 0~5의 소급 요약.
 
 ### Added
 - 코어 CLI: `init`(conda env·브리지·VM 프로비저닝, 멱등) / `up`·`down`·`status` /
-  `doctor`(C1~C11 진단 + 처방, `--json`) / `shell`(ROS env 주입, `--vm`, `-c`) /
+  `doctor`(16개 체크 C1~C17 + 처방, `--json`) / `shell`(ROS env 주입, `--vm`, `-c`) /
   `version` (Phase 1)
 - 시뮬레이션: `sim panda-moveit`·`sim gazebo-diffbot` 프리셋(tmux 기동 + health 판정),
   `viz`(foxglove_bridge + 앱 딥링크) (Phase 2)
@@ -45,6 +45,17 @@
   `rosmac sim`이 맥 conda env에 자동 설치(멱등, `deps.ensure_installed`). nav2는
   nav2_msgs — 없으면 goal이 "server not available"로 조용히 실패하던 함정 제거.
   (E.17/E.20)
+
+### 패키징·프로젝트
+- Trusted Publishing(OIDC, 토큰 비보관)으로 PyPI 배포. 버전은
+  `src/rosmac/__init__.py` 단일 소스 (D12)
+- 모든 push/PR에서 CI: ruff lint+format, mypy, 유닛 테스트, 설치+CLI 스모크
+  (ubuntu 3.11/3.12 + macos-14 arm64). 주간 잡이 RoboStack env를 실제로 재생성하고
+  핀된 브리지 자산을 재검증해 업스트림 드리프트 감지 (R7)
+- MIT 라이선스. 동봉 시뮬 프리셋은 상류 ROS/Gazebo 예제의 Apache-2.0 / BSD-3-Clause
+  파생물 — `THIRD-PARTY-NOTICES.md` 참조
+- `CONTRIBUTING.md`·`SECURITY.md`·`CODE_OF_CONDUCT.md`·이슈/PR 템플릿·
+  사용자용 `docs/troubleshooting.md`
 
 ### 실측 검증 (Phase 0/2/4 게이트)
 - 브리지 대역폭 10.3 MB/s (1MB@10Hz 무손실), MoveGroup 액션 왕복 3연속 SUCCEEDED

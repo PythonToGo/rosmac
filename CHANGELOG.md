@@ -7,13 +7,13 @@ and versioning follows [SemVer](https://semver.org/) (D12).
 
 [한국어 (Korean)](CHANGELOG.ko.md)
 
-## [0.1.0] - Unreleased
+## [0.1.0] - 2026-08-31
 
-First public release candidate — retroactive summary of Phases 0–4.
+First public release — retroactive summary of Phases 0–5.
 
 ### Added
 - Core CLI: `init` (conda env, bridge, and VM provisioning; idempotent) /
-  `up`·`down`·`status` / `doctor` (C1–C11 diagnostics with prescriptions, `--json`) /
+  `up`·`down`·`status` / `doctor` (16 checks, C1–C17, with prescriptions, `--json`) /
   `shell` (ROS env injection, `--vm`, `-c`) / `version` (Phase 1)
 - Simulation: `sim panda-moveit` and `sim gazebo-diffbot` presets (tmux launch +
   health verdict), `viz` (foxglove_bridge + app deep link) (Phase 2)
@@ -52,6 +52,17 @@ First public release candidate — retroactive summary of Phases 0–4.
   to send action goals from the Mac into the Mac conda env (idempotent,
   `deps.ensure_installed`). For nav2 that is nav2_msgs — removes the pitfall
   where goals silently failed with "server not available". (E.17/E.20)
+
+### Packaging & project
+- Published to PyPI via Trusted Publishing (OIDC, no stored token); version is
+  single-sourced from `src/rosmac/__init__.py` (D12)
+- CI on every push/PR: ruff lint + format, mypy, unit tests, install + CLI smoke
+  (ubuntu 3.11/3.12 + macos-14 arm64); weekly job re-creates the RoboStack env
+  and re-verifies the pinned bridge artifacts to catch upstream drift (R7)
+- MIT licensed; bundled simulation presets are Apache-2.0 / BSD-3-Clause
+  derivatives of upstream ROS / Gazebo examples — see `THIRD-PARTY-NOTICES.md`
+- `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, issue/PR templates,
+  and a user-facing `docs/troubleshooting.md`
 
 ### Verified by measurement (Phase 0/2/4 gates)
 - Bridge throughput 10.3 MB/s (1 MB @ 10 Hz, lossless); MoveGroup action

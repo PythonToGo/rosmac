@@ -1,11 +1,24 @@
-# PyPI release via Trusted Publishing (OIDC — no API token stored anywhere).
-# Trigger: publishing a GitHub Release for a v* tag (e.g. v0.1.0).
-# One-time PyPI setup: add a (pending) trusted publisher for project "rosmac" —
-#   owner PythonToGo, repo rosmac, workflow release.yml, environment pypi.
+# Release via Trusted Publishing (OIDC — no API token stored anywhere).
+#
+# Two ways to run:
+#   1. Publishing a GitHub Release for a v* tag  -> builds + publishes to PyPI.
+#   2. Actions -> "release" -> Run workflow      -> pick testpypi (default) or
+#      pypi. Use this to rehearse the whole pipeline without cutting a real tag.
+#
+# One-time setup on each index (pypi.org AND test.pypi.org): add a trusted
+# publisher for project "rosmac" — owner PythonToGo, repo rosmac,
+# workflow release.yml, environment pypi.
 name: release
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Publish target"
+        type: choice
+        options: [testpypi, pypi]
+        default: testpypi
 
 jobs:
   build:
@@ -17,6 +30,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Guard — tag must match the package version
+        if: github.event_name == 'release'
         run: |
           # version single source: src/rosmac/__init__.py (P5.1, D12)
           PKG_VER=$(python -c "import re; print(re.search(r'__version__ = \"(.+?)\"', open('src/rosmac/__init__.py').read()).group(1))")
@@ -35,11 +49,14 @@ jobs:
           python -m venv /tmp/smoke
           /tmp/smoke/bin/pip install dist/*.whl
           /tmp/smoke/bin/rosmac --help
-          INSTALLED=$(/tmp/smoke/bin/rosmac --version | awk '{print $NF}')
-          TAG=${GITHUB_REF_NAME#v}
-          if [ "$INSTALLED" != "$TAG" ]; then
-            echo "::error::installed wheel reports $INSTALLED, tag is v$TAG"
-            exit 1
+          /tmp/smoke/bin/rosmac --version
+          if [ "${{ github.event_name }}" = "release" ]; then
+            INSTALLED=$(/tmp/smoke/bin/rosmac --version | awk '{print $NF}')
+            TAG=${GITHUB_REF_NAME#v}
+            if [ "$INSTALLED" != "$TAG" ]; then
+              echo "::error::installed wheel reports $INSTALLED, tag is v$TAG"
+              exit 1
+            fi
           fi
       - uses: actions/upload-artifact@v4
         with:
@@ -52,7 +69,7 @@ jobs:
     timeout-minutes: 10
     environment:
       name: pypi
-      url: https://pypi.org/p/rosmac
+      url: ${{ (github.event_name == 'workflow_dispatch' && inputs.target == 'testpypi') && 'https://test.pypi.org/p/rosmac' || 'https://pypi.org/p/rosmac' }}
     permissions:
       id-token: write # OIDC — the only credential Trusted Publishing needs
     steps:
@@ -60,4 +77,8 @@ jobs:
         with:
           name: dist
           path: dist/
-      - uses: pypa/gh-action-pypi-publish@release/v1
+      - name: Publish
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          # empty -> the action's default (pypi.org); set only for the TestPyPI rehearsal
+          repository-url: ${{ (github.event_name == 'workflow_dispatch' && inputs.target == 'testpypi') && 'https://test.pypi.org/legacy/' || '' }}
