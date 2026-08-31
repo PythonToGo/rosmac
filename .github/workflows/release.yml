@@ -1,0 +1,63 @@
+# PyPI release via Trusted Publishing (OIDC — no API token stored anywhere).
+# Trigger: publishing a GitHub Release for a v* tag (e.g. v0.1.0).
+# One-time PyPI setup: add a (pending) trusted publisher for project "rosmac" —
+#   owner PythonToGo, repo rosmac, workflow release.yml, environment pypi.
+name: release
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Guard — tag must match the package version
+        run: |
+          # version single source: src/rosmac/__init__.py (P5.1, D12)
+          PKG_VER=$(python -c "import re; print(re.search(r'__version__ = \"(.+?)\"', open('src/rosmac/__init__.py').read()).group(1))")
+          TAG=${GITHUB_REF_NAME#v}
+          if [ "$PKG_VER" != "$TAG" ]; then
+            echo "::error::tag v$TAG != package version $PKG_VER — bump src/rosmac/__init__.py first"
+            exit 1
+          fi
+      - name: Build sdist + wheel
+        run: |
+          pip install build twine
+          python -m build
+          twine check dist/*
+      - name: Smoke — install the built wheel in a clean venv and run the CLI
+        run: |
+          python -m venv /tmp/smoke
+          /tmp/smoke/bin/pip install dist/*.whl
+          /tmp/smoke/bin/rosmac --help
+          INSTALLED=$(/tmp/smoke/bin/rosmac --version | awk '{print $NF}')
+          TAG=${GITHUB_REF_NAME#v}
+          if [ "$INSTALLED" != "$TAG" ]; then
+            echo "::error::installed wheel reports $INSTALLED, tag is v$TAG"
+            exit 1
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: pypi
+      url: https://pypi.org/p/rosmac
+    permissions:
+      id-token: write # OIDC — the only credential Trusted Publishing needs
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
