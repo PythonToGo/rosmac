@@ -34,6 +34,7 @@ dependencies = [
 ]
 
 [project.urls]
+Homepage = "https://github.com/PythonToGo/rosmac"
 Repository = "https://github.com/PythonToGo/rosmac"
 Issues = "https://github.com/PythonToGo/rosmac/issues"
 Changelog = "https://github.com/PythonToGo/rosmac/blob/main/CHANGELOG.md"

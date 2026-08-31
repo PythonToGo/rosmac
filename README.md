@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/rosmac-wordmark.jpg" alt="rosmac" width="600">
+  <img src="https://raw.githubusercontent.com/PythonToGo/rosmac/main/docs/assets/rosmac-wordmark.jpg" alt="rosmac" width="600">
 </p>
 
 # rosmac
