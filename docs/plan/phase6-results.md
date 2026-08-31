@@ -47,6 +47,12 @@ README.md 갱신: Architecture 절에 why-rosmac·troubleshooting 링크, Contri
       branch protection·Private vulnerability reporting·Trusted Publisher 등록 포함
 - [ ] 이슈 템플릿 2종 fork 실측 (렌더링 확인) — repo public 후 확인 (체크리스트 C)
 
+## P6.2 데모 자산 — PARTIAL (2026-08-31)
+
+- 로고/브랜딩 (사용자 제작): `docs/assets/`에 wordmark(JPG 1600x900)·icon(PNG 512/256, 투명)·favicon.ico + `docs/assets/README.md`(팔레트·재생성).
+  README.md·README.ko.md 상단에 wordmark 임베드.
+- **미완**: 데모 GIF(터미널 캐스트 `init→up→doctor` / Foxglove), GitHub Social preview 이미지 업로드(Settings→General, 수동).
+
 ## P6.3-1 서드파티 고지 검토 — PARTIAL (2026-08-31)
 
 `THIRD-PARTY-NOTICES.md` 신설. 검토 결과:

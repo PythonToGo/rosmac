@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/rosmac-wordmark.jpg" alt="rosmac" width="600">
+</p>
+
 # rosmac
 
 **ROS 2 on your Mac in one command — native rclpy/colcon on macOS, Tier-1 Ubuntu for the heavy stuff, one TCP port between them.**

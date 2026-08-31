@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/rosmac-wordmark.jpg" alt="rosmac" width="600">
+</p>
+
 # rosmac
 
 **맥에서 ROS 2를 명령어 하나로 — 개발은 macOS 네이티브(rclpy/colcon), 무거운 스택은 Tier-1 우분투, 둘 사이는 TCP 포트 하나.**
