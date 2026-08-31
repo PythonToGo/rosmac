@@ -1,0 +1,78 @@
+name: Bug report
+description: Something in rosmac doesn't work. Please attach a rosmac report bundle.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing: run `rosmac doctor` (and `rosmac doctor --fix` for the
+        safe auto-repairs). If that resolves it, you probably don't need an issue.
+        Check the [troubleshooting guide](https://github.com/PythonToGo/rosmac/blob/main/docs/troubleshooting.md) too.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you ran, what you expected, what you got instead. Paste the exact error output.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: The minimal sequence of commands starting from a known state.
+      placeholder: |
+        1. rosmac init
+        2. rosmac up
+        3. rosmac sim nav2-diffbot
+        4. ...
+    validations:
+      required: true
+
+  - type: input
+    id: rosmac-version
+    attributes:
+      label: rosmac version
+      description: Output of `rosmac --version`
+      placeholder: rosmac 0.1.0
+    validations:
+      required: true
+
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version and hardware
+      placeholder: macOS 15.1 / M3 Pro / 18 GB
+    validations:
+      required: true
+
+  - type: textarea
+    id: doctor
+    attributes:
+      label: rosmac doctor output
+      description: Paste the full table (or `rosmac doctor --json`).
+      render: shell
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: report-bundle
+    attributes:
+      label: Diagnostic bundle
+      description: >
+        Run `rosmac report` and drag the resulting `rosmac-report-<date>.tar.gz`
+        into this issue. It collects only from `~/.rosmac` and masks the robot
+        host. Bugs without a bundle are much harder to act on.
+      options:
+        - label: I have attached a `rosmac report` bundle (or explained below why I can't)
+          required: true
+
+  - type: textarea
+    id: anything-else
+    attributes:
+      label: Anything else
+      description: Non-default config, other Lima VMs running, prior workarounds tried, etc.
+    validations:
+      required: false

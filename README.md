@@ -162,9 +162,16 @@ Structural limits (by design, not bugs):
 
 ## Architecture & design decisions
 
-Decision log and risk register: [PLAN.md](PLAN.md).
-When stuck: [docs/plan/known-issues.md](docs/plan/known-issues.md) — the field-measured
-database of 30 pitfalls this tool is built on.
+- **Why not just use Docker / a full VM / RoboStack alone:** [docs/why-rosmac.md](docs/why-rosmac.md)
+- Decision log and risk register: [PLAN.md](PLAN.md)
+- When stuck: [docs/troubleshooting.md](docs/troubleshooting.md) (common failure modes + fix commands),
+  backed by the field-measured [known-issues database](docs/plan/known-issues.md) (30 pitfalls)
+
+## Contributing
+
+Bug reports (with a `rosmac report` bundle), pitfall contributions, and PRs
+within scope are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) and the
+[Code of Conduct](CODE_OF_CONDUCT.md). Security issues: [SECURITY.md](SECURITY.md).
 
 ## License
 

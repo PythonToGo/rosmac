@@ -1,0 +1,46 @@
+name: Feature request
+description: Suggest a capability or change. Check the scope first.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        rosmac has a deliberately tight scope. Out of scope: Linux/Windows hosts,
+        Intel Macs, ROS 2 distributions other than Humble, telemetry. The
+        architecture decisions (layer split, RMW pinning, the single-TCP bridge
+        boundary) are settled in
+        [PLAN.md](https://github.com/PythonToGo/rosmac/blob/main/PLAN.md) —
+        proposals to reverse one of those belong in a discussion, not a feature
+        request.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve
+      description: The concrete workflow that is painful today. Not the solution yet — the problem.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What you'd like rosmac to do. A command sketch is helpful.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+      description: Existing commands, manual workarounds, other tools.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope check
+      options:
+        - label: This is for Apple Silicon macOS + ROS 2 Humble (the supported target)
+          required: true
