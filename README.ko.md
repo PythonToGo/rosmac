@@ -8,13 +8,13 @@
 
 [English (main)](README.md)
 
-ROS 2는 macOS를 사실상 지원하지 않는다 (Tier 3, Apple Silicon은 목록에도 없음). 기존
-우회로는 각자 벽에 부딪힌다: macOS Docker에는 `--network=host`가 없어 호스트↔컨테이너
+ROS 2는 macOS를 사실상 지원하지 않습니다 (Tier 3, Apple Silicon은 목록에도 없음). 기존
+우회로는 각자 방화벽에 부딪힙니다: macOS Docker에는 `--network=host`가 없어 호스트↔컨테이너
 DDS 디스커버리가 구조적으로 단절되고, 순수 VM은 맥 쪽 툴체인 통합을 포기하며,
 RoboStack에 osx-arm64 패키지가 의외로 많이 있지만 무거운 스택(MoveIt, Gazebo)은
-*존재해도 신뢰하기 어렵다* — dylib 깨짐과 런타임 크래시가 실측으로 확인된다.
+*있지만, 사용하기 어렵습니다.* — dylib 깨짐과 런타임 크래시가 일어납니다.
 
-rosmac은 문제와 싸우는 대신 문제를 분할한다:
+rosmac은 다음과 같은 솔루션을 제공합니다:
 
 ```
 개발은 맥 네이티브 (RoboStack: rclpy, colcon, ros2 CLI)
@@ -29,7 +29,7 @@ rosmac은 문제와 싸우는 대신 문제를 분할한다:
 
 - **`rosmac doctor`** — 알려진 고장 모드 16항 점검, `--fix`로 안전한 항목 자동 수리
   (hung ros2 데몬, 고아 브리지, 깨진 lima 포트 규칙). **실측 함정 30개 DB** 위에서
-  만들어졌다.
+  만들어졌습니다..
 - **`rosmac deps`** — 워크스페이스 `package.xml` 의존성을 RoboStack conda 패키지로
   매핑 (conda를 아는 rosdep 대체).
 - **`rosmac push --build`** — 리눅스 전용 패키지는 VM으로 복사해 거기서 빌드.
@@ -83,9 +83,9 @@ rosmac viz --layout nav2    # Foxglove 연결 (+레이아웃 안내)
 ```
 
 `nav2-diffbot`은 벽 아레나에서 라이다 diffbot에 SLAM+Nav2를 돌린다. `/cmd_vel`로
-주행해 지도를 만든 뒤 맥에서 `/navigate_to_pose` goal을 보낸다. Nav2 풀스택도
-기본 브리지로 동작한다 — `rosmac sim`이 시작 시 브리지 세션을 리셋해 새 스택이
-신선한 라우트를 받게 한다(KI-17).
+주행해 지도를 만든 뒤 맥에서 `/navigate_to_pose` goal을 보냅니다. Nav2 풀스택도
+기본 브리지로 동작합니다 — `rosmac sim`이 시작 시 브리지 세션을 리셋해 새 스택이
+신선한 라우트를 받게 합니다(KI-17).
 
 맥 네이티브 개발 루프와 예제(pick_demo)는 [docs/workflow.ko.md](docs/workflow.ko.md) 참조.
 
@@ -146,12 +146,12 @@ exit code 규약:
 | rosbag2 | ✅ | 맥에서 VM 토픽 녹화(무손실)·VM 내 녹화·양쪽 어디서 재생해도 반대편 도달. VM bag 회수는 `limactl cp -r rosmac:/path ~/dest` (D16) — [docs/workflow.ko.md](docs/workflow.ko.md) 참조 |
 | Robot link (LAN) | 🧪 beta | `robot:` 설정 → 맥 브리지가 로봇 쪽 브리지로 TCP 엔드포인트 추가 (D15). 대리 로봇(제2 VM) 실측: 토픽/서비스 10 MB/s @ 10Hz 무손실, 서비스 RTT < 1 ms, 로봇 재시작 자동 재접속. **대리 로봇 검증** — 실기/WiFi 수치는 대기 ([E.15 R5](docs/plan/e15-real-robot.md)). 설치: [docs/robot-setup.ko.md](docs/robot-setup.ko.md). **신뢰 LAN 전용** — 평문 TCP, 인증/TLS 없음 |
 
-구조적 한계 (버그가 아니라 설계):
+구조적 한계 (구조적인 문제를 설계로 남겨두었습니다):
 
 - **낡은 브리지가 새 스택을 조용히 깨뜨린다 (KI-17).** 브리지를 켜둔 채 VM 시뮬
   스택을 재기동하면 죽은 스택의 라우트가 남아, 새 스택의 액션 하위 서비스가 맥에서
-  디스커버리 안 된다(실측: 0/6 → 브리지 재시작 후 4/4). `rosmac sim`은 시작 시
-  브리지 세션을 리셋해 이를 방지 — Nav2 풀스택도 기본 브리지로 동작한다(스코핑 불필요).
+  디스커버리 되 않습니다(실측: 0/6 → 브리지 재시작 후 4/4). `rosmac sim`은 시작 시
+  브리지 세션을 리셋해 이를 방지 — Nav2 풀스택도 기본 브리지로 동작하 합니다(스코핑 불필요).
 - **맥↔VM 모든 메시지가 브리지 홉 하나를 건넌다.** 개발·teleop·시각화엔 충분;
   고주파 폐루프 제어는 VM 안(또는 로봇 위)에서 완결할 것.
 - **UDP ignore 규칙이 없는 *다른* lima VM이 맥 로컬 DDS 디스커버리를 조용히
