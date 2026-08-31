@@ -2,23 +2,21 @@
 #
 # Two ways to run:
 #   1. Publishing a GitHub Release for a v* tag  -> builds + publishes to PyPI.
-#   2. Actions -> "release" -> Run workflow      -> pick testpypi (default) or
-#      pypi. Use this to rehearse the whole pipeline without cutting a real tag.
+#   2. Actions -> "release" -> Run workflow      -> builds + publishes to TestPyPI
+#      from the current ref. Use this to rehearse the whole pipeline without
+#      cutting a real tag. Production PyPI is ONLY reachable via a Release (1),
+#      which enforces the tag==version guard.
 #
 # One-time setup on each index (pypi.org AND test.pypi.org): add a trusted
 # publisher for project "rosmac" — owner PythonToGo, repo rosmac,
 # workflow release.yml, environment pypi.
+# The "pypi" GitHub environment must allow the v* tag (for 1) and the main
+# branch (for 2) under its deployment branch/tag policy.
 name: release
 on:
   release:
     types: [published]
-  workflow_dispatch:
-    inputs:
-      target:
-        description: "Publish target"
-        type: choice
-        options: [testpypi, pypi]
-        default: testpypi
+  workflow_dispatch: {}
 
 jobs:
   build:
@@ -69,7 +67,7 @@ jobs:
     timeout-minutes: 10
     environment:
       name: pypi
-      url: ${{ (github.event_name == 'workflow_dispatch' && inputs.target == 'testpypi') && 'https://test.pypi.org/p/rosmac' || 'https://pypi.org/p/rosmac' }}
+      url: ${{ github.event_name == 'release' && 'https://pypi.org/p/rosmac' || 'https://test.pypi.org/p/rosmac' }}
     permissions:
       id-token: write # OIDC — the only credential Trusted Publishing needs
     steps:
@@ -80,5 +78,5 @@ jobs:
       - name: Publish
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          # empty -> the action's default (pypi.org); set only for the TestPyPI rehearsal
-          repository-url: ${{ (github.event_name == 'workflow_dispatch' && inputs.target == 'testpypi') && 'https://test.pypi.org/legacy/' || '' }}
+          # Release -> production PyPI (default). Manual dispatch -> TestPyPI rehearsal.
+          repository-url: ${{ github.event_name == 'release' && '' || 'https://test.pypi.org/legacy/' }}
