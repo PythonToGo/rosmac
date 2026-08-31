@@ -116,6 +116,15 @@ private vuln reporting / Discussions on / description+topics. 상세는
 
 **결론**: 하드 시크릿 0. 발견 2는 이력 재작성으로 제거, 발견 1은 유지 결정.
 
+## P6.1 커밋 메시지 영어화 — 이번 세션분 (2026-08-31)
+
+이번 세션의 11개 커밋(`19a6aeb` 이후, 런칭 준비 작업 `[P5.5]`~`[P6.2]`)의
+한국어 메시지를 영어로 재작성. `git filter-repo --refs 19a6aeb..HEAD
+--message-callback`(JSON 매핑) → 본문·프리픽스 보존, 내용(tree) 불변,
+`19a6aeb` 이전 이력 불변, Co-Authored-By 8커밋 불변. force-push 완료 (bypass).
+**미대상**: `19a6aeb` 이전 딥 이력(`[E.xx]`/`[P0-4.x]` 등 ~72커밋)은 한국어 유지.
+전체 이력 영어화는 별도 결정 필요.
+
 ## 다음 작업 인계 메모
 - 초안은 전부 `main`에 커밋됨. 문구 리뷰 후 확정.
 - Phase 6.5 최종 점검(민감정보 스캔, 링크 유효성)은 5.6 게이트 통과 후.
