@@ -52,6 +52,7 @@ path = "src/rosmac/__init__.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/rosmac"]
+exclude = ["**/__pycache__", "**/*.pyc"]
 
 [tool.ruff]
 line-length = 100
