@@ -1,5 +1,5 @@
 name: gazebo-diffbot
-description: "Gazebo Fortress headless diff drive (맥에서 /cmd_vel 제어, Foxglove로 /odom)"
+description: "Gazebo Fortress headless diff drive (drive /cmd_vel from the Mac, /odom via Foxglove)"
 vm_apt:
   - ros-humble-ros-gz
   - ros-humble-ros-gz-sim-demos

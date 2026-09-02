@@ -1,20 +1,21 @@
 name: nav2-diffbot
-description: "Nav2 이동로봇 내비게이션 (Gazebo diffbot + gpu_lidar + SLAM, 맥에서 /navigate_to_pose)"
+description: "Nav2 mobile navigation (Gazebo diffbot + gpu_lidar + SLAM, /navigate_to_pose from the Mac)"
 vm_apt:
   - ros-humble-navigation2
   - ros-humble-nav2-bringup
-# 맥에서 /navigate_to_pose goal을 보내려면 맥 conda env에도 msg 패키지가 필요
-# (없으면 goal이 "server not available"로 조용히 실패 — E.20).
+# Sending /navigate_to_pose goals from the Mac needs the msg package in the Mac
+# conda env too (without it the goal fails silently as "server not available" — E.20).
 mac_env_pkgs:
   - ros-humble-nav2-msgs
 vm_env: {}
-# 무스코프 — nav2 풀스택도 기본 브리지로 맥에서 정상 동작한다(S0 실측). 이전에
-# 실패로 본 것은 스택 재기동 시 브리지 라우트 잔재(KI-17) 때문이며, `rosmac sim`이
-# 시작 시 브리지 세션을 리셋해 해소한다(스코핑 불필요, KI-30 정정).
+# No scoping — the full nav2 stack works from the Mac over the default bridge (S0
+# measured). Earlier failures were stale bridge routes after a stack restart
+# (KI-17); `rosmac sim` resets the bridge session on start to clear them (no
+# scoping needed, KI-30 correction).
 launch:
   cmd: "ros2 launch ~/rosmac-presets/nav2-diffbot/nav2-diffbot.launch.py"
 foxglove_layout: nav2.json
-# health=/scan (N1: SLAM /map은 0.2m 이동 전 0×0 latch라 부적합). timeout은
-# N1 ready 17s + nav2 staggered 기동(+10s) 여유 → 넉넉히 60s.
+# health=/scan (N1: SLAM /map is a 0x0 latch until ~0.2 m of motion, so unusable).
+# timeout = N1 ready 17s + nav2 staggered start (+10s) headroom → 60s to be safe.
 health_topics:
   - { name: /scan, timeout: 60 }
