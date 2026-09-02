@@ -8,6 +8,18 @@
 
 [한국어 문서 (Korean)](README.ko.md)
 
+<p align="center">
+  <a href="https://raw.githubusercontent.com/PythonToGo/rosmac/main/docs/assets/demo-workspace.mp4">
+    <img src="https://raw.githubusercontent.com/PythonToGo/rosmac/main/docs/assets/demo-workspace.gif" width="820" alt="Building a Franka workspace natively on macOS and visualizing it in RViz — click to watch the full clip">
+  </a>
+</p>
+
+<p align="center"><sub>
+A user's own Franka workspace: <code>colcon build</code> on macOS (RoboStack, no Docker), then
+<code>ros2 launch</code> with RViz on the Mac. <a href="https://raw.githubusercontent.com/PythonToGo/rosmac/main/docs/assets/demo-workspace.mp4">▶ full clip</a> ·
+<a href="https://raw.githubusercontent.com/PythonToGo/rosmac/main/docs/assets/demo-bridge.mp4">▶ Mac↔VM bridge (teleop over one TCP port)</a>
+</sub></p>
+
 ROS 2 does not really support macOS (Tier 3; Apple Silicon isn't even listed). Existing
 workarounds each hit a wall: Docker on macOS has no `--network=host`, so host↔container DDS
 discovery is broken by design; plain VMs give up on Mac-side tooling entirely; and while

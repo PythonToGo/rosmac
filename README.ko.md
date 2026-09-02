@@ -8,6 +8,18 @@
 
 [English (main)](README.md)
 
+<p align="center">
+  <a href="https://raw.githubusercontent.com/PythonToGo/rosmac/main/docs/assets/demo-workspace.mp4">
+    <img src="https://raw.githubusercontent.com/PythonToGo/rosmac/main/docs/assets/demo-workspace.gif" width="820" alt="맥에서 Franka 워크스페이스를 네이티브 빌드하고 RViz로 시각화 — 클릭하면 전체 영상">
+  </a>
+</p>
+
+<p align="center"><sub>
+사용자의 Franka 워크스페이스: macOS에서 <code>colcon build</code> (RoboStack, Docker 없음),
+이어서 <code>ros2 launch</code> + 맥에서 RViz. <a href="https://raw.githubusercontent.com/PythonToGo/rosmac/main/docs/assets/demo-workspace.mp4">▶ 전체 영상</a> ·
+<a href="https://raw.githubusercontent.com/PythonToGo/rosmac/main/docs/assets/demo-bridge.mp4">▶ 맥↔VM 브리지 (TCP 포트 하나로 teleop)</a>
+</sub></p>
+
 ROS 2는 macOS를 사실상 지원하지 않습니다 (Tier 3, Apple Silicon은 목록에도 없음). 기존
 우회로는 각자 방화벽에 부딪힙니다: macOS Docker에는 `--network=host`가 없어 호스트↔컨테이너
 DDS 디스커버리가 구조적으로 단절되고, 순수 VM은 맥 쪽 툴체인 통합을 포기하며,
