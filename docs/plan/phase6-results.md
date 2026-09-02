@@ -125,6 +125,20 @@ private vuln reporting / Discussions on / description+topics. 상세는
 **미대상**: `19a6aeb` 이전 딥 이력(`[E.xx]`/`[P0-4.x]` 등 ~72커밋)은 한국어 유지.
 전체 이력 영어화는 별도 결정 필요.
 
+## P6.1 런타임 출력 영어화 + TestPyPI 로컬 검증 (2026-09-02)
+
+- TestPyPI `rosmac 0.1.0`을 레포 밖 클린 venv(py3.12)에 설치 → wheel·sdist 둘 다
+  정상, `--version`/`--help`/`sim list`/`doctor --json`/`ps --json` 동작, 번들
+  데이터 21파일 + `dist-info/licenses/` 포함 확인.
+- **런타임 한국어**: `rosmac sim list` 테이블의 프리셋 `description:` 3개가 유일.
+  → 3개 preset YAML의 description + 주변 주석 영어화 (커밋 `98243c7`).
+  이후 전 서브커맨드 `--help` + 명령 출력 한글 유니코드 스캔 = 0.
+- **미대상 (릴리스 후로 연기, 사용자 결정 2026-09-02)**: wheel에 포함되는
+  소스의 코드 주석·docstring 한국어 **307줄 / 21파일** (doctor 42, psview 41,
+  cli 34, deps 28, bridge 22, sim 21, config 19, report 12, conda 11, lima 10,
+  assets 9, errors 7 + preset launch.py ×3 / provision *.sh ×3 / cyclonedds.xml /
+  colcon-defaults.yaml / lima tmpl). 런타임에 출력되지 않음. D11 정리 대상.
+
 ## 다음 작업 인계 메모
 - 초안은 전부 `main`에 커밋됨. 문구 리뷰 후 확정.
 - Phase 6.5 최종 점검(민감정보 스캔, 링크 유효성)은 5.6 게이트 통과 후.
