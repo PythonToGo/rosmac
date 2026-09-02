@@ -78,5 +78,7 @@ jobs:
       - name: Publish
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          # Release -> production PyPI (default). Manual dispatch -> TestPyPI rehearsal.
-          repository-url: ${{ github.event_name == 'release' && '' || 'https://test.pypi.org/legacy/' }}
+          # Release -> production PyPI. Manual dispatch -> TestPyPI rehearsal.
+          # Both branches must be non-empty: '' is falsy in GHA expressions, so
+          # `x && '' || y` always yields y (this shipped broken in the v0.1.0 run).
+          repository-url: ${{ github.event_name == 'release' && 'https://upload.pypi.org/legacy/' || 'https://test.pypi.org/legacy/' }}

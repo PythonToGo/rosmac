@@ -52,7 +52,7 @@ path = "src/rosmac/__init__.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/rosmac"]
-exclude = ["**/__pycache__", "**/*.pyc"]
+exclude = ["**/__pycache__", "**/*.pyc"]  # keep compiled preset launch files out of the wheel
 
 [tool.ruff]
 line-length = 100
